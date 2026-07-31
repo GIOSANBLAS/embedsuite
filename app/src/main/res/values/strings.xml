@@ -1,0 +1,276 @@
+<resources>
+    <string name="app_name">EMBED SUITE</string>
+    <string name="widget_description">Estado LINK, RX 15s, última freq y acceso RF/AI para T-Embed CC1101</string>
+
+    <!-- Idiomas -->
+    <string name="lang_system">Sistema</string>
+    <string name="lang_spanish">Español</string>
+    <string name="lang_english">English</string>
+    <string name="lang_portuguese">Português</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_sub">Interfaz de la app</string>
+
+    <!-- Navegación -->
+    <string name="nav_home">INICIO</string>
+    <string name="nav_rf">RF</string>
+    <string name="nav_wifi">WiFi</string>
+    <string name="nav_nfc">NFC</string>
+    <string name="nav_cli">CLI</string>
+    <string name="nav_ai">AI</string>
+    <string name="nav_tools">Tools</string>
+    <string name="topbar_subtitle">T-Embed CC1101 Plus</string>
+    <string name="status_offline">OFFLINE</string>
+    <string name="status_sync">SYNC…</string>
+    <string name="status_link_ok">LINK OK</string>
+    <string name="status_err">ERR</string>
+
+    <!-- Comunes -->
+    <string name="action_back">Volver</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_import">Importar</string>
+    <string name="action_refresh">Actualizar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_share">Compartir</string>
+    <string name="action_transmit">Transmitir</string>
+    <string name="action_unavailable">No disponible</string>
+
+    <!-- Onboarding legal -->
+    <string name="onboard_connect_title">CONECTAR T-EMBED</string>
+    <string name="onboard_connect_body">Conecta el CC1101 Plus por USB OTG.\nLa app detectará el dispositivo automáticamente.\nTambién puedes usar WiFi (BruceNet) o BLE.</string>
+    <string name="onboard_capture_title">CAPTURAR SEÑAL</string>
+    <string name="onboard_capture_body">Ve a RF → CAPTURAR RAW.\nEl CC1101 escuchará 433.92 MHz.\nLas señales se guardan con GPS si activas ubicación.</string>
+    <string name="onboard_library_title">BIBLIOTECA &amp; REPLAY</string>
+    <string name="onboard_library_body">Todas las señales van a la biblioteca.\nPuedes retransmitir, exportar .sub\ny comparar protocolos decodificados.</string>
+    <string name="onboard_legal_title">USO LEGAL</string>
+    <string name="onboard_legal_body">EMBED SUITE es para investigación autorizada.\nTú eres responsable del cumplimiento de leyes locales.\nNo interferir con comunicaciones ajenas ni retransmitir señales sin permiso.\nEl wardriving y la TX RF pueden estar regulados en tu país.</string>
+    <string name="onboard_legal_accept">Acepto la responsabilidad legal del uso de RF, WiFi/BLE y GPS</string>
+    <string name="onboard_next">SIGUIENTE</string>
+    <string name="onboard_start">COMENZAR</string>
+    <string name="wireless_war_legal_title">WAR-DRIVE — aviso legal</string>
+    <string name="wireless_war_legal_body">El escaneo WiFi/BLE con GPS guarda redes y ubicación en el teléfono. Úsalo solo en entornos autorizados. No es un ataque; eres responsable del cumplimiento local.</string>
+    <string name="wireless_war_legal_accept">Activar WAR-DRIVE</string>
+
+    <!-- Conexión -->
+    <string name="conn_disconnected">DESCONECTADO</string>
+    <string name="conn_connecting">CONECTANDO…</string>
+    <string name="conn_connected">OPERATIVO</string>
+    <string name="conn_error">ERROR</string>
+    <string name="conn_transport">Transporte: %1$s</string>
+    <string name="conn_check_usb">→ Revisa cable USB OTG o empareja BLE/WiFi</string>
+    <string name="notif_connected_title">T-Embed conectado</string>
+    <string name="notif_connected_body">Transporte: %1$s</string>
+    <string name="notif_disconnected_title">T-Embed desconectado</string>
+    <string name="notif_disconnected_body">Sin enlace</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">AJUSTES</string>
+    <string name="settings_subtitle">Configuración del sistema</string>
+    <string name="settings_audio">AUDIO / HAPTICS</string>
+    <string name="settings_sound">Sonidos retro (beeps)</string>
+    <string name="settings_haptics">Vibración háptica</string>
+    <string name="settings_ui">INTERFAZ</string>
+    <string name="settings_scanlines">Scanlines CRT</string>
+    <string name="settings_glass">Intensidad fondo: %1$d%%</string>
+    <string name="settings_field">MODO CAMPO</string>
+    <string name="settings_field_freq_hint">Frecuencia RF para captura automática en campo</string>
+    <string name="settings_field_mhz">MHz MODO CAMPO</string>
+    <string name="settings_connection">CONEXIÓN T-EMBED</string>
+    <string name="settings_auto_reconnect">Auto-reconexión</string>
+    <string name="settings_default_transport">Transporte por defecto</string>
+    <string name="settings_system">SISTEMA</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_about_sub">Versión, changelog, equipo y legal</string>
+    <string name="settings_reset_onboarding">Reiniciar onboarding y permisos</string>
+
+    <!-- Dashboard -->
+    <string name="dash_command_center">CENTRO DE MANDO</string>
+    <string name="dash_ota_title">ACTUALIZACIÓN BRUCE DISPONIBLE</string>
+    <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
+    <string name="dash_ota_action">Ir a Tools → Flash</string>
+    <string name="dash_link">ENLACE T-EMBED</string>
+    <string name="dash_system">ESP32-S3 / CC1101</string>
+    <string name="dash_uptime">UPTIME</string>
+    <string name="dash_heap">FREE HEAP</string>
+    <string name="dash_battery">BATERÍA</string>
+    <string name="dash_firmware">FIRMWARE</string>
+    <string name="dash_signals_today">SEÑALES HOY</string>
+    <string name="dash_aps_today">APs HOY</string>
+    <string name="dash_macros_today">MACROS</string>
+    <string name="dash_quick_actions">ACCIONES RÁPIDAS</string>
+    <string name="dash_rx_15s">RX 15s</string>
+    <string name="dash_tx_last">TX ÚLTIMA</string>
+    <string name="dash_info">INFO</string>
+    <string name="dash_last_signal">ÚLTIMA SEÑAL RF</string>
+    <string name="dash_no_signals">Sin capturas. Ve a RF → CAPTURAR.</string>
+    <string name="dash_retransmit">RETRANSMITIR</string>
+    <string name="dash_view_rf">VER RF</string>
+    <string name="dash_last_tx">ÚLTIMAS 5 TX</string>
+    <string name="dash_field_mode">OPERACIÓN DE CAMPO</string>
+    <string name="dash_field_active">Activo — escuchando %1$s MHz + GPS</string>
+    <string name="dash_field_idle">War-driving con captura RF automática</string>
+    <string name="dash_keep_screen">Pantalla encendida</string>
+    <string name="dash_stop_field">DETENER SESIÓN</string>
+    <string name="dash_start_field">INICIAR MODO CAMPO</string>
+    <string name="dash_preview_tx">Preview TX</string>
+    <string name="dash_report_html">REPORT HTML</string>
+    <string name="dash_report_pdf">REPORT PDF</string>
+    <string name="dash_tools_export">TOOLS / EXPORT</string>
+    <string name="dash_share_report">Compartir reporte</string>
+    <string name="dash_share_pdf">Compartir PDF</string>
+    <string name="dash_favorites">FAVORITOS RF</string>
+    <string name="dash_field_session_name">Nombre de sesión</string>
+    <string name="dash_field_session_running">Sesión: %1$s</string>
+    <string name="dash_share_field_report">Compartir reporte de campo</string>
+    <string name="dash_field_report_missing">Reporte de campo no encontrado</string>
+
+    <!-- Acerca de -->
+    <string name="about_title">ACERCA DE</string>
+    <string name="about_subtitle">EMBED SUITE · T-Embed CC1101 Plus</string>
+    <string name="about_privacy_title">PRIVACIDAD</string>
+    <string name="about_privacy_sub">Política de privacidad</string>
+    <string name="about_licenses_title">LICENCIAS</string>
+    <string name="about_licenses_sub">Código abierto de terceros</string>
+    <string name="about_changelog">Historial de versiones</string>
+    <string name="about_team">Equipo</string>
+    <string name="about_privacy_btn">Política de privacidad</string>
+    <string name="about_licenses_btn">Licencias OSS</string>
+    <string name="about_manual_section">MANUAL DE USUARIO</string>
+    <string name="about_manual_title">MANUAL INTERACTIVO</string>
+    <string name="about_manual_sub">Botones, hardware T-Embed y comandos Bruce</string>
+    <string name="about_manual_desc">Guía completa vinculando cada control de la app al CC1101, PN532, IR y ESP32-S3. Búsqueda y filtros por pantalla.</string>
+    <string name="about_manual_btn">Abrir manual interactivo</string>
+
+    <!-- Widget -->
+    <string name="widget_link_ok">LINK OK // %1$s</string>
+    <string name="widget_sync">SYNC…</string>
+    <string name="widget_offline">OFFLINE</string>
+    <string name="widget_err">ERR</string>
+    <string name="widget_signals">%1$d señales</string>
+    <string name="widget_last_freq">Última: %1$s @ %2$s MHz</string>
+    <string name="widget_btn_rf">RF</string>
+    <string name="widget_btn_rx">RX 15s</string>
+    <string name="widget_btn_ai">AI</string>
+    <string name="widget_btn_tx_fav">TX ★</string>
+    <string name="widget_fav_label">★ Fav: %1$s</string>
+    <string name="widget_fav_empty">★ Fav: marca uno en biblioteca</string>
+    <string name="widget_tx_ok">TX: %1$s</string>
+    <string name="widget_tx_fail">TX favorito falló</string>
+    <string name="widget_tx_no_fav">Sin favorito RF. Marca ★ en biblioteca.</string>
+    <string name="widget_tx_no_app">Abre EMBED SUITE una vez</string>
+    <string name="widget_tx_offline">Conecta T-Embed (USB para RAW)</string>
+
+    <!-- Tools v3.4 -->
+    <string name="tools_debug_title">BRUCE DEBUG (%1$d/200)</string>
+    <string name="tools_debug_empty">Sin líneas Bruce aún. Conecta T-Embed y opera.</string>
+    <string name="tools_debug_copied">Log copiado (%1$d líneas)</string>
+    <string name="tools_sd_sync">SYNC SD T-EMBED</string>
+    <string name="tools_sd_hint">Lista señales en SD del T-Embed (Bruce).</string>
+    <string name="tools_connect_first">Conecta T-Embed primero.</string>
+    <string name="tools_listing">Listando storage…</string>
+    <string name="tools_rf_highlight">Señal RF #%1$d en biblioteca</string>
+
+    <!-- RF Hub -->
+    <string name="rf_tab_spectrum">SPECTRUM</string>
+    <string name="rf_tab_library">BIBLIOTECA</string>
+    <string name="rf_tab_analysis">ANÁLISIS</string>
+
+    <!-- Firmware flash -->
+    <string name="firmware_flash_title">FIRMWARE FLASH</string>
+    <string name="firmware_flash_sub">Bruce oficial, custom .bin bajo su responsabilidad</string>
+    <string name="firmware_recommended">RECOMENDADO</string>
+    <string name="firmware_recommended_reason">Bruce estable más reciente para T-Embed CC1101 Plus — máxima compatibilidad con EMBED SUITE.</string>
+    <string name="firmware_fetch_bruce">BUSCAR FIRMWARES BRUCE</string>
+    <string name="firmware_available">Disponibles</string>
+    <string name="firmware_pick_custom">CUSTOM .bin</string>
+    <string name="firmware_clear_custom">Quitar custom</string>
+    <string name="firmware_ota_wifi">OTA WiFi</string>
+    <string name="firmware_usb_flash">USB Flash</string>
+    <string name="firmware_custom_ota_hint">OTA solo para Bruce oficial. Custom: use USB Flash (bootloader).</string>
+    <string name="firmware_disclaimer_title">⚠ FIRMWARE NO OFICIAL</string>
+    <string name="firmware_disclaimer_body">Flashear firmware custom u otros binarios puede dejar el T-Embed inutilizable (brick), anular garantía y hacer que EMBED SUITE deje de funcionar. Usted asume todo riesgo. Asegúrese de saber recuperar el dispositivo vía USB bootloader (Encoder + RST). EMBED SUITE y sus autores no se responsabilizan por daños al hardware.</string>
+    <string name="firmware_disclaimer_accept">Acepto la responsabilidad y deseo continuar</string>
+    <string name="firmware_disclaimer_continue">Flashear</string>
+    <string name="firmware_official_desc">Bruce oficial · T-Embed CC1101 Plus</string>
+    <string name="firmware_custom_desc">Firmware personalizado — uso bajo su responsabilidad</string>
+    <string name="firmware_status_ready">Listo para flashear firmware.</string>
+    <string name="firmware_status_fetching">Consultando releases Bruce…</string>
+    <string name="firmware_status_using_local">Usando %1$s…</string>
+    <string name="firmware_status_downloading">Descargando %1$s…</string>
+    <string name="firmware_status_preparing_usb">Preparando %1$s para USB…</string>
+    <string name="firmware_status_ota_upload">Subiendo OTA WiFi…</string>
+    <string name="firmware_status_usb_flash">Flasheando por USB (bootloader)…</string>
+    <string name="firmware_status_ota_ok">OTA OK: %1$s</string>
+    <string name="firmware_status_usb_ok">USB Flash OK: %1$s</string>
+    <string name="firmware_status_ota_fail">OTA falló: %1$s</string>
+    <string name="firmware_status_usb_fail">USB Flash falló: %1$s</string>
+    <string name="firmware_status_error">Error: %1$s</string>
+
+    <!-- Biblioteca RF -->
+    <string name="library_title">BIBLIOTECA DE SEÑALES</string>
+    <string name="library_entries">%1$d entradas</string>
+    <string name="library_search_hint">Buscar…</string>
+    <string name="library_empty">Sin señales.</string>
+    <string name="library_preview_tx">Preview TX</string>
+    <string name="library_edit">Editar</string>
+    <string name="library_label">Label</string>
+    <string name="library_tags">Tags</string>
+    <string name="library_filter_all">TODOS</string>
+
+    <!-- Wireless -->
+    <string name="wireless_title">WIRELESS SCANNER // 2.4 GHz</string>
+    <string name="wireless_filter_all">TODOS</string>
+    <string name="wireless_filter_wifi">WI-FI</string>
+    <string name="wireless_filter_ble">BLE</string>
+    <string name="wireless_war_drive">WAR-DRIVE</string>
+    <string name="wireless_detected">DETECTADOS: %1$d</string>
+    <string name="wireless_scan_cd">Escanear WiFi y BLE</string>
+    <string name="wireless_gatt_write_title">Escribir GATT (HEX)</string>
+    <string name="wireless_gatt_bytes">Bytes hex</string>
+
+    <!-- Map / Tools -->
+    <string name="map_war_driving">WAR-DRIVING MAP</string>
+    <string name="map_heatmap_full">HEATMAP FULL</string>
+    <string name="map_gps_coords">GPS: %1$s, %2$s</string>
+    <string name="map_heatmap_title">HEATMAP RF/WiFi/BLE</string>
+    <string name="map_export_section">EXPORTAR / IMPORTAR / FLIPPER</string>
+    <string name="map_import_title">Importar %1$s</string>
+
+    <!-- RF Analysis -->
+    <string name="rf_analysis_title">ANÁLISIS RF</string>
+    <string name="rf_raw_visualizer">RAW VISUALIZER</string>
+    <string name="rf_compare">COMPARAR</string>
+    <string name="rf_clear_ab">Limpiar A/B</string>
+    <string name="rf_ai_hint">AI: ¿Qué es esta señal?</string>
+    <string name="rf_pinch_zoom">Pinch zoom • Freq: %1$s MHz</string>
+
+    <!-- AI / Seguridad -->
+    <string name="ai_secure_store_warning">⚠ Almacén cifrado no disponible. La API key de Gemini no se guardará de forma segura.</string>
+    <string name="settings_mock_transport">Transporte simulado (DEBUG)</string>
+    <string name="settings_mock_transport_sub">Prueba la UI sin T-Embed conectado</string>
+
+    <!-- Permisos -->
+    <string name="perm_title">PERMISOS</string>
+    <string name="perm_usb_title">USB OTG</string>
+    <string name="perm_usb_body">Conecta el T-Embed CC1101 por cable USB OTG.\nLa app solicitará permiso al detectar el dispositivo.</string>
+    <string name="perm_location_title">Ubicación</string>
+    <string name="perm_location_body">Necesaria para escaneo WiFi/BLE y war-driving con GPS. Solo en primer plano y modo campo.</string>
+    <string name="perm_bluetooth_title">Bluetooth</string>
+    <string name="perm_bluetooth_body">Para conectar al T-Embed por BLE y escanear dispositivos IoT.</string>
+    <string name="perm_notifications_title">Notificaciones</string>
+    <string name="perm_notifications_body">Alertas de conexión, modo campo y actualizaciones OTA.</string>
+    <string name="perm_microphone_title">Micrófono (opcional)</string>
+    <string name="perm_microphone_body">Entrada de voz para el asistente AI. Puedes omitirlo y escribir comandos.</string>
+    <string name="perm_usb_connected">CABLE CONECTADO</string>
+    <string name="perm_continue">CONTINUAR</string>
+    <string name="perm_grant">CONCEDER PERMISOS</string>
+    <string name="perm_open_settings">Abrir ajustes</string>
+    <string name="perm_skip_mic">Omitir micrófono</string>
+    <string name="perm_next">SIGUIENTE</string>
+    <string name="perm_start">COMENZAR</string>
+    <string name="perm_scan_gate">CONCEDER PERMISOS GPS/BLE/WiFi</string>
+
+    <!-- Bruce WiFi AP (documentado por firmware Bruce) -->
+    <string name="bruce_net_ssid">BruceNet</string>
+    <string name="bruce_net_password">bruce32</string>
+</resources>

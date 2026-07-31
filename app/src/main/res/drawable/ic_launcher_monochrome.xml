@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Hoodie Android + T-Embed silhouette (matches launcher PNG) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,18 C47,18 42,23 42,30 L38,36 L36,34 L34,36 L38,42 C36,44 34,48 34,54 L34,62 C34,68 38,72 44,72 L64,72 C70,72 74,68 74,62 L74,54 C74,48 72,44 70,42 L74,36 L72,34 L70,36 L66,30 C66,23 61,18 54,18 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M46,26 m-3,0 a3,3 0,1 1,6 0 a3,3 0,1 1,-6 0 M62,26 m-3,0 a3,3 0,1 1,6 0 a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M58,52 h20 v28 a6,6 0 0 1 -6,6 h-8 a6,6 0 0 1 -6,-6 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M66,48 h3 v8 h-3 z M64,46 h7 v3 h-7 z" />
+</vector>

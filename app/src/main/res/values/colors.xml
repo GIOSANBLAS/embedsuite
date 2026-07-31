@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="embed_black">#FF000000</color>
+    <color name="embed_green">#FF00FF41</color>
+    <color name="embed_cyan">#FF00FFFF</color>
+    <color name="embed_kali_blue">#FF367BF0</color>
+    <color name="embed_orange">#FFFF6600</color>
+    <color name="embed_surface">#FF0C1210</color>
+</resources>

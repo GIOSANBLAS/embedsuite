@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/embed_surface"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EMBED SUITE"
+        android:textColor="@color/embed_green"
+        android:textSize="13sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OFFLINE"
+        android:textColor="@color/embed_cyan"
+        android:textSize="9sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/widget_signals"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 señales"
+        android:textColor="@color/embed_kali_blue"
+        android:textSize="8sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/widget_last_freq"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Última: —"
+        android:textColor="@color/embed_orange"
+        android:textSize="8sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/widget_fav"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="★ Fav: —"
+        android:textColor="@color/embed_orange"
+        android:textSize="8sp"
+        android:fontFamily="monospace" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="6dp">
+
+        <Button
+            android:id="@+id/widget_btn_rf"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:text="@string/widget_btn_rf"
+            android:textSize="9sp"
+            android:backgroundTint="@color/embed_surface"
+            android:textColor="@color/embed_green" />
+
+        <Button
+            android:id="@+id/widget_btn_rx"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="@string/widget_btn_rx"
+            android:textSize="8sp"
+            android:backgroundTint="@color/embed_surface"
+            android:textColor="@color/embed_orange" />
+
+        <Button
+            android:id="@+id/widget_btn_tx_fav"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="@string/widget_btn_tx_fav"
+            android:textSize="8sp"
+            android:backgroundTint="@color/embed_surface"
+            android:textColor="@color/embed_cyan" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,86 @@
+package com.embedsuite.app.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.embedsuite.app.connection.ConnectionState
+import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.connection.FirmwareRepository
+import com.embedsuite.app.connection.OtaUpdateChecker
+import com.embedsuite.app.connection.OtaUpdateStatus
+import com.embedsuite.app.core.SessionStatsTracker
+import com.embedsuite.app.data.CapturedSignalEntity
+import com.embedsuite.app.data.SignalRepository
+import com.embedsuite.app.data.TxHistoryEntity
+import com.embedsuite.app.data.TxHistoryRepository
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+
+data class DashboardUiState(
+    val connectionState: ConnectionState = ConnectionState.Disconnected,
+    val systemInfo: com.embedsuite.app.connection.SystemInfo = com.embedsuite.app.connection.SystemInfo(),
+    val lastSignal: CapturedSignalEntity? = null,
+    val signalsToday: Int = 0,
+    val apsToday: Int = 0,
+    val macrosToday: Int = 0,
+    val txHistory: List<TxHistoryEntity> = emptyList(),
+    val favoriteRf: List<CapturedSignalEntity> = emptyList(),
+    val otaStatus: OtaUpdateStatus = OtaUpdateStatus.Unknown
+)
+
+class DashboardViewModel(
+    private val connectionManager: DeviceConnectionManager,
+    private val signalRepository: SignalRepository,
+    private val txHistoryRepository: TxHistoryRepository,
+    private val sessionStats: SessionStatsTracker,
+    private val firmwareRepository: FirmwareRepository,
+    private val otaUpdateChecker: OtaUpdateChecker
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(DashboardUiState())
+    val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            combine(
+                connectionManager.connectionState,
+                connectionManager.systemInfo,
+                txHistoryRepository.observeRecent(5)
+            ) { conn, sys, tx ->
+                Triple(conn, sys, tx)
+            }.collect { (conn, sys, tx) ->
+                _uiState.update {
+                    it.copy(connectionState = conn, systemInfo = sys, txHistory = tx)
+                }
+                if (conn is ConnectionState.Connected && sys.firmware.isNotBlank()) {
+                    checkOta(sys.firmware)
+                }
+            }
+        }
+        refreshStats()
+    }
+
+    fun refreshStats() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    lastSignal = signalRepository.getLatest(),
+                    signalsToday = sessionStats.signalsToday(),
+                    apsToday = sessionStats.apsToday(),
+                    macrosToday = sessionStats.macrosToday(),
+                    favoriteRf = signalRepository.getFavoriteRf(8)
+                )
+            }
+        }
+    }
+
+    fun refreshSystemInfo() {
+        viewModelScope.launch { connectionManager.refreshSystemInfo() }
+    }
+
+    private fun checkOta(deviceFirmware: String) {
+        viewModelScope.launch {
+            val status = otaUpdateChecker.check(deviceFirmware)
+            _uiState.update { it.copy(otaStatus = status) }
+        }
+    }
+}

@@ -17,3 +17,5 @@ keystore.properties
 keystore.password.txt
 *.jks
 *.keystore
+*.apk
+crash_logs/

@@ -1,0 +1,33 @@
+---
+description: Sincronizar cambios de EmbedSuite con GitHub (GIOSANBLAS/embedsuite)
+alwaysApply: true
+---
+
+# GitHub sync — EmbedSuite
+
+Repositorio remoto: **https://github.com/GIOSANBLAS/embedsuite** (privado).
+
+## Obligatorio en cada sesión con cambios de código
+
+Al terminar trabajo con cambios en este repo:
+
+1. `git status` — no incluir `*.apk`, `crash_logs/`, `local.properties`, keystores.
+2. Commit con mensaje claro (qué y por qué).
+3. `git push origin main` — la rama debe quedar sincronizada con GitHub.
+
+Si el usuario no pidió explícitamente "solo local", **siempre commit + push** al cerrar la tarea.
+
+## Prohibido commitear
+
+- `*.apk`, `*.jks`, `keystore.properties`, `local.properties`, `crash_logs/`.
+
+## Comandos (PowerShell)
+
+```powershell
+cd C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE
+git add -A
+git commit -m "mensaje"
+git push origin main
+```
+
+Si `gh` no está autenticado: `gh auth login -h github.com -p https -w`

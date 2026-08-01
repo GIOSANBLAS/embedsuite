@@ -73,7 +73,7 @@ class MapToolsViewModel(
         viewModelScope.launch {
             connectionManager.systemInfo.collect { info ->
                 if (info.firmware.isNotBlank()) {
-                    val status = otaUpdateChecker.check(info.firmware)
+                    val status = otaUpdateChecker.check(info.firmware, detectedProfile.value)
                     _uiState.update { it.copy(otaStatus = status) }
                 }
             }
@@ -161,7 +161,7 @@ class MapToolsViewModel(
         viewModelScope.launch {
             runCatching {
                 val name = uri.lastPathSegment ?: "import"
-                val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
+                val content = readImportContentLimited(context, uri)
                 val ext = name.substringAfterLast('.', "").lowercase()
                 val preview = when (ext) {
                     "sub" -> FlipperFileManager.parseSubFile(content)?.let {
@@ -212,5 +212,30 @@ class MapToolsViewModel(
 
     fun dismissImportPreview() {
         _uiState.update { it.copy(importPreview = null) }
+    }
+
+    private fun readImportContentLimited(context: Context, uri: Uri): String {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val buffer = ByteArray(8192)
+            val out = StringBuilder()
+            var total = 0L
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                total += read
+                if (total > MAX_IMPORT_PREVIEW_BYTES) {
+                    throw IllegalArgumentException(
+                        "Archivo demasiado grande para vista previa (máx ${MAX_IMPORT_PREVIEW_BYTES / (1024 * 1024)} MB)"
+                    )
+                }
+                out.append(String(buffer, 0, read, Charsets.UTF_8))
+            }
+            return out.toString()
+        }
+        return ""
+    }
+
+    companion object {
+        private const val MAX_IMPORT_PREVIEW_BYTES = 2 * 1024 * 1024L
     }
 }

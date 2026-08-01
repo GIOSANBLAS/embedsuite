@@ -278,6 +278,11 @@ class FirmwareRepository {
     suspend fun downloadFirmware(release: FirmwareRelease, targetDir: File): Result<File> =
         withContext(Dispatchers.IO) {
             try {
+                if (release.source == FirmwareSource.OFFICIAL_XIBALBA && release.sha256Hex.isNullOrBlank()) {
+                    return@withContext Result.failure(
+                        Exception("Release Xibalba oficial sin SHA256 en notas — descarga rechazada")
+                    )
+                }
                 if (!targetDir.exists()) targetDir.mkdirs()
                 val safeName = Companion.sanitizeFirmwareFileName(release.fileName)
                 val targetFile = File(targetDir, safeName)

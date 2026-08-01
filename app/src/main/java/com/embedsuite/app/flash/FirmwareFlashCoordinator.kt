@@ -41,7 +41,9 @@ class FirmwareFlashCoordinator(
                 firmwareRepository.resolveFlashFile(release, cacheDir).fold(
                     onSuccess = { file ->
                         _flashStatus.value = context.getString(com.embedsuite.app.R.string.firmware_status_ota_upload)
-                        connectionManager.uploadFirmwareOta(file) { _otaProgress.value = it }.fold(
+                        val sha256 = release.sha256Hex?.trim()?.lowercase()
+                            ?: FirmwareRepository.computeFileSha256Hex(file)
+                        connectionManager.uploadFirmwareOta(file, sha256) { _otaProgress.value = it }.fold(
                             onSuccess = {
                                 _flashStatus.value = context.getString(
                                     com.embedsuite.app.R.string.firmware_status_ota_ok,

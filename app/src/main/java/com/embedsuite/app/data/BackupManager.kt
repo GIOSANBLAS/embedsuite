@@ -14,7 +14,7 @@ class BackupManager(
 ) {
     private val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
 
-    suspend fun exportFullBackup(): Result<File> = runCatching {
+    suspend fun exportFullBackup(includeSensitive: Boolean = false): Result<File> = runCatching {
         val signals = database.capturedSignalDao().getRecent(10_000)
         val irButtons = database.irButtonDao().getAll()
         val macros = database.macroDao().getAll()
@@ -28,13 +28,16 @@ class BackupManager(
             put("version", BACKUP_VERSION)
             put("exportedAt", System.currentTimeMillis())
             put("appVersion", com.embedsuite.app.core.AppVersion.NAME)
+            put("includeSensitive", includeSensitive)
             put("signals", signals.toJsonArray { s ->
                 JSONObject().apply {
                     put("type", s.signalType); put("name", s.name); put("label", s.label)
                     put("tags", s.tags); put("protocol", s.protocol); put("frequency", s.frequency)
                     put("deviceId", s.deviceId); put("macAddress", s.macAddress); put("rssi", s.rssi)
                     put("latitude", s.latitude); put("longitude", s.longitude)
-                    put("rawData", s.rawData); put("detail", s.detail); put("decodedFields", s.decodedFields)
+                    put("rawData", if (includeSensitive) s.rawData else OMITTED)
+                    put("detail", s.detail)
+                    put("decodedFields", if (includeSensitive) s.decodedFields else OMITTED)
                     put("favorite", s.favorite)
                     put("timestamp", s.timestamp)
                 }
@@ -42,7 +45,9 @@ class BackupManager(
             put("irButtons", irButtons.toJsonArray { b ->
                 JSONObject().apply {
                     put("panelName", b.panelName); put("buttonName", b.buttonName)
-                    put("protocol", b.protocol); put("hexCode", b.hexCode); put("bruceCommand", b.bruceCommand)
+                    put("protocol", b.protocol)
+                    put("hexCode", if (includeSensitive) b.hexCode else OMITTED)
+                    put("bruceCommand", if (includeSensitive) b.bruceCommand else OMITTED)
                 }
             })
             put("macros", macros.toJsonArray { m ->
@@ -64,14 +69,17 @@ class BackupManager(
             })
             put("nfcDumps", nfcDumps.toJsonArray { d ->
                 JSONObject().apply {
-                    put("uid", d.uid); put("tagType", d.tagType); put("rawDump", d.rawDump)
-                    put("parsedSectors", d.parsedSectors); put("timestamp", d.timestamp)
+                    put("uid", d.uid); put("tagType", d.tagType)
+                    put("rawDump", if (includeSensitive) d.rawDump else OMITTED)
+                    put("parsedSectors", if (includeSensitive) d.parsedSectors else OMITTED)
+                    put("timestamp", d.timestamp)
                 }
             })
             put("bleProfiles", bleProfiles.toJsonArray { b ->
                 JSONObject().apply {
                     put("name", b.name); put("address", b.address); put("services", b.services)
-                    put("manufacturerData", b.manufacturerData); put("notes", b.notes); put("timestamp", b.timestamp)
+                    put("manufacturerData", if (includeSensitive) b.manufacturerData else OMITTED)
+                    put("notes", b.notes); put("timestamp", b.timestamp)
                 }
             })
             put("rfAutomationRules", rfRules.toJsonArray { r ->
@@ -156,14 +164,7 @@ class BackupManager(
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
                     val commands = o.optString("commands")
-                    commands.lines()
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() && !it.startsWith("#") }
-                        .forEach { line ->
-                            if (!line.startsWith("wait ", ignoreCase = true)) {
-                                com.embedsuite.app.connection.BruceCommandValidator.validate(line).getOrThrow()
-                            }
-                        }
+                    validateCommandBlock(commands)
                     database.macroDao().insert(MacroEntity(name = o.optString("name"), commands = commands, description = o.optString("description", "")))
                     macros++
                 }
@@ -171,8 +172,10 @@ class BackupManager(
             root.optJSONArray("profiles")?.let { arr ->
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
+                    val commands = o.optString("commands")
+                    validateCommandBlock(commands)
                     database.profileDao().insert(
-                        ProfileEntity(name = o.optString("name"), category = o.optString("category"), commands = o.optString("commands"), description = o.optString("description", ""), icon = o.optString("icon", ""))
+                        ProfileEntity(name = o.optString("name"), category = o.optString("category"), commands = commands, description = o.optString("description", ""), icon = o.optString("icon", ""))
                     )
                     profiles++
                 }
@@ -233,6 +236,17 @@ class BackupManager(
         BackupImportResult(signals, ir, macros, profiles, nfc, ble, rfRules, txHistoryCount)
     }
 
+    private fun validateCommandBlock(commands: String) {
+        commands.lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+            .forEach { line ->
+                if (!line.startsWith("wait ", ignoreCase = true)) {
+                    com.embedsuite.app.connection.BruceCommandValidator.validate(line).getOrThrow()
+                }
+            }
+    }
+
     data class BackupImportResult(
         val signals: Int,
         val irButtons: Int,
@@ -249,6 +263,7 @@ class BackupManager(
     companion object {
         const val BACKUP_VERSION = 2
         private const val MAX_BACKUP_BYTES = 20 * 1024 * 1024L
+        private const val OMITTED = "[OMITTED]"
     }
 
     private inline fun <T> List<T>.toJsonArray(mapper: (T) -> JSONObject): JSONArray {

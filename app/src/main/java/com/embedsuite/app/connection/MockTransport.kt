@@ -218,6 +218,31 @@ class MockTransport(
             })
             "run_action" -> handleRunAction(root)
             "get_action_state" -> handleGetActionState(root)
+            "ota_begin" -> try {
+                handleOtaBegin(root)
+            } catch (e: Exception) {
+                emitTehLinkError(id, e.message ?: "ota_error")
+                return Result.success("OK")
+            }
+            "ota_chunk" -> try {
+                handleOtaChunk(root)
+            } catch (e: Exception) {
+                emitTehLinkError(id, e.message ?: "ota_error")
+                return Result.success("OK")
+            }
+            "ota_finish" -> try {
+                handleOtaFinish()
+            } catch (e: Exception) {
+                emitTehLinkError(id, e.message ?: "ota_error")
+                return Result.success("OK")
+            }
+            "ota_abort" -> {
+                otaActive = false
+                otaBuffer.reset()
+                otaWritten = 0L
+                otaNextSeq = 0
+                JSONObject().put("state", "aborted")
+            }
             else -> null
         }
 
@@ -228,6 +253,16 @@ class MockTransport(
         }
         _incoming.emit(response.toString())
         return Result.success("OK")
+    }
+
+    private suspend fun emitTehLinkError(id: Int, error: String) {
+        _incoming.emit(
+            JSONObject()
+                .put("ok", false)
+                .put("id", id)
+                .put("error", error)
+                .toString()
+        )
     }
 
     private fun tickBadusbProgress() {
@@ -410,6 +445,13 @@ class MockTransport(
 
     private var mockPassphraseCounter = 0
 
+    private var otaActive = false
+    private var otaTotalSize = 0L
+    private var otaWritten = 0L
+    private var otaExpectedSha256 = ""
+    private var otaNextSeq = 0
+    private val otaBuffer = java.io.ByteArrayOutputStream()
+
     private fun mockGenPassphrase(words: Int): String {
         val wordList = listOf("alpha", "bravo", "cascade", "delta", "ember", "flux", "glyph", "helix")
         mockPassphraseCounter++
@@ -577,6 +619,72 @@ class MockTransport(
             "crypto_toolkit" -> cryptoStateJson()
             else -> null
         }
+    }
+
+    private fun handleOtaBegin(root: JSONObject): JSONObject {
+        if (otaActive) {
+            throw IllegalStateException("ota_already_active")
+        }
+        otaTotalSize = root.optLong("size", 0L)
+        otaExpectedSha256 = root.optString("sha256", "").lowercase()
+        if (otaTotalSize <= 0 || otaExpectedSha256.length != 64) {
+            throw IllegalArgumentException("invalid_params")
+        }
+        otaActive = true
+        otaWritten = 0L
+        otaNextSeq = 0
+        otaBuffer.reset()
+        return JSONObject()
+            .put("bytes_written", 0)
+            .put("total_size", otaTotalSize)
+            .put("state", "in_progress")
+    }
+
+    private fun handleOtaChunk(root: JSONObject): JSONObject {
+        if (!otaActive) {
+            throw IllegalStateException("ota_not_active")
+        }
+        val seq = root.optInt("seq", -1)
+        if (seq != otaNextSeq) {
+            throw IllegalStateException("unexpected_seq")
+        }
+        val b64 = root.optString("data", "")
+        val chunk = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        if (chunk.isEmpty()) {
+            throw IllegalArgumentException("base64_decode_failed")
+        }
+        otaBuffer.write(chunk)
+        otaWritten += chunk.size
+        otaNextSeq++
+        return JSONObject()
+            .put("bytes_written", otaWritten)
+            .put("total_size", otaTotalSize)
+            .put("state", "in_progress")
+            .put("chunk_bytes", chunk.size)
+    }
+
+    private fun handleOtaFinish(): JSONObject {
+        if (!otaActive) {
+            throw IllegalStateException("ota_not_active")
+        }
+        if (otaWritten < otaTotalSize) {
+            throw IllegalStateException("ota_incomplete")
+        }
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(otaBuffer.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        if (!digest.equals(otaExpectedSha256, ignoreCase = true)) {
+            otaActive = false
+            otaBuffer.reset()
+            throw IllegalStateException("sha256_mismatch")
+        }
+        otaActive = false
+        otaBuffer.reset()
+        return JSONObject()
+            .put("bytes_written", otaWritten)
+            .put("total_size", otaTotalSize)
+            .put("state", "complete")
+            .put("rebooting", true)
     }
 
     companion object {

@@ -58,6 +58,7 @@ class DeviceConnectionManager(
     private val mockTransport = MockTransport()
 
     private val tehLinkClient = TehLinkClient(scope)
+    private val tehLinkOtaUploader = TehLinkOtaUploader(tehLinkClient)
 
     private var activeTransport: TEmbedTransport? = null
 
@@ -473,31 +474,15 @@ class DeviceConnectionManager(
     }
 
     suspend fun tehLinkRunWifiScan(seconds: Int): Result<TehLinkActionResult> {
-        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
-        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
-            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
-        }
-        return tehLinkClient.runWifiScan(transport, seconds).onSuccess { result ->
-            _events.tryEmit(
-                BruceEvent.RawLine(
-                    "[TEH-Link] wifi_toolkit/scan_start → ${result.state.state.ifBlank { result.state.message }}"
-                )
-            )
-        }
+        return tehLinkRunAction(
+            pluginId = "wifi_toolkit",
+            action = "scan_start",
+            params = JSONObject().put("seconds", seconds.coerceIn(1, 120))
+        )
     }
 
     suspend fun tehLinkRunWardrivingStart(): Result<TehLinkActionResult> {
-        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
-        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
-            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
-        }
-        return tehLinkClient.runWardrivingStart(transport).onSuccess { result ->
-            _events.tryEmit(
-                BruceEvent.RawLine(
-                    "[TEH-Link] wardriving/start → ${result.state.state.ifBlank { result.state.message }}"
-                )
-            )
-        }
+        return tehLinkRunAction(pluginId = "wardriving", action = "start")
     }
 
     suspend fun tehLinkRunWardrivingStop(): Result<TehLinkActionResult> {
@@ -515,17 +500,11 @@ class DeviceConnectionManager(
     }
 
     suspend fun tehLinkRunBleScan(seconds: Int): Result<TehLinkActionResult> {
-        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
-        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
-            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
-        }
-        return tehLinkClient.runBleScan(transport, seconds).onSuccess { result ->
-            _events.tryEmit(
-                BruceEvent.RawLine(
-                    "[TEH-Link] ble_toolkit/scan_start → ${result.state.state.ifBlank { result.state.message }}"
-                )
-            )
-        }
+        return tehLinkRunAction(
+            pluginId = "ble_toolkit",
+            action = "scan_start",
+            params = JSONObject().put("seconds", seconds.coerceIn(1, 120))
+        )
     }
 
     suspend fun tehLinkRunCryptoHash(
@@ -588,21 +567,43 @@ class DeviceConnectionManager(
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
     }
 
-    suspend fun uploadFirmwareOta(binFile: File, expectedSha256: String? = null, onProgress: (Int) -> Unit): Result<String> {
-        if (_activeTransportType.value != TransportType.WIFI) {
-            return Result.failure(Exception("OTA requiere conexión WiFi al T-Embed (BruceNet)."))
+    suspend fun uploadFirmwareOta(
+        binFile: File,
+        expectedSha256: String? = null,
+        onProgress: (Int) -> Unit
+    ): Result<String> {
+        val sha256Hex = expectedSha256?.trim()?.lowercase()
+            ?: FirmwareRepository.computeFileSha256Hex(binFile)
+        FirmwareRepository.verifyFileSha256(binFile, sha256Hex).getOrElse {
+            return Result.failure(it)
         }
-        expectedSha256?.let { hex ->
-            FirmwareRepository.verifyFileSha256(binFile, hex).getOrElse { return Result.failure(it) }
+
+        return when (_detectedProfile.value) {
+            FirmwareProfile.XIBALBA -> {
+                val transport = activeTransport
+                    ?: return Result.failure(Exception("Sin transporte activo para OTA."))
+                if (_activeTransportType.value != TransportType.USB &&
+                    !(BuildConfig.ENABLE_MOCK_TRANSPORT && transport is MockTransport)
+                ) {
+                    return Result.failure(Exception("OTA Xibalba requiere conexión USB (TEH-Link)."))
+                }
+                ensureTehLinkAuth(transport)
+                tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
+            }
+            else -> {
+                if (_activeTransportType.value != TransportType.WIFI) {
+                    return Result.failure(Exception("OTA Bruce requiere conexión WiFi (BruceNet)."))
+                }
+                wifiTransport.uploadFirmware(binFile, onProgress)
+            }
         }
-        return wifiTransport.uploadFirmware(binFile, onProgress)
     }
 
     private suspend fun ensureTehLinkAuth(transport: TEmbedTransport) {
         val stored = secureStore?.getTehLinkAuthToken().orEmpty()
         if (stored.isNotBlank()) {
             tehLinkClient.authToken = stored
-            if (tehLinkClient.ping(transport).getOrDefault(false)) return
+            if (tehLinkClient.getStatus(transport).isSuccess) return
             clearTehLinkAuth()
         }
         pairTehLink(transport)

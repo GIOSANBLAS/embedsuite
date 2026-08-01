@@ -321,6 +321,14 @@ class TehLinkResponseParserTest {
     }
 
     @Test
+    fun validateConsoleRequest_blocksOpenPlugin() {
+        val err = TehLinkCommandPolicy.validateConsoleRequest(
+            """{"cmd":"open_plugin","id":1,"plugin_id":"badusb"}"""
+        )
+        assertTrue(err.isFailure)
+    }
+
+    @Test
     fun validateConsoleRequest_blocksOta() {
         val err = TehLinkCommandPolicy.validateConsoleRequest("""{"cmd":"ota_begin","id":1,"size":1000}""")
         assertTrue(err.isFailure)

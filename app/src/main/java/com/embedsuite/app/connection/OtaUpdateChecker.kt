@@ -19,14 +19,23 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
     private var lastCheckMs: Long = 0
     private val cacheTtlMs = 24 * 60 * 60 * 1000L
 
-    suspend fun check(deviceFirmware: String, force: Boolean = false): OtaUpdateStatus {
+    suspend fun check(
+        deviceFirmware: String,
+        profile: FirmwareProfile = FirmwareProfile.AUTO,
+        force: Boolean = false
+    ): OtaUpdateStatus {
         if (!force && cachedStatus !is OtaUpdateStatus.Unknown && System.currentTimeMillis() - lastCheckMs < cacheTtlMs) {
             return cachedStatus
         }
         val deviceVer = FirmwareRepository.extractVersion(deviceFirmware)
         if (deviceVer.isBlank()) return OtaUpdateStatus.Unknown
 
-        val isXibalba = deviceFirmware.contains("xibalba", ignoreCase = true)
+        val isXibalba = when (profile) {
+            FirmwareProfile.XIBALBA -> true
+            FirmwareProfile.BRUCE -> false
+            FirmwareProfile.AUTO, FirmwareProfile.UNKNOWN ->
+                deviceFirmware.contains("xibalba", ignoreCase = true)
+        }
         val fetchResult = if (isXibalba) {
             firmwareRepository.fetchXibalbaReleases()
         } else {

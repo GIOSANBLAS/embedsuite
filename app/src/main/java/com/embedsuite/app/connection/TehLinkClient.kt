@@ -197,6 +197,14 @@ class TehLinkClient(
         }
     }
 
+    /** Used by [TehLinkOtaUploader] and other trusted internal callers. */
+    suspend fun executeCommand(
+        transport: TEmbedTransport,
+        cmd: String,
+        args: JSONObject? = null,
+        timeoutMs: Long = 5_000L
+    ): Result<JSONObject> = execute(transport, cmd, args, timeoutMs)
+
     private suspend fun execute(
         transport: TEmbedTransport,
         cmd: String,
@@ -222,6 +230,9 @@ class TehLinkClient(
 
     private fun timeoutForCommand(cmd: String, args: JSONObject?): Long = when (cmd) {
         "run_action" -> timeoutForAction(args?.optString("action").orEmpty(), args?.optJSONObject("params"))
+        "ota_begin" -> 15_000L
+        "ota_chunk" -> 30_000L
+        "ota_finish" -> 60_000L
         else -> 5_000L
     }
 

@@ -14,19 +14,19 @@ object EmbedDatabaseFactory {
     private const val TAG = "EmbedDatabaseFactory"
 
     fun create(context: Context, secureStore: SecureStore): EmbedDatabase {
-        val appContext = context.applicationContext
-        val builder = Room.databaseBuilder(appContext, EmbedDatabase::class.java, DB_NAME)
-            .addMigrations(*DatabaseMigrations.ALL)
-
-        if (secureStore.isAvailable) {
-            SQLiteDatabase.loadLibs(appContext)
-            val passphrase = secureStore.getOrCreateDatabasePassphrase()
-            SqlCipherMigration.migratePlaintextIfNeeded(appContext, DB_NAME, passphrase)
-            builder.openHelperFactory(SupportFactory(passphrase))
-        } else {
-            Log.w(TAG, "SecureStore no disponible; Room sin cifrado SQLCipher")
+        if (!secureStore.isAvailable) {
+            throw IllegalStateException(
+                "SecureStore no disponible; la app requiere almacenamiento seguro (EncryptedSharedPreferences)."
+            )
         }
 
+        val appContext = context.applicationContext
+        SQLiteDatabase.loadLibs(appContext)
+        val passphrase = secureStore.getOrCreateDatabasePassphrase()
+        val builder = Room.databaseBuilder(appContext, EmbedDatabase::class.java, DB_NAME)
+            .addMigrations(*DatabaseMigrations.ALL)
+        SqlCipherMigration.migratePlaintextIfNeeded(appContext, DB_NAME, passphrase)
+        builder.openHelperFactory(SupportFactory(passphrase))
         return builder.build()
     }
 }

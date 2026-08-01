@@ -131,7 +131,12 @@ class DashboardViewModel(
                 pluginId = "badusb",
                 action = "run_script",
                 params = JSONObject().put("path", "/sdcard/plugins/badusb/demo.txt")
-            ).onFailure {
+            ).onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        tehLinkNotice = err.message ?: "BadUSB demo bloqueado por política de seguridad."
+                    )
+                }
                 refreshActionState("badusb")
             }
         }
@@ -213,7 +218,8 @@ class DashboardViewModel(
         lastOtaCheckMs = now
         lastOtaFirmware = deviceFirmware
         viewModelScope.launch {
-            val status = otaUpdateChecker.check(deviceFirmware)
+            val profile = connectionManager.detectedProfile.value
+            val status = otaUpdateChecker.check(deviceFirmware, profile)
             _uiState.update { it.copy(otaStatus = status) }
         }
     }

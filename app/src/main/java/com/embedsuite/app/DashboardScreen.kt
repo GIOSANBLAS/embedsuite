@@ -101,7 +101,13 @@ fun DashboardScreen(
             StatRow(stringResource(R.string.dash_uptime), uiState.systemInfo.uptime.ifBlank { "—" })
             StatRow(stringResource(R.string.dash_heap), uiState.systemInfo.freeHeap.ifBlank { "—" })
             StatRow(stringResource(R.string.dash_battery), uiState.systemInfo.battery.ifBlank { "—" })
-            StatRow(stringResource(R.string.dash_firmware), uiState.systemInfo.firmware.ifBlank { "Bruce" })
+            StatRow(stringResource(R.string.dash_firmware), uiState.systemInfo.firmware.ifBlank { "—" })
+            if (uiState.systemInfo.uiScreen.isNotBlank()) {
+                StatRow("UI", uiState.systemInfo.uiScreen)
+            }
+            if (uiState.systemInfo.sdMounted.isNotBlank()) {
+                StatRow("SD", uiState.systemInfo.sdMounted)
+            }
             TextButton(onClick = { viewModel.refreshSystemInfo() }) {
                 Text(stringResource(R.string.action_refresh), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
             }

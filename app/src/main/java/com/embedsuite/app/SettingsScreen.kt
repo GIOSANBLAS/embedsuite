@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.BuildConfig
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
 import com.embedsuite.app.core.AppLanguage
 import com.embedsuite.app.core.AppPreferences
@@ -37,6 +38,7 @@ fun SettingsScreen(
     val scanlinesEnabled by preferences.scanlinesEnabled.collectAsState()
     val autoReconnect by preferences.autoReconnect.collectAsState()
     val defaultTransport by preferences.defaultTransport.collectAsState()
+    val firmwareProfile by preferences.firmwareProfile.collectAsState()
     val glassIntensity by preferences.glassIntensity.collectAsState()
     val fieldFrequency by preferences.fieldFrequencyMhzFlow.collectAsState()
     val appLanguage by preferences.appLanguage.collectAsState()
@@ -157,6 +159,19 @@ fun SettingsScreen(
                             label = type.name,
                             selected = defaultTransport == type,
                             onClick = { preferences.setDefaultTransport(type) },
+                            accent = NeonOrange
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(stringResource(R.string.settings_firmware_profile), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)
+                Text(stringResource(R.string.settings_firmware_profile_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FirmwareProfile.entries.filter { it != FirmwareProfile.UNKNOWN }.forEach { profile ->
+                        GlassChip(
+                            label = profile.label,
+                            selected = firmwareProfile == profile,
+                            onClick = { preferences.setFirmwareProfile(profile) },
                             accent = NeonOrange
                         )
                     }

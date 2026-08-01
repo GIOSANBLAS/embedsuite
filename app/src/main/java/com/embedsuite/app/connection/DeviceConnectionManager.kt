@@ -52,7 +52,12 @@ class DeviceConnectionManager(
     private val bleTransport = BleTransport(context)
     private val mockTransport = MockTransport()
 
+    private val tehLinkClient = TehLinkClient(scope)
+
     private var activeTransport: TEmbedTransport? = null
+
+    private val _detectedProfile = MutableStateFlow(FirmwareProfile.UNKNOWN)
+    val detectedProfile: StateFlow<FirmwareProfile> = _detectedProfile.asStateFlow()
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -152,6 +157,7 @@ class DeviceConnectionManager(
             val detail = mockTransport.connect().getOrElse { return Result.failure(it) }
             activeTransport = mockTransport
             _activeTransportType.value = TransportType.USB
+            _detectedProfile.value = FirmwareProfile.XIBALBA
             _connectionState.value = ConnectionState.Connected(TransportType.USB, detail)
             SoundFeedback.playConnect()
             EmbedWidgetProvider.updateAllWidgets(appContext)
@@ -173,12 +179,14 @@ class DeviceConnectionManager(
                 SoundFeedback.playConnect()
                 EmbedWidgetProvider.updateAllWidgets(appContext)
                 scope.launch {
+                    _detectedProfile.value = detectFirmwareProfile(transport)
                     setSubGhzFrequency(_subGhzFrequencyMhz.value)
                     refreshSystemInfo()
                 }
             },
             onFailure = { error ->
                 activeTransport = null
+                _detectedProfile.value = FirmwareProfile.UNKNOWN
                 _connectionState.value = ConnectionState.Error(error.message ?: "Error de conexión.")
                 SoundFeedback.playError()
                 EmbedWidgetProvider.updateAllWidgets(appContext)
@@ -190,6 +198,7 @@ class DeviceConnectionManager(
     suspend fun disconnect() {
         activeTransport?.disconnect()
         activeTransport = null
+        _detectedProfile.value = FirmwareProfile.UNKNOWN
         _connectionState.value = ConnectionState.Disconnected
         SoundFeedback.playDisconnect()
         EmbedWidgetProvider.updateAllWidgets(appContext)
@@ -281,9 +290,62 @@ class DeviceConnectionManager(
     }
 
     suspend fun refreshSystemInfo() {
+        val transport = activeTransport ?: return
+        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
+            refreshTehLinkSystemInfo(transport)
+            return
+        }
         sendCommand(BruceCommands.info())
         sendCommand(BruceCommands.free())
         sendCommand(BruceCommands.uptime())
+    }
+
+    private suspend fun refreshTehLinkSystemInfo(transport: TEmbedTransport) {
+        var info = _systemInfo.value
+        tehLinkClient.getInfo(transport).onSuccess { device ->
+            info = info.copy(
+                firmware = "${device.product} v${device.version} (${device.codename})",
+                codename = device.codename,
+                channel = device.channel,
+                profile = FirmwareProfile.XIBALBA
+            )
+            _systemInfo.value = info
+            _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
+        }.onFailure {
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] get_info: ${it.message}"))
+        }
+
+        tehLinkClient.getStatus(transport).onSuccess { status ->
+            val uptimeSec = status.uptimeMs / 1000
+            val hours = uptimeSec / 3600
+            val mins = (uptimeSec % 3600) / 60
+            val secs = uptimeSec % 60
+            info = info.copy(
+                uptime = String.format("%02d:%02d:%02d", hours, mins, secs),
+                uiScreen = status.uiScreen,
+                sdMounted = if (status.sdMounted) "OK" else "MISSING",
+                profile = FirmwareProfile.XIBALBA
+            )
+            _systemInfo.value = info
+            _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] UI: ${status.uiScreen}"))
+        }.onFailure {
+            _systemInfo.value = info
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] get_status: ${it.message}"))
+        }
+    }
+
+    private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareProfile {
+        val pref = appPreferences?.firmwareProfile?.value ?: FirmwareProfile.AUTO
+        if (pref == FirmwareProfile.BRUCE) return FirmwareProfile.BRUCE
+        val pingOk = tehLinkClient.ping(transport).getOrElse { false }
+        return when {
+            pref == FirmwareProfile.XIBALBA && pingOk -> FirmwareProfile.XIBALBA
+            pref == FirmwareProfile.XIBALBA && !pingOk -> FirmwareProfile.UNKNOWN
+            pref == FirmwareProfile.AUTO && pingOk -> FirmwareProfile.XIBALBA
+            pref == FirmwareProfile.AUTO && !pingOk -> FirmwareProfile.BRUCE
+            else -> if (pingOk) FirmwareProfile.XIBALBA else FirmwareProfile.BRUCE
+        }
     }
 
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {
@@ -315,6 +377,12 @@ class DeviceConnectionManager(
     }
 
     private fun handleIncomingLine(line: String) {
+        if (TehLinkResponseParser.isTehLinkLine(line)) {
+            _incomingRaw.tryEmit(line)
+            BruceDebugLog.appendIncoming(line)
+            return
+        }
+
         _incomingRaw.tryEmit(line)
         BruceDebugLog.appendIncoming(line)
 
@@ -365,7 +433,12 @@ class DeviceConnectionManager(
             uptime = update.uptime.ifBlank { current.uptime },
             freeHeap = update.freeHeap.ifBlank { current.freeHeap },
             battery = update.battery.ifBlank { current.battery },
-            firmware = update.firmware.ifBlank { current.firmware }
+            firmware = update.firmware.ifBlank { current.firmware },
+            codename = update.codename.ifBlank { current.codename },
+            channel = update.channel.ifBlank { current.channel },
+            uiScreen = update.uiScreen.ifBlank { current.uiScreen },
+            sdMounted = update.sdMounted.ifBlank { current.sdMounted },
+            profile = if (update.profile != FirmwareProfile.UNKNOWN) update.profile else current.profile
         )
     }
 }

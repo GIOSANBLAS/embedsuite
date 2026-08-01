@@ -26,7 +26,12 @@ data class SystemInfo(
     val uptime: String = "",
     val freeHeap: String = "",
     val battery: String = "",
-    val firmware: String = ""
+    val firmware: String = "",
+    val codename: String = "",
+    val channel: String = "",
+    val uiScreen: String = "",
+    val sdMounted: String = "",
+    val profile: FirmwareProfile = FirmwareProfile.UNKNOWN
 )
 
 sealed class BruceEvent {

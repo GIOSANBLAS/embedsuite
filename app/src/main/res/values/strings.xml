@@ -78,6 +78,8 @@
     <string name="settings_connection">CONEXIÓN T-EMBED</string>
     <string name="settings_auto_reconnect">Auto-reconexión</string>
     <string name="settings_default_transport">Transporte por defecto</string>
+    <string name="settings_firmware_profile">Firmware del dispositivo</string>
+    <string name="settings_firmware_profile_sub">Auto detecta TEH-Link (Xibalba) vs Bruce</string>
     <string name="settings_system">SISTEMA</string>
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_sub">Versión, changelog, equipo y legal</string>

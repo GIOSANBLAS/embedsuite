@@ -2,6 +2,7 @@ package com.embedsuite.app.core
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -112,6 +113,16 @@ class AppPreferences(context: Context) {
         _appLanguage.value = language
     }
 
+    private val _firmwareProfile = MutableStateFlow(
+        FirmwareProfile.fromPref(prefs.getString(KEY_FIRMWARE_PROFILE, FirmwareProfile.AUTO.name))
+    )
+    val firmwareProfile: StateFlow<FirmwareProfile> = _firmwareProfile.asStateFlow()
+
+    fun setFirmwareProfile(profile: FirmwareProfile) {
+        prefs.edit().putString(KEY_FIRMWARE_PROFILE, profile.name).apply()
+        _firmwareProfile.value = profile
+    }
+
     companion object {
         const val PREFS_NAME = "embed_prefs"
         private const val KEY_SOUND = "sound"
@@ -128,5 +139,6 @@ class AppPreferences(context: Context) {
         private const val KEY_FIELD_FREQ = "field_freq_mhz"
         private const val KEY_RF_FREQ = "rf_freq_mhz"
         const val KEY_APP_LANGUAGE = "app_language"
+        private const val KEY_FIRMWARE_PROFILE = "firmware_profile"
     }
 }

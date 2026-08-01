@@ -177,6 +177,7 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
             HackerSectionHeader("ACTIONS", accent = NeonCyan)
+            val isXibalba = detectedProfile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA
             GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -187,11 +188,13 @@ fun DashboardScreen(
                         onClick = { viewModel.runSubGhzCapture(15) },
                         modifier = Modifier.weight(1f)
                     )
-                    NeonOutlinedButton(
-                        text = "Run demo script",
-                        onClick = { viewModel.runBadUsbDemoScript() },
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (!isXibalba) {
+                        NeonOutlinedButton(
+                            text = "Run demo script",
+                            onClick = { viewModel.runBadUsbDemoScript() },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
@@ -208,24 +211,34 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    val wardrivingActive = uiState.lastActionState?.let {
-                        it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
-                    } == true
-                    NeonButton(
-                        text = "Wardriving Start",
-                        onClick = { viewModel.runWardrivingStart() },
-                        enabled = !wardrivingActive,
-                        modifier = Modifier.weight(1f)
-                    )
-                    NeonOutlinedButton(
-                        text = "Wardriving Stop",
-                        onClick = { viewModel.runWardrivingStop() },
-                        enabled = wardrivingActive,
-                        modifier = Modifier.weight(1f)
+                if (!isXibalba) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val wardrivingActive = uiState.lastActionState?.let {
+                            it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
+                        } == true
+                        NeonButton(
+                            text = "Wardriving Start",
+                            onClick = { viewModel.runWardrivingStart() },
+                            enabled = !wardrivingActive,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NeonOutlinedButton(
+                            text = "Wardriving Stop",
+                            onClick = { viewModel.runWardrivingStop() },
+                            enabled = wardrivingActive,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else {
+                    Text(
+                        stringResource(R.string.plus_compat_wardriving_xibalba_hint),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        color = TextMuted,
+                        modifier = Modifier.padding(top = 6.dp)
                     )
                 }
                 Row(

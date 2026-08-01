@@ -19,15 +19,18 @@ import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.BuildConfig
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
+import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.core.AppLanguage
 import com.embedsuite.app.core.AppPreferences
 import com.embedsuite.app.core.SoundFeedback
 import com.embedsuite.app.ui.components.*
 import com.embedsuite.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     preferences: AppPreferences,
+    connectionManager: DeviceConnectionManager,
     onBack: () -> Unit,
     onNavigateAbout: () -> Unit = {},
     onResetOnboarding: () -> Unit = {},
@@ -43,6 +46,8 @@ fun SettingsScreen(
     val fieldFrequency by preferences.fieldFrequencyMhzFlow.collectAsState()
     val appLanguage by preferences.appLanguage.collectAsState()
     var useMockTransport by remember { mutableStateOf(preferences.useMockTransport) }
+    var repairMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -187,6 +192,65 @@ fun SettingsScreen(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 9.sp,
                         color = TextGray
+                    )
+                    if (useMockTransport) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                connectionManager.simulateMockLongPress().fold(
+                                    onSuccess = { repairMessage = "Mock: pairing + BadUSB arm OK" },
+                                    onFailure = { repairMessage = it.message }
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_mock_long_press),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                color = NeonCyan
+                            )
+                        }
+                        Text(
+                            stringResource(R.string.settings_mock_long_press_sub),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.sp,
+                            color = TextGray
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.rePairTehLink().fold(
+                                onSuccess = { repairMessage = "TEH-Link re-emparejado" },
+                                onFailure = { repairMessage = it.message }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        stringResource(R.string.settings_repair_teh_link),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = MatrixGreen
+                    )
+                }
+                Text(
+                    stringResource(R.string.settings_repair_teh_link_sub),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = TextGray
+                )
+                repairMessage?.let { msg ->
+                    Text(
+                        msg,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp,
+                        color = NeonOrange,
+                        modifier = Modifier.padding(top = 6.dp)
                     )
                 }
             }

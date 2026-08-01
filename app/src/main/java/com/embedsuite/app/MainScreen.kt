@@ -22,12 +22,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.embedsuite.app.connection.ConnectionState
+import com.embedsuite.app.connection.FirmwareProfile
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embedsuite.app.notifications.EmbedNotificationHelper
 import com.embedsuite.app.field.FieldOperationManager
 import com.embedsuite.app.ui.components.*
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.EmbedViewModelFactory
+import kotlinx.coroutines.launch
 
 data class NavTab(val route: String, val labelRes: Int, val icon: ImageVector)
 
@@ -80,9 +82,39 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "dashboard"
     val connectionState by container.connectionManager.connectionState.collectAsState()
+    val detectedProfile by container.connectionManager.detectedProfile.collectAsState()
     val scanlinesEnabled by container.appPreferences.scanlinesEnabled.collectAsState()
     val context = LocalContext.current
     val activity = context as? androidx.activity.ComponentActivity
+    var showTehLinkPairingGuide by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(connectionState, detectedProfile) {
+        if (connectionState is ConnectionState.Connected &&
+            detectedProfile == FirmwareProfile.XIBALBA &&
+            !container.appPreferences.tehLinkPairingGuideSeen
+        ) {
+            showTehLinkPairingGuide = true
+        }
+    }
+
+    if (showTehLinkPairingGuide) {
+        TehLinkPairingDialog(
+            isMockMode = container.appPreferences.useMockTransport,
+            onDismiss = {
+                container.appPreferences.tehLinkPairingGuideSeen = true
+                showTehLinkPairingGuide = false
+            },
+            onSimulateLongPress = if (container.appPreferences.useMockTransport) {
+                {
+                    container.connectionManager.simulateMockLongPress()
+                    scope.launch {
+                        container.connectionManager.rePairTehLink()
+                    }
+                }
+            } else null
+        )
+    }
 
     LaunchedEffect(Unit) {
         FieldOperationManager.isActiveFlow.collect { active ->
@@ -301,6 +333,7 @@ fun MainScreen(
                 composable("settings") {
                     SettingsScreen(
                         preferences = container.appPreferences,
+                        connectionManager = container.connectionManager,
                         onBack = { navController.popBackStack() },
                         onNavigateAbout = {
                             navController.navigate("about") { launchSingleTop = true }

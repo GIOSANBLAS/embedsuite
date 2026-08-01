@@ -44,6 +44,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_PERMISSIONS, false)
         set(value) = prefs.edit().putBoolean(KEY_PERMISSIONS, value).apply()
 
+    var tehLinkPairingGuideSeen: Boolean
+        get() = prefs.getBoolean(KEY_TEH_LINK_PAIRING_GUIDE, false)
+        set(value) = prefs.edit().putBoolean(KEY_TEH_LINK_PAIRING_GUIDE, value).apply()
+
     /** Solo efecto en builds DEBUG — simula T-Embed sin hardware. */
     var useMockTransport: Boolean
         get() = prefs.getBoolean(KEY_MOCK_TRANSPORT, false)
@@ -134,6 +138,7 @@ class AppPreferences(context: Context) {
         private const val KEY_SPLASH_SHOWN = "splash_shown"
         private const val KEY_ONBOARDING = "onboarding_complete"
         private const val KEY_PERMISSIONS = "permissions_complete"
+        private const val KEY_TEH_LINK_PAIRING_GUIDE = "teh_link_pairing_guide_seen"
         private const val KEY_MOCK_TRANSPORT = "mock_transport"
         private const val KEY_FIELD_SCREEN = "field_keep_screen"
         private const val KEY_FIELD_FREQ = "field_freq_mhz"

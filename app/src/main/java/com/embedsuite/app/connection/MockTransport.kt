@@ -48,7 +48,21 @@ class MockTransport(
 
     /** Simulated auth token after pair; empty until paired. */
     private var mockAuthToken = "mock-teh-link-token"
-    private var pairingWindowOpen = true
+    private var pairingWindowOpen = false
+    private var badusbRemoteArmedUntilMs = 0L
+
+    /** Abre ventana de pairing (simula long-press lateral en firmware). */
+    fun openPairingWindow(durationSec: Int = 120) {
+        pairingWindowOpen = true
+    }
+
+    /** Simula arm remoto BadUSB (long-press en plugin BadUSB). */
+    fun armBadusbRemote(durationSec: Int = 120) {
+        badusbRemoteArmedUntilMs = System.currentTimeMillis() + durationSec * 1000L
+    }
+
+    private fun isBadusbRemoteArmed(): Boolean =
+        System.currentTimeMillis() < badusbRemoteArmedUntilMs
 
     private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
@@ -424,6 +438,12 @@ class MockTransport(
         return when (pluginId) {
             "badusb" -> when (action) {
                 "run_script" -> {
+                    if (!isBadusbRemoteArmed()) {
+                        return badusbStateJson()
+                            .put("action", action)
+                            .put("state", "error")
+                            .put("message", "badusb_not_armed")
+                    }
                     badusbPath = params.optString("path", "/sdcard/plugins/badusb/demo.txt")
                     badusbRunning = true
                     badusbProgress = 0

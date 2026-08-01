@@ -37,7 +37,7 @@
 
     <!-- Onboarding legal -->
     <string name="onboard_connect_title">CONECTAR T-EMBED</string>
-    <string name="onboard_connect_body">Conecta el CC1101 Plus por USB OTG.\nLa app detectará el dispositivo automáticamente.\nTambién puedes usar WiFi (BruceNet) o BLE.</string>
+    <string name="onboard_connect_body">Conecta el CC1101 Plus por USB OTG.\nLa app detectará el dispositivo automáticamente.\nTambién puedes usar WiFi (BruceNet) o BLE.\n\nTEH-Link (Xibalba): long-press en el botón lateral antes del primer pairing.</string>
     <string name="onboard_capture_title">CAPTURAR SEÑAL</string>
     <string name="onboard_capture_body">Ve a RF → CAPTURAR RAW.\nEl CC1101 escuchará 433.92 MHz.\nLas señales se guardan con GPS si activas ubicación.</string>
     <string name="onboard_library_title">BIBLIOTECA &amp; REPLAY</string>
@@ -84,6 +84,16 @@
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_sub">Versión, changelog, equipo y legal</string>
     <string name="settings_reset_onboarding">Reiniciar onboarding y permisos</string>
+    <string name="settings_repair_teh_link">Re-emparejar TEH-Link</string>
+    <string name="settings_repair_teh_link_sub">Borra el token y vuelve a hacer pairing (long-press en el dispositivo)</string>
+    <string name="settings_mock_long_press">Simular long-press (mock)</string>
+    <string name="settings_mock_long_press_sub">Abre ventana pairing + arm BadUSB en modo simulado</string>
+    <string name="teh_link_pairing_title">Emparejar TEH-Link</string>
+    <string name="teh_link_pairing_step1">1. Mantén pulsado el botón lateral del T-Embed ~2 segundos.</string>
+    <string name="teh_link_pairing_step2">2. Conecta USB OTG y abre EmbedSuite (ventana de pairing: 120 s).</string>
+    <string name="teh_link_pairing_step3">3. La app enviará pair automáticamente; verás «TEH-Link emparejado».</string>
+    <string name="teh_link_pairing_mock_hint">Modo mock: usa «Simular long-press» en Ajustes o el botón inferior.</string>
+    <string name="teh_link_pairing_mock_btn">Simular long-press</string>
 
     <!-- Dashboard -->
     <string name="dash_command_center">CENTRO DE MANDO</string>

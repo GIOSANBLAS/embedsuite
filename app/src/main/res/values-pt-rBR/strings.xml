@@ -76,6 +76,16 @@
     <string name="settings_about">Sobre</string>
     <string name="settings_about_sub">Versão, changelog, equipe e legal</string>
     <string name="settings_reset_onboarding">Reiniciar onboarding e permissões</string>
+    <string name="settings_repair_teh_link">Reemparelhar TEH-Link</string>
+    <string name="settings_repair_teh_link_sub">Apaga o token e emparelha de novo (long-press no dispositivo)</string>
+    <string name="settings_mock_long_press">Simular long-press (mock)</string>
+    <string name="settings_mock_long_press_sub">Abre janela pairing + arm BadUSB no modo simulado</string>
+    <string name="teh_link_pairing_title">Emparelhar TEH-Link</string>
+    <string name="teh_link_pairing_step1">1. Mantenha o botão lateral do T-Embed ~2 segundos.</string>
+    <string name="teh_link_pairing_step2">2. Conecte USB OTG e abra o EmbedSuite (janela pairing: 120 s).</string>
+    <string name="teh_link_pairing_step3">3. O app envia pair automaticamente; veja «TEH-Link emparejado».</string>
+    <string name="teh_link_pairing_mock_hint">Modo mock: use «Simular long-press» em Ajustes ou o botão abaixo.</string>
+    <string name="teh_link_pairing_mock_btn">Simular long-press</string>
 
     <string name="dash_command_center">CENTRO DE COMANDO</string>
     <string name="dash_ota_title">ATUALIZAÇÃO BRUCE DISPONÍVEL</string>

@@ -167,6 +167,12 @@ class DeviceConnectionManager(
             _connectionState.value = ConnectionState.Connected(TransportType.USB, detail)
             SoundFeedback.playConnect()
             EmbedWidgetProvider.updateAllWidgets(appContext)
+            scope.launch {
+                mockTransport.openPairingWindow(120)
+                ensureTehLinkAuth(mockTransport)
+                setSubGhzFrequency(_subGhzFrequencyMhz.value)
+                refreshSystemInfo()
+            }
             return Result.success(detail)
         }
 
@@ -627,6 +633,37 @@ class DeviceConnectionManager(
         tehLinkClient.authToken = ""
         secureStore?.setTehLinkAuthToken("")
     }
+
+    /** Borra token y ejecuta pairing de nuevo (abre ventana mock si aplica). */
+    suspend fun rePairTehLink(): Result<Unit> {
+        val transport = activeTransport
+            ?: return Result.failure(Exception("Conecta el T-Embed antes de re-emparejar."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con firmware Xibalba."))
+        }
+        clearTehLinkAuth()
+        if (transport is MockTransport) {
+            transport.openPairingWindow(120)
+        }
+        ensureTehLinkAuth(transport)
+        return if (tehLinkClient.authToken.isNotBlank()) {
+            Result.success(Unit)
+        } else {
+            Result.failure(Exception("No se pudo completar el pairing TEH-Link."))
+        }
+    }
+
+    fun simulateMockLongPress(): Result<Unit> {
+        if (activeTransport !is MockTransport) {
+            return Result.failure(Exception("Solo disponible con transporte mock."))
+        }
+        mockTransport.openPairingWindow(120)
+        mockTransport.armBadusbRemote(120)
+        _events.tryEmit(BruceEvent.TehLinkNotice("Mock: ventana pairing + BadUSB arm (120 s)."))
+        return Result.success(Unit)
+    }
+
+    fun isTehLinkPaired(): Boolean = tehLinkClient.authToken.isNotBlank()
 
     private fun isAuthError(message: String?): Boolean {
         if (message.isNullOrBlank()) return false

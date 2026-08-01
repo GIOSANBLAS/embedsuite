@@ -14,7 +14,7 @@ class ExportHelper(
 ) {
     private val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
 
-    suspend fun exportJson(): Result<File> = runCatching {
+    suspend fun exportJson(includeSensitive: Boolean = false): Result<File> = runCatching {
         val signals = repository.getRecent()
         val array = JSONArray()
         signals.forEach { signal ->
@@ -31,7 +31,7 @@ class ExportHelper(
                     put("rssi", signal.rssi)
                     put("latitude", signal.latitude ?: JSONObject.NULL)
                     put("longitude", signal.longitude ?: JSONObject.NULL)
-                    put("rawData", signal.rawData)
+                    put("rawData", if (includeSensitive) signal.rawData else "[OMITTED]")
                     put("detail", signal.detail)
                     put("label", signal.label)
                     put("tags", signal.tags)

@@ -210,6 +210,7 @@ class FirmwareRepository {
                             Exception("Archivo descargado vacío o demasiado pequeño")
                         )
                     }
+                    val computedSha = computeFileSha256Hex(targetFile)
                     release.sha256Hex?.let { expected ->
                         verifyFileSha256(targetFile, expected).getOrElse { err ->
                             targetFile.delete()

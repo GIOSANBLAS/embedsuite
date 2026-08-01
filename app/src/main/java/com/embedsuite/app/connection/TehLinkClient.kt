@@ -18,10 +18,21 @@ class TehLinkClient(
     private val requestId = AtomicInteger(0)
     private val linkMutex = Mutex()
 
+    var authToken: String = ""
+
     suspend fun ping(transport: TEmbedTransport): Result<Boolean> {
         return execute(transport, "ping").map { data ->
             data.optBoolean("pong") &&
                 data.optString("proto") == "teh-link"
+        }
+    }
+
+    /** Requiere long-press en el dispositivo para abrir ventana de pairing. */
+    suspend fun pair(transport: TEmbedTransport): Result<String> {
+        return execute(transport, "pair", timeoutMs = 8_000L).mapCatching { data ->
+            data.optString("token").also { token ->
+                if (token.isBlank()) throw Exception("pair_sin_token")
+            }
         }
     }
 
@@ -60,7 +71,8 @@ class TehLinkClient(
             .put("plugin_id", pluginId)
             .put("action", action)
             .put("params", params)
-        return execute(transport, "run_action", args).map(TehLinkResponseParser::parseActionResult)
+        return execute(transport, "run_action", args, timeoutMs = timeoutForAction(action, params))
+            .map(TehLinkResponseParser::parseActionResult)
     }
 
     suspend fun getActionState(
@@ -136,66 +148,89 @@ class TehLinkClient(
         )
     }
 
-    /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
-    suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> =
-        linkMutex.withLock {
-            val trimmed = json.trim()
-            val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
-                return@withLock Result.failure(it)
-            }
+    suspend fun sendRawJson(
+        transport: TEmbedTransport,
+        json: String,
+        timeoutMs: Long = 5_000L
+    ): Result<String> = linkMutex.withLock {
+        val trimmed = json.trim()
+        val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
+            return@withLock Result.failure(it)
+        }
 
-            val buffer = mutableListOf<String>()
-            val job = scope.launch {
-                transport.incomingLines().collect { line ->
-                    if (TehLinkResponseParser.isTehLinkLine(line)) {
-                        buffer.add(line.trim())
-                    }
+        val buffer = mutableListOf<String>()
+        val job = scope.launch {
+            transport.incomingLines().collect { line ->
+                if (TehLinkResponseParser.isTehLinkLine(line)) {
+                    buffer.add(line.trim())
                 }
-            }
-
-            try {
-                withTimeout(5_000L) {
-                    delay(80)
-                    buffer.clear()
-                    transport.sendCommand(trimmed).getOrElse {
-                        return@withTimeout Result.failure(it)
-                    }
-
-                    val deadline = System.currentTimeMillis() + 4_000L
-                    while (System.currentTimeMillis() < deadline) {
-                        val match = buffer.firstOrNull { line ->
-                            runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
-                        }
-                        if (match != null) {
-                            return@withTimeout Result.success(match)
-                        }
-                        delay(30)
-                    }
-                    Result.failure(Exception("TEH-Link timeout"))
-                }
-            } catch (e: Exception) {
-                Result.failure(Exception("TEH-Link: ${e.message}"))
-            } finally {
-                job.cancel()
             }
         }
+
+        try {
+            withTimeout(timeoutMs) {
+                delay(80)
+                buffer.clear()
+                transport.sendCommand(trimmed).getOrElse {
+                    return@withTimeout Result.failure(it)
+                }
+
+                val deadline = System.currentTimeMillis() + (timeoutMs - 500L).coerceAtLeast(2_000L)
+                while (System.currentTimeMillis() < deadline) {
+                    val match = buffer.firstOrNull { line ->
+                        runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
+                    }
+                    if (match != null) {
+                        return@withTimeout Result.success(match)
+                    }
+                    delay(30)
+                }
+                Result.failure(Exception("TEH-Link timeout"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("TEH-Link: ${e.message}"))
+        } finally {
+            job.cancel()
+        }
+    }
 
     private suspend fun execute(
         transport: TEmbedTransport,
         cmd: String,
-        args: JSONObject? = null
+        args: JSONObject? = null,
+        timeoutMs: Long = timeoutForCommand(cmd, args)
     ): Result<JSONObject> {
         val id = requestId.incrementAndGet()
         val payload = JSONObject().put("cmd", cmd).put("id", id)
+        if (authToken.isNotBlank() && cmd !in PUBLIC_CMDS) {
+            payload.put("auth", authToken)
+        }
         args?.keys()?.forEach { key ->
             payload.put(key, args.get(key))
         }
-        return sendRawJson(transport, payload.toString()).mapCatching { line ->
+        return sendRawJson(transport, payload.toString(), timeoutMs).mapCatching { line ->
             val root = JSONObject(line)
             if (!root.optBoolean("ok")) {
                 throw Exception(root.optString("error", "teh_link_error"))
             }
             root.optJSONObject("data") ?: JSONObject()
         }
+    }
+
+    private fun timeoutForCommand(cmd: String, args: JSONObject?): Long = when (cmd) {
+        "run_action" -> timeoutForAction(args?.optString("action").orEmpty(), args?.optJSONObject("params"))
+        else -> 5_000L
+    }
+
+    private fun timeoutForAction(action: String, params: JSONObject?): Long {
+        if (action == "scan_start" || action == "capture_start") {
+            val seconds = params?.optInt("seconds", 10) ?: 10
+            return ((seconds + 15).coerceAtMost(320).coerceAtLeast(15)) * 1000L
+        }
+        return 5_000L
+    }
+
+    companion object {
+        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
     }
 }

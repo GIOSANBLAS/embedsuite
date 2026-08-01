@@ -46,6 +46,10 @@ class MockTransport(
     private var cryptoLastResult = ""
     private var cryptoLastAlgo = "sha256"
 
+    /** Simulated auth token after pair; empty until paired. */
+    private var mockAuthToken = "mock-teh-link-token"
+    private var pairingWindowOpen = true
+
     private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     override fun incomingLines(): Flow<String> = _incoming.asSharedFlow()
@@ -74,12 +78,33 @@ class MockTransport(
         }
         val cmd = root.optString("cmd")
         val id = root.optInt("id", 0)
+        val auth = root.optString("auth")
+
+        if (cmd !in PUBLIC_CMDS && auth != mockAuthToken) {
+            val err = JSONObject().put("ok", false).put("id", id).put("error", "auth_required")
+            _incoming.emit(err.toString())
+            return Result.success("OK")
+        }
 
         val data = when (cmd) {
             "ping" -> JSONObject()
                 .put("pong", true)
                 .put("proto", "teh-link")
                 .put("proto_ver", 3)
+            "pair" -> {
+                if (!pairingWindowOpen) {
+                    return Result.success("OK").also {
+                        _incoming.emit(
+                            JSONObject().put("ok", false).put("id", id).put("error", "pair_window_closed").toString()
+                        )
+                    }
+                }
+                pairingWindowOpen = false
+                JSONObject()
+                    .put("token", mockAuthToken)
+                    .put("proto", "teh-link")
+                    .put("proto_ver", 3)
+            }
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
                 .put("version", "0.12")
@@ -535,6 +560,8 @@ class MockTransport(
     }
 
     companion object {
+        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
+
         val defaultResponses = mapOf(
             "info" to "Bruce v1.8 | CC1101 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",

@@ -116,9 +116,7 @@ class DashboardViewModel(
                 pluginId = "badusb",
                 action = "run_script",
                 params = JSONObject().put("path", "/sdcard/plugins/badusb/demo.txt")
-            ).onSuccess { result ->
-                _uiState.update { it.copy(lastActionState = result.state) }
-            }.onFailure {
+            ).onFailure {
                 refreshActionState("badusb")
             }
         }

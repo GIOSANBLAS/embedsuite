@@ -101,7 +101,8 @@ object TehLinkResponseParser {
         return TehLinkWardrivingStatus(
             running = data.optBoolean("running"),
             apCount = data.optInt("ap_count"),
-            csvPath = data.optString("csv_path")
+            csvPath = data.optString("csv_path"),
+            csvBasename = data.optString("csv_basename")
         )
     }
 

@@ -231,6 +231,7 @@ fun DashboardScreen(
                             if (isNotEmpty()) append(" · ")
                             append("${wd.apCount} APs")
                             if (wd.csvPath.isNotBlank()) append(" → ${wd.csvPath.substringAfterLast('/')}")
+                            else if (wd.csvBasename.isNotBlank()) append(" → ${wd.csvBasename}")
                         }
                         if (actionState.aps.isNotEmpty()) {
                             if (isNotEmpty()) append(" · ")
@@ -241,12 +242,18 @@ fun DashboardScreen(
                             append("${actionState.devices.size} BLE")
                         }
                         actionState.crypto?.let { crypto ->
-                            val cryptoOut = crypto.digest.ifBlank { crypto.result }
-                            if (cryptoOut.isNotBlank()) {
+                            val isSecret = actionState.action in setOf("gen_password", "gen_passphrase")
+                            if (!isSecret) {
+                                val cryptoOut = crypto.digest.ifBlank { crypto.result }
+                                if (cryptoOut.isNotBlank()) {
+                                    if (isNotEmpty()) append(" · ")
+                                    if (crypto.algo.isNotBlank()) append("${crypto.algo}: ")
+                                    append(cryptoOut.take(48))
+                                    if (cryptoOut.length > 48) append("…")
+                                }
+                            } else if (crypto.result.isNotBlank() || crypto.digest.isNotBlank()) {
                                 if (isNotEmpty()) append(" · ")
-                                if (crypto.algo.isNotBlank()) append("${crypto.algo}: ")
-                                append(cryptoOut.take(48))
-                                if (cryptoOut.length > 48) append("…")
+                                append("[secreto oculto]")
                             }
                         }
                         if (actionState.message.isNotBlank()) {

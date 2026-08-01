@@ -36,8 +36,15 @@ class SecureStore(context: Context) {
         prefs?.edit()?.putString(KEY_GEMINI, key.trim())?.apply()
     }
 
+    fun getTehLinkAuthToken(): String = prefs?.getString(KEY_TEH_LINK_AUTH, "").orEmpty()
+
+    fun setTehLinkAuthToken(token: String) {
+        prefs?.edit()?.putString(KEY_TEH_LINK_AUTH, token.trim())?.apply()
+    }
+
     companion object {
         private const val TAG = "SecureStore"
         private const val KEY_GEMINI = "gemini_api_key"
+        private const val KEY_TEH_LINK_AUTH = "teh_link_auth_token"
     }
 }

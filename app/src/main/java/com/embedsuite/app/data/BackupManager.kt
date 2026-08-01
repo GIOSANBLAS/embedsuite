@@ -151,7 +151,16 @@ class BackupManager(
             root.optJSONArray("macros")?.let { arr ->
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
-                    database.macroDao().insert(MacroEntity(name = o.optString("name"), commands = o.optString("commands"), description = o.optString("description", "")))
+                    val commands = o.optString("commands")
+                    commands.lines()
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() && !it.startsWith("#") }
+                        .forEach { line ->
+                            if (!line.startsWith("wait ", ignoreCase = true)) {
+                                com.embedsuite.app.connection.BruceCommandValidator.validate(line).getOrThrow()
+                            }
+                        }
+                    database.macroDao().insert(MacroEntity(name = o.optString("name"), commands = commands, description = o.optString("description", "")))
                     macros++
                 }
             }

@@ -80,6 +80,7 @@ class AppContainer(context: Context) {
         signalRepository = signalRepository,
         locationTracker = locationTracker,
         appPreferences = appPreferences,
+        secureStore = secureStore,
         sessionStats = sessionStats
     )
 

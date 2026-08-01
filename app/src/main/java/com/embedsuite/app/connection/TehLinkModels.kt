@@ -55,7 +55,8 @@ data class TehLinkBleDevice(
 data class TehLinkWardrivingStatus(
     val running: Boolean = false,
     val apCount: Int = 0,
-    val csvPath: String = ""
+    val csvPath: String = "",
+    val csvBasename: String = ""
 )
 
 data class TehLinkCryptoResult(

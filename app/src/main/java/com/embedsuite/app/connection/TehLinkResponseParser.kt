@@ -175,6 +175,22 @@ object TehLinkResponseParser {
         }.getOrDefault(false)
     }
 
+    /** Redacta campos sensibles en respuestas TEH-Link antes de log/UI. */
+    fun redactSensitiveResponse(line: String): String {
+        if (!isTehLinkLine(line)) return line
+        return runCatching {
+            val root = JSONObject(line.trim())
+            val data = root.optJSONObject("data") ?: return line
+            listOf("result", "password", "passphrase", "digest").forEach { key ->
+                if (data.has(key) && data.optString(key).isNotBlank()) {
+                    data.put(key, "[REDACTED]")
+                }
+            }
+            root.put("data", data)
+            root.toString()
+        }.getOrDefault(line)
+    }
+
     /** Valida petición TEH-Link cruda (cmd + id obligatorios). */
     fun validateRawRequest(json: String): Result<Int> {
         val trimmed = json.trim()

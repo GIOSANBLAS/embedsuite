@@ -2,6 +2,7 @@
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -309,5 +310,19 @@ class TehLinkResponseParserTest {
 
         val crypto = TehLinkResponseParser.parseCryptoResult(data)
         assertEquals("alpha-bravo-cascade-delta", crypto.result)
+    }
+
+    @Test
+    fun redactSensitiveResponse_hidesCryptoResult() {
+        val line = """{"ok":true,"id":1,"data":{"result":"secret123","plugin_id":"crypto_toolkit"}}"""
+        val redacted = TehLinkResponseParser.redactSensitiveResponse(line)
+        assertTrue(redacted.contains("[REDACTED]"))
+        assertFalse(redacted.contains("secret123"))
+    }
+
+    @Test
+    fun validateConsoleRequest_blocksOta() {
+        val err = TehLinkCommandPolicy.validateConsoleRequest("""{"cmd":"ota_begin","id":1,"size":1000}""")
+        assertTrue(err.isFailure)
     }
 }

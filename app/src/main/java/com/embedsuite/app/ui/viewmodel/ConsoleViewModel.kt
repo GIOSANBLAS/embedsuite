@@ -125,6 +125,6 @@ class ConsoleViewModel(
 
     private fun appendLog(line: String) {
         val safe = BruceDebugLog.sanitize(line)
-        _uiState.update { it.copy(logs = it.logs + safe) }
+        _uiState.update { it.copy(logs = (it.logs + safe).takeLast(500)) }
     }
 }

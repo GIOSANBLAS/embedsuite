@@ -238,11 +238,16 @@ class DeviceConnectionManager(
         val transport = activeTransport
             ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
 
+        TehLinkCommandPolicy.validateConsoleRequest(json).getOrElse {
+            return Result.failure(it)
+        }
+
         return try {
             withTimeout(5_000L) {
                 tehLinkClient.sendRawJson(transport, json).onSuccess { response ->
                     BruceDebugLog.appendOutgoing(json.trim())
-                    _events.tryEmit(BruceEvent.RawLine(response))
+                    val safe = TehLinkResponseParser.redactSensitiveResponse(response)
+                    _events.tryEmit(BruceEvent.RawLine(safe))
                 }
             }
         } catch (_: TimeoutCancellationException) {
@@ -558,7 +563,8 @@ class DeviceConnectionManager(
     private fun handleIncomingLine(line: String) {
         if (TehLinkResponseParser.isTehLinkLine(line)) {
             _incomingRaw.tryEmit(line)
-            BruceDebugLog.appendIncoming(line)
+            val safe = TehLinkResponseParser.redactSensitiveResponse(line)
+            BruceDebugLog.appendIncoming(safe)
             return
         }
 

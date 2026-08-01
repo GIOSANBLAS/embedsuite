@@ -199,6 +199,8 @@
 
     <!-- Tools v3.4 -->
     <string name="tools_debug_title">LINK DEBUG (%1$d/200)</string>
+    <string name="link_debug_title">TEH-Link Debug (%1$d/200)</string>
+    <string name="link_debug_fullscreen_title">TEH-LINK DEBUG FULL</string>
     <string name="tools_debug_empty">Sin líneas de enlace aún. Conecta T-Embed y opera.</string>
     <string name="tools_debug_copied">Log copiado (%1$d líneas)</string>
     <string name="tools_sd_sync">SYNC SD T-EMBED</string>
@@ -214,18 +216,23 @@
 
     <!-- Firmware flash -->
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
-    <string name="firmware_flash_sub">Xibalba oficial, Bruce legacy u custom .bin bajo su responsabilidad</string>
+    <string name="firmware_flash_sub">Xibalba oficial o custom .bin para T-Embed CC1101 Plus — bajo su responsabilidad</string>
     <string name="firmware_recommended">RECOMENDADO</string>
     <string name="firmware_recommended_reason">Bruce estable más reciente (legacy) — solo si usas firmware Bruce en el T-Embed.</string>
     <string name="firmware_recommended_reason_xibalba">Xibalba más reciente para T-Embed CC1101 Plus — TEH-Link, plugins y EMBED SUITE nativo.</string>
     <string name="firmware_fetch_bruce">BUSCAR FIRMWARES BRUCE (LEGACY — NO RECOMENDADO)</string>
     <string name="firmware_fetch_all">BUSCAR FIRMWARES (XIBALBA + BRUCE LEGACY)</string>
+    <string name="firmware_fetch_xibalba">BUSCAR FIRMWARE XIBALBA</string>
     <string name="firmware_available">Disponibles</string>
-    <string name="firmware_pick_custom">CUSTOM .bin</string>
+    <string name="firmware_pick_custom">ELEGIR .bin CUSTOM</string>
+    <string name="firmware_pick_custom_prominent">CUSTOM .bin — CC1101 Plus</string>
+    <string name="firmware_pick_custom_hint">Selecciona un firmware .bin local para flashear por USB (bootloader).</string>
     <string name="firmware_clear_custom">Quitar custom</string>
     <string name="firmware_ota_wifi">OTA WiFi</string>
+    <string name="firmware_ota_teh_link">OTA USB (TEH-Link)</string>
     <string name="firmware_usb_flash">USB Flash</string>
     <string name="firmware_custom_ota_hint">OTA WiFi solo para Bruce legacy. Xibalba: OTA por USB (TEH-Link). Custom: USB Flash (bootloader).</string>
+    <string name="firmware_custom_usb_hint">Custom: flashea por USB (bootloader). OTA solo para releases Xibalba oficiales.</string>
     <string name="firmware_disclaimer_title">⚠ FIRMWARE NO OFICIAL</string>
     <string name="firmware_disclaimer_body">Flashear firmware custom u otros binarios puede dejar el T-Embed inutilizable (brick), anular garantía y hacer que EMBED SUITE deje de funcionar. Usted asume todo riesgo. Asegúrese de saber recuperar el dispositivo vía USB bootloader (Encoder + RST). EMBED SUITE y sus autores no se responsabilizan por daños al hardware.</string>
     <string name="firmware_disclaimer_accept">Acepto la responsabilidad y deseo continuar</string>
@@ -234,11 +241,11 @@
     <string name="firmware_xibalba_desc">Xibalba oficial · T-Embed CC1101 Plus (TEH-Link)</string>
     <string name="firmware_custom_desc">Firmware personalizado — uso bajo su responsabilidad</string>
     <string name="firmware_status_ready">Listo para flashear firmware.</string>
-    <string name="firmware_status_fetching">Consultando releases Xibalba y Bruce…</string>
+    <string name="firmware_status_fetching">Consultando releases Xibalba…</string>
     <string name="firmware_status_using_local">Usando %1$s…</string>
     <string name="firmware_status_downloading">Descargando %1$s…</string>
     <string name="firmware_status_preparing_usb">Preparando %1$s para USB…</string>
-    <string name="firmware_status_ota_upload">Subiendo OTA WiFi…</string>
+    <string name="firmware_status_ota_upload">Subiendo OTA USB (TEH-Link)…</string>
     <string name="firmware_status_usb_flash">Flasheando por USB (bootloader)…</string>
     <string name="firmware_status_ota_ok">OTA OK: %1$s</string>
     <string name="firmware_status_usb_ok">USB Flash OK: %1$s</string>

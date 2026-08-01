@@ -11,8 +11,8 @@ enum class FirmwareProfile(val label: String) {
         fun fromPref(name: String?): FirmwareProfile =
             entries.find { it.name == name } ?: XIBALBA
 
-        /** Orden en ajustes: Xibalba primero, Bruce al final. */
+        /** Orden visible en ajustes — solo Xibalba; BRUCE/AUTO permanecen internos. */
         val settingsDisplayOrder: List<FirmwareProfile> =
-            listOf(XIBALBA, AUTO, BRUCE)
+            listOf(XIBALBA)
     }
 }

@@ -40,7 +40,7 @@ import com.embedsuite.app.flash.FirmwareFlashCoordinator
 import com.embedsuite.app.macro.MacroEngine
 import com.embedsuite.app.scan.LocationTracker
 import com.embedsuite.app.ui.components.FirmwareFlashCard
-import com.embedsuite.app.ui.components.BruceDebugPanel
+import com.embedsuite.app.ui.components.LinkDebugPanel
 import com.embedsuite.app.ui.components.BruceSdSyncCard
 import com.embedsuite.app.ui.components.HeatmapMapView
 import com.embedsuite.app.ui.components.OfflineMapCard
@@ -236,7 +236,7 @@ fun MapToolsScreen(
             shape = RoundedCornerShape(6.dp),
             modifier = Modifier.fillMaxWidth().border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
         ) {
-            BruceDebugPanel(modifier = Modifier.padding(10.dp))
+            LinkDebugPanel(modifier = Modifier.padding(10.dp))
         }
 
         Spacer(modifier = Modifier.height(12.dp))

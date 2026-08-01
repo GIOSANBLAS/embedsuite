@@ -215,15 +215,25 @@ class FirmwareRepository {
         }
     }
 
-    suspend fun fetchAllReleases(profile: FirmwareProfile = FirmwareProfile.AUTO): Result<List<FirmwareRelease>> =
+    /** Releases oficiales Xibalba para el catálogo principal (sin Bruce legacy). */
+    suspend fun fetchDeviceFirmwares(): Result<List<FirmwareRelease>> =
+        fetchXibalbaReleases().map { list ->
+            FirmwareCatalog.markRecommended(list, FirmwareProfile.XIBALBA)
+        }
+
+    suspend fun fetchAllReleases(profile: FirmwareProfile = FirmwareProfile.XIBALBA): Result<List<FirmwareRelease>> =
         withContext(Dispatchers.IO) {
-            val bruce = fetchTEmbedReleases().getOrElse { emptyList() }
-            val xibalba = fetchXibalbaReleases().getOrElse { emptyList() }
-            val merged = bruce + xibalba
-            if (merged.isEmpty()) {
-                Result.failure(Exception("No se encontraron releases de firmware"))
+            if (profile == FirmwareProfile.BRUCE) {
+                val bruce = fetchTEmbedReleases().getOrElse { emptyList() }
+                val xibalba = fetchXibalbaReleases().getOrElse { emptyList() }
+                val merged = bruce + xibalba
+                if (merged.isEmpty()) {
+                    Result.failure(Exception("No se encontraron releases de firmware"))
+                } else {
+                    Result.success(FirmwareCatalog.markRecommended(merged, profile))
+                }
             } else {
-                Result.success(FirmwareCatalog.markRecommended(merged, profile))
+                fetchDeviceFirmwares()
             }
         }
 

@@ -9,6 +9,7 @@ import com.embedsuite.app.connection.FirmwareCatalog
 import com.embedsuite.app.connection.FirmwareRelease
 import com.embedsuite.app.connection.FirmwareRepository
 import com.embedsuite.app.connection.FirmwareProfile
+import com.embedsuite.app.connection.FirmwareSource
 import com.embedsuite.app.connection.OtaUpdateChecker
 import com.embedsuite.app.connection.OtaUpdateStatus
 import com.embedsuite.app.data.*
@@ -100,8 +101,17 @@ class MapToolsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingReleases = true) }
             val profile = detectedProfile.value
-            firmwareRepository.fetchAllReleases(profile).fold(
-                onSuccess = { list ->
+            val fetchResult = when (profile) {
+                FirmwareProfile.BRUCE -> firmwareRepository.fetchAllReleases(profile)
+                else -> firmwareRepository.fetchDeviceFirmwares()
+            }
+            fetchResult.fold(
+                onSuccess = { rawList ->
+                    val list = if (profile == FirmwareProfile.BRUCE) {
+                        rawList
+                    } else {
+                        rawList.filter { it.source != FirmwareSource.OFFICIAL_BRUCE }
+                    }
                     val recommended = FirmwareCatalog.pickRecommended(list, profile)
                     _uiState.update { state ->
                         val keepSelection = state.customRelease != null &&

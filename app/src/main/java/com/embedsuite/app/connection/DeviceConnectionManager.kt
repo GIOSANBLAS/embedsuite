@@ -402,11 +402,8 @@ class DeviceConnectionManager(
         val pref = appPreferences?.firmwareProfile?.value ?: FirmwareProfile.XIBALBA
         if (pref == FirmwareProfile.BRUCE) return FirmwareProfile.BRUCE
         val pingOk = tehLinkClient.ping(transport).getOrElse { false }
+        // Xibalba Native: con pref XIBALBA/AUTO/UNKNOWN nunca detectar Bruce legacy.
         return when {
-            pref == FirmwareProfile.XIBALBA && pingOk -> FirmwareProfile.XIBALBA
-            pref == FirmwareProfile.XIBALBA && !pingOk -> FirmwareProfile.UNKNOWN
-            pref == FirmwareProfile.AUTO && pingOk -> FirmwareProfile.XIBALBA
-            pref == FirmwareProfile.AUTO && !pingOk -> FirmwareProfile.UNKNOWN
             pingOk -> FirmwareProfile.XIBALBA
             else -> FirmwareProfile.UNKNOWN
         }

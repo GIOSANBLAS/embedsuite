@@ -20,7 +20,7 @@ data class OpenSourceLicense(
 
 object AppInfo {
 
-    val tagline = "Companion oficial · T-Embed CC1101 Plus · Firmware Xibalba"
+    val tagline = "Xibalba Native · T-Embed CC1101 Plus · TEH-Link"
 
     val team = listOf(
         TeamMember(
@@ -36,6 +36,17 @@ object AppInfo {
     )
 
     val changelog = listOf(
+        ChangelogEntry(
+            version = "4.0.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Xibalba Native: app orientada 100% a T-Embed CC1101 Plus + firmware Xibalba",
+                "Catálogo firmware solo releases Xibalba oficiales; custom .bin local para CC1101 Plus",
+                "Cero UX Bruce en flujos principales; Bruce solo interno/legacy oculto en ajustes",
+                "OTA USB (TEH-Link) para Xibalba; LinkDebugPanel reemplaza debug Bruce en MapTools",
+                "Versión 4.0.0 build 20"
+            )
+        ),
         ChangelogEntry(
             version = "3.9.0",
             date = "Jul 2026",

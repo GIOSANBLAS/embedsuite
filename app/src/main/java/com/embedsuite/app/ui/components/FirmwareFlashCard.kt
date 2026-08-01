@@ -139,6 +139,54 @@ fun FirmwareFlashCard(
                 modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)
             )
 
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BlackAMOLED),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    .border(1.dp, NeonRed.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(
+                        stringResource(R.string.firmware_pick_custom_prominent),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonRed
+                    )
+                    Text(
+                        stringResource(R.string.firmware_pick_custom_hint),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        color = TextGray,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onPickCustomBin,
+                            enabled = !isFlashing,
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonRed),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                stringResource(R.string.firmware_pick_custom),
+                                fontFamily = FontFamily.Monospace,
+                                color = BlackAMOLED,
+                                fontSize = 10.sp
+                            )
+                        }
+                        if (firmwareOptions.any { it.source == FirmwareSource.CUSTOM_LOCAL }) {
+                            TextButton(onClick = onClearCustom) {
+                                Text(
+                                    stringResource(R.string.firmware_clear_custom),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    color = TextGray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             recommendedRelease?.let { rec ->
                 Card(
                     colors = CardDefaults.cardColors(containerColor = BlackAMOLED),
@@ -160,12 +208,7 @@ fun FirmwareFlashCard(
                             color = NeonCyan
                         )
                         Text(
-                            when (rec.source) {
-                                FirmwareSource.OFFICIAL_XIBALBA ->
-                                    stringResource(R.string.firmware_recommended_reason_xibalba)
-                                else ->
-                                    stringResource(R.string.firmware_recommended_reason)
-                            },
+                            stringResource(R.string.firmware_recommended_reason_xibalba),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 8.sp,
                             color = TextGray,
@@ -194,14 +237,15 @@ fun FirmwareFlashCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    stringResource(R.string.firmware_fetch_all),
+                    stringResource(R.string.firmware_fetch_xibalba),
                     fontFamily = FontFamily.Monospace,
                     color = BlackAMOLED,
                     fontSize = 11.sp
                 )
             }
 
-            if (firmwareOptions.isNotEmpty()) {
+            val officialOptions = firmwareOptions.filter { it.source != FirmwareSource.CUSTOM_LOCAL }
+            if (officialOptions.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     stringResource(R.string.firmware_available),
@@ -211,7 +255,7 @@ fun FirmwareFlashCard(
                 )
             }
 
-            firmwareOptions.forEach { release ->
+            officialOptions.forEach { release ->
                 val selected = selectedRelease?.identityKey() == release.identityKey()
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -231,7 +275,6 @@ fun FirmwareFlashCard(
                                         release.isRecommended -> append(" ★")
                                         release.isPrerelease -> append(" [BETA]")
                                         release.source == FirmwareSource.OFFICIAL_XIBALBA -> append(" [XIBALBA]")
-                                        release.source == FirmwareSource.OFFICIAL_BRUCE -> append(" [STABLE]")
                                         release.source == FirmwareSource.CUSTOM_LOCAL -> append(" [CUSTOM]")
                                     }
                                 },
@@ -245,13 +288,11 @@ fun FirmwareFlashCard(
                             )
                         }
                         Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                        val desc = when {
-                            release.source == FirmwareSource.CUSTOM_LOCAL ->
-                                stringResource(R.string.firmware_custom_desc)
-                            release.source == FirmwareSource.OFFICIAL_XIBALBA ->
+                        val desc = when (release.source) {
+                            FirmwareSource.OFFICIAL_XIBALBA ->
                                 stringResource(R.string.firmware_xibalba_desc)
-                            release.source == FirmwareSource.OFFICIAL_BRUCE ->
-                                stringResource(R.string.firmware_official_desc)
+                            FirmwareSource.CUSTOM_LOCAL ->
+                                stringResource(R.string.firmware_custom_desc)
                             else -> release.description
                         }
                         if (desc.isNotBlank()) {
@@ -261,19 +302,31 @@ fun FirmwareFlashCard(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onPickCustomBin, enabled = !isFlashing, modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.firmware_pick_custom),
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 9.sp,
-                        color = NeonRed
+            firmwareOptions.filter { it.source == FirmwareSource.CUSTOM_LOCAL }.forEach { release ->
+                val selected = selectedRelease?.identityKey() == release.identityKey()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selected,
+                        onClick = { onSelectRelease(release) },
+                        colors = RadioButtonDefaults.colors(selectedColor = NeonRed)
                     )
-                }
-                if (firmwareOptions.any { it.source == FirmwareSource.CUSTOM_LOCAL }) {
-                    TextButton(onClick = onClearCustom) {
-                        Text(stringResource(R.string.firmware_clear_custom), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "${release.displayLabel} [CUSTOM]",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            color = if (selected) NeonRed else MatrixGreen
+                        )
+                        Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                        Text(
+                            stringResource(R.string.firmware_custom_desc),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 8.sp,
+                            color = TextMuted
+                        )
                     }
                 }
             }
@@ -282,7 +335,7 @@ fun FirmwareFlashCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 if (release.source == FirmwareSource.CUSTOM_LOCAL) {
                     Text(
-                        stringResource(R.string.firmware_custom_ota_hint),
+                        stringResource(R.string.firmware_custom_usb_hint),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 8.sp,
                         color = NeonOrange,
@@ -292,15 +345,19 @@ fun FirmwareFlashCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { requestFlash(release, FlashMethod.OTA) },
-                        enabled = (release.source == FirmwareSource.OFFICIAL_BRUCE ||
-                            release.source == FirmwareSource.OFFICIAL_XIBALBA) && !isFlashing,
+                        enabled = release.source == FirmwareSource.OFFICIAL_XIBALBA && !isFlashing,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MatrixGreen,
                             disabledContainerColor = DarkSurfaceElevated
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.firmware_ota_wifi), fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 10.sp)
+                        Text(
+                            stringResource(R.string.firmware_ota_teh_link),
+                            fontFamily = FontFamily.Monospace,
+                            color = BlackAMOLED,
+                            fontSize = 10.sp
+                        )
                     }
                     Button(
                         onClick = { requestFlash(release, FlashMethod.USB) },

@@ -85,13 +85,8 @@ fun DashboardScreen(
 
         when (val ota = uiState.otaStatus) {
             is OtaUpdateStatus.UpdateAvailable -> {
-                val otaTitleRes = if (detectedProfile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA) {
-                    R.string.dash_ota_title_xibalba
-                } else {
-                    R.string.dash_ota_title
-                }
                 GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                    Text(stringResource(otaTitleRes), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
+                    Text(stringResource(R.string.dash_ota_title_xibalba), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
                     Text(stringResource(R.string.dash_ota_body, ota.deviceVersion, ota.latestVersion), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
                     TextButton(onClick = onNavigateTools) {
                         Text(stringResource(R.string.dash_ota_action), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)

@@ -127,7 +127,7 @@ fun MainScreen(
     }
 
     val tabs = mainTabs()
-    val isSettings = currentRoute == "settings" || currentRoute == "about"
+    val isSettings = currentRoute == "settings" || currentRoute == "about" || currentRoute == "hardware_bringup" || currentRoute == "manual"
     val isMainTab = tabs.any { it.route == currentRoute }
     val fieldActive by FieldOperationManager.isActiveFlow.collectAsState()
 
@@ -275,7 +275,10 @@ fun MainScreen(
                         sessionReportGenerator = container.sessionReportGenerator,
                         appPreferences = container.appPreferences,
                         onNavigateRf = { navController.navigate("rf") },
-                        onNavigateTools = { navController.navigate("map_tools") }
+                        onNavigateTools = { navController.navigate("map_tools") },
+                        onNavigateHardwareBringup = {
+                            navController.navigate("hardware_bringup") { launchSingleTop = true }
+                        }
                     )
                 }
                 composable("rf") {
@@ -343,6 +346,9 @@ fun MainScreen(
                         },
                         onLanguageChanged = {
                             (context as? androidx.activity.ComponentActivity)?.recreate()
+                        },
+                        onNavigateHardwareBringup = {
+                            navController.navigate("hardware_bringup") { launchSingleTop = true }
                         }
                     )
                 }
@@ -356,6 +362,9 @@ fun MainScreen(
                 }
                 composable("manual") {
                     ManualScreen(onBack = { navController.popBackStack() })
+                }
+                composable("hardware_bringup") {
+                    HardwareBringupScreen(onBack = { navController.popBackStack() })
                 }
             }
         }

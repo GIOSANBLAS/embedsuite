@@ -90,7 +90,7 @@
     <string name="dash_command_center">COMMAND CENTER</string>
     <string name="dash_ota_title">BRUCE UPDATE AVAILABLE</string>
     <string name="dash_ota_title_xibalba">XIBALBA UPDATE AVAILABLE</string>
-    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash hardware profile (v0.14.1 Ward) for real CC1101 Plus.</string>
+    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.16.1 (real CC1101 Plus profile).</string>
     <string name="plus_compat_subghz_xibalba_hint">Xibalba mode: live spectrum/waterfall need Bruce firmware. Use TEH-Link capture or the T-Embed Sub-GHz menu.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="plus_compat_subghz_header_bruce">BRUCE T-EMBED COMPANION</string>

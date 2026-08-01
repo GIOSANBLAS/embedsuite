@@ -67,14 +67,14 @@ object FirmwareCatalog {
     /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
     val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
-    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V015
+    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
+    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
-    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V015
+    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
+    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
-    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V015
+    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
+    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
     fun markRecommended(
         releases: List<FirmwareRelease>,

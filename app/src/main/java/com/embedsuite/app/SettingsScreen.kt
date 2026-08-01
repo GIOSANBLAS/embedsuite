@@ -34,7 +34,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onNavigateAbout: () -> Unit = {},
     onResetOnboarding: () -> Unit = {},
-    onLanguageChanged: () -> Unit = {}
+    onLanguageChanged: () -> Unit = {},
+    onNavigateHardwareBringup: () -> Unit = {}
 ) {
     val soundEnabled by preferences.soundEnabled.collectAsState()
     val hapticsEnabled by preferences.hapticsEnabled.collectAsState()
@@ -42,6 +43,7 @@ fun SettingsScreen(
     val autoReconnect by preferences.autoReconnect.collectAsState()
     val defaultTransport by preferences.defaultTransport.collectAsState()
     val firmwareProfile by preferences.firmwareProfile.collectAsState()
+    val detectedProfile by connectionManager.detectedProfile.collectAsState()
     val glassIntensity by preferences.glassIntensity.collectAsState()
     val fieldFrequency by preferences.fieldFrequencyMhzFlow.collectAsState()
     val appLanguage by preferences.appLanguage.collectAsState()
@@ -255,8 +257,23 @@ fun SettingsScreen(
                 }
             }
 
-            GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+            GlassCard(accent = MatrixGreen, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(stringResource(R.string.settings_system), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
+                if (firmwareProfile == FirmwareProfile.XIBALBA || detectedProfile == FirmwareProfile.XIBALBA) {
+                    TextButton(onClick = onNavigateHardwareBringup, modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(stringResource(R.string.settings_hardware_bringup), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MatrixGreen)
+                                Text(stringResource(R.string.settings_hardware_bringup_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                            }
+                            Text("→", fontFamily = FontFamily.Monospace, color = NeonCyan)
+                        }
+                    }
+                }
                 TextButton(onClick = onNavigateAbout, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

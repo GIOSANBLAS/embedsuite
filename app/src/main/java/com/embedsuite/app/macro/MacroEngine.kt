@@ -22,7 +22,8 @@ class MacroEngine(
         var executed = 0
         for (cmd in commands) {
             if (cmd.startsWith("wait ", ignoreCase = true)) {
-                val ms = cmd.substringAfter(" ").trim().removeSuffix("ms").toLongOrNull() ?: 1000L
+                val ms = (cmd.substringAfter(" ").trim().removeSuffix("ms").toLongOrNull() ?: 1000L)
+                    .coerceIn(0L, 60_000L)
                 delay(ms)
                 continue
             }

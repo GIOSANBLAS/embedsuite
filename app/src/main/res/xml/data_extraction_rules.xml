@@ -13,7 +13,11 @@
     <device-transfer>
         <exclude domain="sharedpref" path="embed_secure.xml" />
         <exclude domain="sharedpref" path="embed_secure_fallback.xml" />
+        <exclude domain="sharedpref" path="embed_prefs.xml" />
         <exclude domain="sharedpref" path="embed_ai_prefs.xml" />
+        <exclude domain="sharedpref" path="embed_widget_state.xml" />
         <exclude domain="database" path="embed_suite.db" />
+        <exclude domain="database" path="embed_suite.db-wal" />
+        <exclude domain="database" path="embed_suite.db-shm" />
     </device-transfer>
 </data-extraction-rules>

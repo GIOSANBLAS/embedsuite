@@ -84,8 +84,8 @@ class ExportHelper(
         sb.appendLine("<Document><name>EMBED SUITE War-Driving</name>")
         signals.forEach { s ->
             sb.appendLine("<Placemark>")
-            sb.appendLine("<name>${s.label.ifBlank { s.protocol }} [${s.signalType}]</name>")
-            sb.appendLine("<description>RSSI:${s.rssi} ${s.detail}</description>")
+            sb.appendLine("<name>${xmlEscape(s.label.ifBlank { s.protocol })} [${xmlEscape(s.signalType)}]</name>")
+            sb.appendLine("<description>RSSI:${s.rssi} ${xmlEscape(s.detail)}</description>")
             sb.appendLine("<Point><coordinates>${s.longitude},${s.latitude},0</coordinates></Point>")
             sb.appendLine("</Placemark>")
         }
@@ -107,5 +107,14 @@ class ExportHelper(
         } else {
             value
         }
+    }
+
+    private fun xmlEscape(value: String): String {
+        return value
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;")
     }
 }

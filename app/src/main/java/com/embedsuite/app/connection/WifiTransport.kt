@@ -34,7 +34,14 @@ class WifiTransport(
         get() = connected
 
     fun updateHost(newHost: String) {
-        host = newHost.trim().removePrefix("http://").removePrefix("https://").trimEnd('/')
+        val cleaned = newHost.trim()
+            .removePrefix("http://")
+            .removePrefix("https://")
+            .trimEnd('/')
+        require(isValidHost(cleaned)) {
+            "Host WiFi inválido: use hostname, IPv4 o IPv6 sin esquema"
+        }
+        host = cleaned
     }
 
     override suspend fun connect(): Result<String> = withContext(Dispatchers.IO) {
@@ -145,5 +152,15 @@ class WifiTransport(
         /** SSID/contraseña por defecto del AP Bruce — ver strings.xml `bruce_net_*`. */
         const val BRUCE_NET_SSID = "BruceNet"
         const val BRUCE_NET_PASSWORD = "bruce32"
+
+        private val HOST_PATTERN = Regex(
+            """^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*|(?:\d{1,3}\.){3}\d{1,3}|\[[0-9a-fA-F:]+\])$"""
+        )
+
+        fun isValidHost(host: String): Boolean {
+            if (host.isBlank() || host.length > 253) return false
+            if (host.contains("..") || host.contains('/') || host.contains('\\')) return false
+            return HOST_PATTERN.matches(host)
+        }
     }
 }

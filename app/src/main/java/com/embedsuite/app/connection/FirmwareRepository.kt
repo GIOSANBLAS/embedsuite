@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import java.io.File
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 class FirmwareRepository {
@@ -53,6 +54,34 @@ class FirmwareRepository {
             v.replace(Regex("""[^\d.]"""), "")
                 .split('.')
                 .mapNotNull { it.toIntOrNull() }
+
+        fun computeFileSha256Hex(file: File): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(8192)
+                var read = input.read(buffer)
+                while (read > 0) {
+                    digest.update(buffer, 0, read)
+                    read = input.read(buffer)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it) }
+        }
+
+        fun verifyFileSha256(file: File, expectedHex: String): Result<Unit> {
+            val normalized = expectedHex.trim().lowercase()
+            if (!Regex("""^[0-9a-f]{64}$""").matches(normalized)) {
+                return Result.failure(IllegalArgumentException("SHA256 esperado inválido"))
+            }
+            val actual = computeFileSha256Hex(file)
+            return if (actual.equals(normalized, ignoreCase = true)) {
+                Result.success(Unit)
+            } else {
+                Result.failure(
+                    IllegalStateException("SHA256 no coincide (esperado=$normalized actual=$actual)")
+                )
+            }
+        }
     }
 
     private val client = OkHttpClient.Builder()
@@ -131,7 +160,11 @@ class FirmwareRepository {
                     throw IllegalArgumentException("El archivo parece demasiado pequeño para un firmware válido.")
                 }
 
-                FirmwareCatalog.customFromFile(target, safeName.removeSuffix(".bin"))
+                val release = FirmwareCatalog.customFromFile(target, safeName.removeSuffix(".bin"))
+                release.sha256Hex?.let { expected ->
+                    verifyFileSha256(target, expected).getOrThrow()
+                }
+                release
             }
         }
 
@@ -176,6 +209,12 @@ class FirmwareRepository {
                         return@withContext Result.failure(
                             Exception("Archivo descargado vacío o demasiado pequeño")
                         )
+                    }
+                    release.sha256Hex?.let { expected ->
+                        verifyFileSha256(targetFile, expected).getOrElse { err ->
+                            targetFile.delete()
+                            return@withContext Result.failure(err)
+                        }
                     }
                     Result.success(targetFile)
                 }

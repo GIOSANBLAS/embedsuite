@@ -15,6 +15,12 @@ object TehLinkCommandPolicy {
         "ota_abort"
     )
 
+    private val BLOCKED_RUN_ACTIONS = mapOf(
+        "badusb" to setOf("run_script", "stop"),
+        "wardriving" to setOf("start"),
+        "crypto_toolkit" to setOf("gen_password", "gen_passphrase")
+    )
+
     fun validateConsoleRequest(json: String): Result<Unit> {
         val obj = runCatching { JSONObject(json.trim()) }.getOrElse {
             return Result.failure(IllegalArgumentException("TEH-Link: JSON inválido"))
@@ -32,9 +38,12 @@ object TehLinkCommandPolicy {
             val action = obj.optString("action").ifBlank {
                 obj.optJSONObject("params")?.optString("action").orEmpty()
             }
-            if (pluginId == "badusb" && action == "run_script") {
+            val blocked = BLOCKED_RUN_ACTIONS[pluginId]
+            if (blocked != null && action in blocked) {
                 return Result.failure(
-                    IllegalArgumentException("BadUSB run_script bloqueado en consola — usa el Dashboard")
+                    IllegalArgumentException(
+                        "Acción TEH-Link '$pluginId/$action' bloqueada en consola — usa el Dashboard"
+                    )
                 )
             }
         }

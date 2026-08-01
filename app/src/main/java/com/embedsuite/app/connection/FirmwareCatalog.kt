@@ -23,7 +23,9 @@ data class FirmwareRelease(
     val source: FirmwareSource = FirmwareSource.OFFICIAL_BRUCE,
     val localFilePath: String? = null,
     val isRecommended: Boolean = false,
-    val description: String = ""
+    val description: String = "",
+    /** SHA256 hex opcional para verificación post-descarga (64 chars). */
+    val sha256Hex: String? = null
 ) {
     val riskLevel: FirmwareRiskLevel = when (source) {
         FirmwareSource.OFFICIAL_BRUCE -> FirmwareRiskLevel.OFFICIAL

@@ -2,6 +2,7 @@ package com.embedsuite.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.embedsuite.app.connection.BruceCommandValidator
 import com.embedsuite.app.connection.BruceDebugLog
 import com.embedsuite.app.connection.BruceEvent
 import com.embedsuite.app.connection.ConnectionState
@@ -114,8 +115,22 @@ class ConsoleViewModel(
 
     fun importBruceScript(name: String, content: String) {
         viewModelScope.launch {
+            val lines = content.lines()
+                .map { it.trim() }
+                .filter { it.isNotBlank() && !it.startsWith("#") }
+            if (lines.isEmpty()) {
+                appendLog("[ERROR] Script vacío o sin comandos válidos")
+                return@launch
+            }
+            for (cmd in lines) {
+                if (cmd.startsWith("wait ", ignoreCase = true)) continue
+                BruceCommandValidator.validate(cmd).getOrElse {
+                    appendLog("[ERROR] Script inválido: ${it.message}")
+                    return@launch
+                }
+            }
             macroRepository.save(MacroEntity(name = name, commands = content))
-            appendLog("[INFO] Script '$name' importado (${content.lines().size} líneas)")
+            appendLog("[INFO] Script '$name' importado (${lines.size} líneas)")
         }
     }
 

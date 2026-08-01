@@ -91,6 +91,11 @@ class BackupManager(
     suspend fun importFullBackup(jsonContent: String): Result<BackupImportResult> = runCatching {
         val root = JSONObject(jsonContent)
         val version = root.optInt("version", 1)
+        if (version > BACKUP_VERSION) {
+            throw IllegalArgumentException(
+                "Backup versión $version no soportada (máx $BACKUP_VERSION)"
+            )
+        }
         var signals = 0
         var ir = 0
         var macros = 0

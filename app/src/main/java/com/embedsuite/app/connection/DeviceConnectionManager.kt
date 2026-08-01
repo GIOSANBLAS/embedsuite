@@ -497,11 +497,8 @@ class DeviceConnectionManager(
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
         return tehLinkClient.runCryptoHash(transport, input, algo).onSuccess { result ->
-            val out = result.state.crypto?.digest?.ifBlank { null }
-                ?: result.state.crypto?.result
-                ?: result.state.message
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/hash → $out")
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/hash → [REDACTED]")
             )
         }
     }
@@ -511,10 +508,9 @@ class DeviceConnectionManager(
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
-        return tehLinkClient.runCryptoBase64Encode(transport, input).onSuccess { result ->
-            val out = result.state.crypto?.result?.ifBlank { null } ?: result.state.message
+        return tehLinkClient.runCryptoBase64Encode(transport, input).onSuccess {
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/base64_encode → $out")
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/base64_encode → [REDACTED]")
             )
         }
     }
@@ -524,10 +520,9 @@ class DeviceConnectionManager(
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
-        return tehLinkClient.runGenPassword(transport, length).onSuccess { result ->
-            val out = result.state.crypto?.result?.ifBlank { null } ?: result.state.message
+        return tehLinkClient.runGenPassword(transport, length).onSuccess {
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/gen_password → $out")
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/gen_password → [REDACTED]")
             )
         }
     }
@@ -582,7 +577,7 @@ class DeviceConnectionManager(
 
         when (event) {
             is BruceEvent.SubGhzSignal -> {
-                _signalLog.value = _signalLog.value + event.entry
+                _signalLog.value = (_signalLog.value + event.entry).takeLast(SIGNAL_LOG_MAX)
                 SoundFeedback.playCapture()
                 WidgetStateStore.updateLastSignal(
                     appContext,
@@ -625,5 +620,9 @@ class DeviceConnectionManager(
             sdMounted = update.sdMounted.ifBlank { current.sdMounted },
             profile = if (update.profile != FirmwareProfile.UNKNOWN) update.profile else current.profile
         )
+    }
+
+    companion object {
+        private const val SIGNAL_LOG_MAX = 500
     }
 }

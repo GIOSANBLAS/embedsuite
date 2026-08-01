@@ -1,5 +1,7 @@
 package com.embedsuite.app.connection
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -14,6 +16,7 @@ class TehLinkClient(
     private val scope: CoroutineScope
 ) {
     private val requestId = AtomicInteger(0)
+    private val linkMutex = Mutex()
 
     suspend fun ping(transport: TEmbedTransport): Result<Boolean> {
         return execute(transport, "ping").map { data ->
@@ -134,47 +137,48 @@ class TehLinkClient(
     }
 
     /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
-    suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> {
-        val trimmed = json.trim()
-        val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
-            return Result.failure(it)
-        }
+    suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> =
+        linkMutex.withLock {
+            val trimmed = json.trim()
+            val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
+                return@withLock Result.failure(it)
+            }
 
-        val buffer = mutableListOf<String>()
-        val job = scope.launch {
-            transport.incomingLines().collect { line ->
-                if (TehLinkResponseParser.isTehLinkLine(line)) {
-                    buffer.add(line.trim())
+            val buffer = mutableListOf<String>()
+            val job = scope.launch {
+                transport.incomingLines().collect { line ->
+                    if (TehLinkResponseParser.isTehLinkLine(line)) {
+                        buffer.add(line.trim())
+                    }
                 }
             }
-        }
 
-        return try {
-            withTimeout(5_000L) {
-                delay(80)
-                buffer.clear()
-                transport.sendCommand(trimmed).getOrElse {
-                    return@withTimeout Result.failure(it)
-                }
+            try {
+                withTimeout(5_000L) {
+                    delay(80)
+                    buffer.clear()
+                    transport.sendCommand(trimmed).getOrElse {
+                        return@withTimeout Result.failure(it)
+                    }
 
-                val deadline = System.currentTimeMillis() + 4_000L
-                while (System.currentTimeMillis() < deadline) {
-                    val match = buffer.firstOrNull { line ->
-                        runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
+                    val deadline = System.currentTimeMillis() + 4_000L
+                    while (System.currentTimeMillis() < deadline) {
+                        val match = buffer.firstOrNull { line ->
+                            runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
+                        }
+                        if (match != null) {
+                            return@withTimeout Result.success(match)
+                        }
+                        delay(30)
                     }
-                    if (match != null) {
-                        return@withTimeout Result.success(match)
-                    }
-                    delay(30)
+                    Result.failure(Exception("TEH-Link timeout"))
                 }
-                Result.failure(Exception("TEH-Link timeout"))
+            } catch (e: Exception) {
+                Result.failure(Exception("TEH-Link: ${e.message}"))
+            } finally {
+                job.cancel()
             }
-        } catch (e: Exception) {
-            Result.failure(Exception("TEH-Link: ${e.message}"))
-        } finally {
-            job.cancel()
         }
-    }
 
     private suspend fun execute(
         transport: TEmbedTransport,

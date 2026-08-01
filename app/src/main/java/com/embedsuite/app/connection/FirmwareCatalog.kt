@@ -1,18 +1,14 @@
 package com.embedsuite.app.connection
 
 enum class FirmwareSource {
-    /** GIOSANBLAS/te-embed-xibalba â€” T-Embed Xibalba */
+    /** GIOSANBLAS/te-embed-xibalba — T-Embed Xibalba */
     OFFICIAL_XIBALBA,
-    /** BruceDevices/firmware â€” T-Embed CC1101 Plus */
-    OFFICIAL_BRUCE,
     /** Binario local elegido por el usuario */
     CUSTOM_LOCAL
 }
 
 enum class FirmwareRiskLevel {
-    /** Firmware oficial (Bruce o Xibalba) */
     OFFICIAL,
-    /** Custom â€” responsabilidad del usuario */
     CUSTOM
 }
 
@@ -22,15 +18,14 @@ data class FirmwareRelease(
     val downloadUrl: String,
     val fileName: String,
     val isPrerelease: Boolean,
-    val source: FirmwareSource = FirmwareSource.OFFICIAL_BRUCE,
+    val source: FirmwareSource = FirmwareSource.OFFICIAL_XIBALBA,
     val localFilePath: String? = null,
     val isRecommended: Boolean = false,
     val description: String = "",
-    /** SHA256 hex opcional para verificaciÃ³n post-descarga (64 chars). */
     val sha256Hex: String? = null
 ) {
     val riskLevel: FirmwareRiskLevel = when (source) {
-        FirmwareSource.OFFICIAL_BRUCE, FirmwareSource.OFFICIAL_XIBALBA -> FirmwareRiskLevel.OFFICIAL
+        FirmwareSource.OFFICIAL_XIBALBA -> FirmwareRiskLevel.OFFICIAL
         FirmwareSource.CUSTOM_LOCAL -> FirmwareRiskLevel.CUSTOM
     }
 
@@ -38,7 +33,6 @@ data class FirmwareRelease(
 
     val displayLabel: String = when (source) {
         FirmwareSource.OFFICIAL_XIBALBA -> "$tagName (Xibalba)"
-        FirmwareSource.OFFICIAL_BRUCE -> tagName
         FirmwareSource.CUSTOM_LOCAL -> name.ifBlank { fileName }
     }
 
@@ -49,10 +43,8 @@ data class FirmwareRelease(
 
 object FirmwareCatalog {
 
-    /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.16.2 Glow — splash logo). */
     val XIBALBA_FALLBACK_V0162: FirmwareRelease = FirmwareRelease(
         tagName = "v0.16.2",
         name = "v0.16.2 Glow",
@@ -64,24 +56,15 @@ object FirmwareCatalog {
         sha256Hex = "6fbdbaeeccfbd017bf71ffe1475e170c8b9970d5528f1c9466ed749fc404c512"
     )
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V0162] */
     val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0162
-
-    /** @deprecated Use [XIBALBA_FALLBACK_V0162] */
     val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0162
-
-    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
     val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0161
-
-    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
     val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0161
-
-    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
     val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
     fun markRecommended(
         releases: List<FirmwareRelease>,
-        profile: FirmwareProfile = FirmwareProfile.AUTO
+        profile: FirmwareProfile = FirmwareProfile.XIBALBA
     ): List<FirmwareRelease> {
         val recommended = pickRecommended(releases, profile) ?: return releases
         return releases.map { release ->
@@ -91,36 +74,16 @@ object FirmwareCatalog {
         }
     }
 
-    fun preferredSource(profile: FirmwareProfile): FirmwareSource = when (profile) {
-        FirmwareProfile.XIBALBA -> FirmwareSource.OFFICIAL_XIBALBA
-        FirmwareProfile.BRUCE -> FirmwareSource.OFFICIAL_BRUCE
-        FirmwareProfile.AUTO, FirmwareProfile.UNKNOWN -> FirmwareSource.OFFICIAL_XIBALBA
-    }
+    fun preferredSource(profile: FirmwareProfile): FirmwareSource = FirmwareSource.OFFICIAL_XIBALBA
 
     fun pickRecommended(
         releases: List<FirmwareRelease>,
-        profile: FirmwareProfile = FirmwareProfile.AUTO
+        profile: FirmwareProfile = FirmwareProfile.XIBALBA
     ): FirmwareRelease? {
-        val source = preferredSource(profile)
-        val stable = releases.filter { it.source == source && !it.isPrerelease }
-        val pool = stable.ifEmpty { releases.filter { it.source == source } }
-        if (pool.isNotEmpty()) {
-            return pool.reduce { best, current ->
-                val bestVer = FirmwareRepository.extractVersion(best.tagName)
-                val curVer = FirmwareRepository.extractVersion(current.tagName)
-                if (FirmwareRepository.isNewer(curVer, bestVer)) current else best
-            }
-        }
-        // Fallback: si no hay releases del perfil preferido, usar el otro oficial
-        val altSource = if (source == FirmwareSource.OFFICIAL_XIBALBA) {
-            FirmwareSource.OFFICIAL_BRUCE
-        } else {
-            FirmwareSource.OFFICIAL_XIBALBA
-        }
-        val altPool = releases.filter { it.source == altSource && !it.isPrerelease }
-            .ifEmpty { releases.filter { it.source == altSource } }
-        if (altPool.isEmpty()) return null
-        return altPool.reduce { best, current ->
+        val stable = releases.filter { it.source == FirmwareSource.OFFICIAL_XIBALBA && !it.isPrerelease }
+        val pool = stable.ifEmpty { releases.filter { it.source == FirmwareSource.OFFICIAL_XIBALBA } }
+        if (pool.isEmpty()) return null
+        return pool.reduce { best, current ->
             val bestVer = FirmwareRepository.extractVersion(best.tagName)
             val curVer = FirmwareRepository.extractVersion(current.tagName)
             if (FirmwareRepository.isNewer(curVer, bestVer)) current else best

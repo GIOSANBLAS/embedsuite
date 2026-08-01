@@ -70,49 +70,5 @@ class UsbTransport(
         }
     }
 
-    /**
-     * Protocolo Bruce `storage write`: comando → líneas de contenido → línea `EOF`.
-     * Usa `\n` (sin `\r`) para que `readStringUntil('\n')` coincida con `EOF`.
-     */
-    suspend fun writeTextFile(relativePath: String, content: String): Result<String> {
-        if (!isConnected) {
-            return Result.failure(Exception("USB no conectado. Push .sub requiere OTG."))
-        }
-        val path = runCatching { BruceCommands.sanitizeDeviceRelativePath(relativePath) }
-            .getOrElse { return Result.failure(it) }
-        val normalized = BruceCommands.preparePushContent(content).getOrElse {
-            return Result.failure(it)
-        }
-        val sizeHint = (normalized.length + 64).coerceAtLeast(256)
-
-        // Carpeta padre (ignorar error si ya existe)
-        val parent = path.substringBeforeLast('/', "")
-        if (parent.isNotBlank()) {
-            val mkdir = BruceCommandValidator.validate(BruceCommands.storageMkdir(parent))
-                .getOrElse { return Result.failure(it) }
-            usbSerialManager.enviarTexto(mkdir, appendNewline = "\n")
-            kotlinx.coroutines.delay(200)
-        }
-
-        val writeCmd = BruceCommandValidator.validate(BruceCommands.storageWrite(path, sizeHint))
-            .getOrElse { return Result.failure(it) }
-        val cmdOk = usbSerialManager.enviarTexto(writeCmd, appendNewline = "\n")
-        if (!cmdOk) return Result.failure(Exception("No se pudo iniciar storage write."))
-
-        kotlinx.coroutines.delay(350)
-
-        normalized.lineSequence().forEach { line ->
-            if (!usbSerialManager.enviarTexto(line, appendNewline = "\n")) {
-                return Result.failure(Exception("Error enviando contenido .sub"))
-            }
-            kotlinx.coroutines.delay(5)
-        }
-        if (!usbSerialManager.enviarTexto(BruceCommands.STORAGE_WRITE_EOF, appendNewline = "\n")) {
-            return Result.failure(Exception("Error enviando EOF"))
-        }
-        kotlinx.coroutines.delay(400)
-        return Result.success(path)
-    }
-
     override fun incomingLines(): Flow<String> = _incoming.asSharedFlow()
 }

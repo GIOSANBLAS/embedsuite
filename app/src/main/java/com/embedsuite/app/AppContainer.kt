@@ -91,7 +91,7 @@ class AppContainer(context: Context) {
     val otaUpdateChecker = OtaUpdateChecker(firmwareRepository)
     val bleGattClient = BleGattClient(appContext)
     val macroEngine = MacroEngine(connectionManager, sessionStats)
-    val rfReplayEngine = RfReplayEngine(appContext, connectionManager, txHistoryRepository)
+    val rfReplayEngine = RfReplayEngine(connectionManager, txHistoryRepository)
     val rfAutomationEngine = RfAutomationEngine(
         context = appContext,
         repository = rfAutomationRepository,
@@ -101,7 +101,6 @@ class AppContainer(context: Context) {
         macroEngine = macroEngine
     )
     val mapTileCacheManager = com.embedsuite.app.map.MapTileCacheManager(appContext)
-    val bruceStorageSync = com.embedsuite.app.connection.BruceStorageSync(connectionManager)
 
     val aiPreferences = AiPreferences(appContext, secureStore)
     val aiEngine = EmbedAiEngine(

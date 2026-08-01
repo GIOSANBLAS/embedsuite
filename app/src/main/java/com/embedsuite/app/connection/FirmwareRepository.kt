@@ -100,60 +100,6 @@ class FirmwareRepository {
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    suspend fun fetchTEmbedReleases(): Result<List<FirmwareRelease>> = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("https://api.github.com/repos/BruceDevices/firmware/releases?per_page=10")
-                .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "EMBED-SUITE-Android")
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext Result.failure(
-                        Exception("GitHub API error: HTTP ${response.code}")
-                    )
-                }
-
-                val body = response.body?.string().orEmpty()
-                val releases = JSONArray(body)
-                val results = mutableListOf<FirmwareRelease>()
-
-                for (i in 0 until releases.length()) {
-                    val release = releases.getJSONObject(i)
-                    val assets = release.optJSONArray("assets") ?: continue
-                    val tag = release.optString("tag_name", "unknown")
-                    val name = release.optString("name", tag)
-                    val prerelease = release.optBoolean("prerelease", false)
-
-                    for (j in 0 until assets.length()) {
-                        val asset = assets.getJSONObject(j)
-                        val fileName = asset.optString("name", "")
-                        if (fileName.contains("T-Embed", ignoreCase = true) &&
-                            fileName.contains("CC1101", ignoreCase = true) &&
-                            fileName.endsWith(".bin", ignoreCase = true)
-                        ) {
-                            results.add(
-                                FirmwareRelease(
-                                    tagName = tag,
-                                    name = name,
-                                    downloadUrl = asset.optString("browser_download_url"),
-                                    fileName = fileName,
-                                    isPrerelease = prerelease,
-                                    source = FirmwareSource.OFFICIAL_BRUCE
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Result.success(FirmwareCatalog.markRecommended(results))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
     suspend fun fetchXibalbaReleases(): Result<List<FirmwareRelease>> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
@@ -215,27 +161,14 @@ class FirmwareRepository {
         }
     }
 
-    /** Releases oficiales Xibalba para el catálogo principal (sin Bruce legacy). */
+    /** Releases oficiales Xibalba para el catálogo principal. */
     suspend fun fetchDeviceFirmwares(): Result<List<FirmwareRelease>> =
         fetchXibalbaReleases().map { list ->
             FirmwareCatalog.markRecommended(list, FirmwareProfile.XIBALBA)
         }
 
     suspend fun fetchAllReleases(profile: FirmwareProfile = FirmwareProfile.XIBALBA): Result<List<FirmwareRelease>> =
-        withContext(Dispatchers.IO) {
-            if (profile == FirmwareProfile.BRUCE) {
-                val bruce = fetchTEmbedReleases().getOrElse { emptyList() }
-                val xibalba = fetchXibalbaReleases().getOrElse { emptyList() }
-                val merged = bruce + xibalba
-                if (merged.isEmpty()) {
-                    Result.failure(Exception("No se encontraron releases de firmware"))
-                } else {
-                    Result.success(FirmwareCatalog.markRecommended(merged, profile))
-                }
-            } else {
-                fetchDeviceFirmwares()
-            }
-        }
+        fetchDeviceFirmwares()
 
     suspend fun importLocalBin(context: Context, uri: Uri, cacheDir: File): Result<FirmwareRelease> =
         withContext(Dispatchers.IO) {

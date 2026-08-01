@@ -48,7 +48,7 @@ object MifareParser {
         "Default keys (FFFFFFFFFFFF)",
         "Nested attack (MIFARE Classic)",
         "Darkside attack (nonce reuse)",
-        "UID clone (emulación Bruce)",
+        "UID clone (emulación TEH-Link)",
         "Read-only sector dump"
     )
 }

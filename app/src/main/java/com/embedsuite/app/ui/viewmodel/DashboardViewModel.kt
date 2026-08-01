@@ -69,7 +69,7 @@ class DashboardViewModel(
         refreshStats()
         viewModelScope.launch {
             connectionManager.events.collect { event ->
-                if (event is com.embedsuite.app.connection.BruceEvent.TehLinkNotice) {
+                if (event is com.embedsuite.app.connection.DeviceEvent.TehLinkNotice) {
                     _uiState.update { it.copy(tehLinkNotice = event.message) }
                 }
             }

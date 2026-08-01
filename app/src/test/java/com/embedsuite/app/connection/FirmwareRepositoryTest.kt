@@ -14,25 +14,25 @@ class FirmwareRepositoryTest {
 
     @Test
     fun pickRecommended_prefersXibalbaForXibalbaProfile() {
-        val bruce = FirmwareRelease(
-            tagName = "v1.8.0",
-            name = "Bruce",
-            downloadUrl = "https://example.com/bruce.bin",
-            fileName = "bruce.bin",
-            isPrerelease = false,
-            source = FirmwareSource.OFFICIAL_BRUCE
-        )
-        val xibalba = FirmwareRelease(
+        val xibalbaOld = FirmwareRelease(
             tagName = "v0.16.0",
             name = "Beacon",
+            downloadUrl = "https://example.com/xibalba-old.bin",
+            fileName = "te-embed-xibalba.bin",
+            isPrerelease = true,
+            source = FirmwareSource.OFFICIAL_XIBALBA
+        )
+        val xibalbaNew = FirmwareRelease(
+            tagName = "v0.16.2",
+            name = "Glow",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",
             isPrerelease = true,
             source = FirmwareSource.OFFICIAL_XIBALBA
         )
-        val recommended = FirmwareCatalog.pickRecommended(listOf(bruce, xibalba), FirmwareProfile.XIBALBA)
+        val recommended = FirmwareCatalog.pickRecommended(listOf(xibalbaOld, xibalbaNew), FirmwareProfile.XIBALBA)
         assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
-        assertEquals("v0.16.0", recommended?.tagName)
+        assertEquals("v0.16.2", recommended?.tagName)
     }
 
     @Test
@@ -51,15 +51,7 @@ class FirmwareRepositoryTest {
     }
 
     @Test
-    fun deviceCatalog_excludesBruceReleases() {
-        val bruce = FirmwareRelease(
-            tagName = "v1.8.0",
-            name = "Bruce",
-            downloadUrl = "https://example.com/bruce.bin",
-            fileName = "bruce.bin",
-            isPrerelease = false,
-            source = FirmwareSource.OFFICIAL_BRUCE
-        )
+    fun deviceCatalog_isXibalbaOnly() {
         val xibalba = FirmwareRelease(
             tagName = "v0.16.2",
             name = "Glow",
@@ -68,21 +60,20 @@ class FirmwareRepositoryTest {
             isPrerelease = true,
             source = FirmwareSource.OFFICIAL_XIBALBA
         )
-        val filtered = listOf(bruce, xibalba).filter { it.source != FirmwareSource.OFFICIAL_BRUCE }
-        assertEquals(1, filtered.size)
-        assertEquals(FirmwareSource.OFFICIAL_XIBALBA, filtered.first().source)
+        val list = listOf(xibalba)
+        assertEquals(1, list.size)
+        assertEquals(FirmwareSource.OFFICIAL_XIBALBA, list.first().source)
     }
 
     @Test
     fun settingsDisplayOrder_isXibalbaOnly() {
         assertEquals(listOf(FirmwareProfile.XIBALBA), FirmwareProfile.settingsDisplayOrder)
-        assertFalse(FirmwareProfile.settingsDisplayOrder.contains(FirmwareProfile.BRUCE))
-        assertFalse(FirmwareProfile.settingsDisplayOrder.contains(FirmwareProfile.AUTO))
     }
 
     @Test
     fun fromPref_defaultsToXibalba() {
         assertEquals(FirmwareProfile.XIBALBA, FirmwareProfile.fromPref(null))
         assertEquals(FirmwareProfile.XIBALBA, FirmwareProfile.fromPref("invalid"))
+        assertEquals(FirmwareProfile.XIBALBA, FirmwareProfile.fromPref("BRUCE"))
     }
 }

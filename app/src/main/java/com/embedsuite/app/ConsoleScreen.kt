@@ -15,17 +15,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.res.stringResource
-import com.embedsuite.app.connection.BruceCommands
 import com.embedsuite.app.connection.ConnectionState
-import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TehLinkConsoleChips
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.ConsoleViewModel
@@ -34,21 +32,17 @@ import com.embedsuite.app.ui.viewmodel.ConsoleViewModel
 fun ConsoleScreen(viewModel: ConsoleViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
-    val detectedProfile by viewModel.detectedProfile.collectAsState()
     val macros by viewModel.macros.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
 
-    val isBruceLegacy = detectedProfile == FirmwareProfile.BRUCE
-    val isXibalba = !isBruceLegacy
-    val bruceCommands = BruceCommands.safeConsoleChips
     val tehLinkChips = TehLinkConsoleChips.chips
 
-    val bruceImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val macroImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             val name = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.') ?: "imported"
             context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()?.let { content ->
-                viewModel.importBruceScript(name, content)
+                viewModel.importTehLinkMacro(name, content)
             }
         }
     }
@@ -76,36 +70,28 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
         if (uiState.logs.isNotEmpty()) listState.animateScrollToItem(uiState.logs.size - 1)
     }
 
-    val suggestions = remember(uiState.inputText, isXibalba) {
+    val suggestions = remember(uiState.inputText) {
         if (uiState.inputText.isBlank()) emptyList()
-        else if (isXibalba) {
+        else {
             tehLinkChips
                 .filter { it.label.contains(uiState.inputText, ignoreCase = true) ||
                     it.json.contains(uiState.inputText, ignoreCase = true) }
                 .take(6)
                 .map { it.json }
-        } else {
-            bruceCommands.filter { it.contains(uiState.inputText, ignoreCase = true) }.take(6)
         }
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                if (isXibalba) {
-                    stringResource(R.string.console_title_teh_link, connectionStatus)
-                } else {
-                    stringResource(R.string.console_title_bruce_legacy, connectionStatus)
-                },
+                stringResource(R.string.console_title_teh_link, connectionStatus),
                 color = if (isConnected) MatrixGreen else NeonRed,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp
             )
             Row {
-                if (isBruceLegacy) {
-                    IconButton(onClick = { bruceImportLauncher.launch(arrayOf("text/*", "*/*")) }) {
-                        Icon(Icons.Default.Upload, stringResource(R.string.console_import_bruce), tint = NeonCyan)
-                    }
+                IconButton(onClick = { macroImportLauncher.launch(arrayOf("text/*", "application/json", "*/*")) }) {
+                    Icon(Icons.Default.Upload, stringResource(R.string.console_import_macro), tint = NeonCyan)
                 }
                 IconButton(onClick = { viewModel.reconnect() }) {
                     Icon(Icons.Default.Refresh, null, tint = MatrixGreen)
@@ -120,16 +106,14 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        if (isXibalba) {
-            Text("TEH-Link:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                tehLinkChips.forEach { chip ->
-                    TextButton(onClick = { viewModel.sendCommand(chip.json) }) {
-                        Text(chip.label, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
-                    }
+        Text("TEH-Link:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            tehLinkChips.forEach { chip ->
+                TextButton(onClick = { viewModel.sendCommand(chip.json) }) {
+                    Text(chip.label, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
                 }
             }
         }
@@ -140,8 +124,8 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        if (isBruceLegacy && macros.isNotEmpty()) {
-            Text(stringResource(R.string.console_bruce_scripts), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
+        if (macros.isNotEmpty()) {
+            Text(stringResource(R.string.console_teh_link_macros), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
             macros.take(3).forEach { m ->
                 TextButton(onClick = { viewModel.runMacro(m) }) {
                     Text("▶ ${m.name}", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange)
@@ -155,8 +139,7 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 onValueChange = { viewModel.setInput(it) },
                 placeholder = {
                     Text(
-                        if (isXibalba) stringResource(R.string.console_placeholder_teh_link)
-                        else stringResource(R.string.console_placeholder_bruce),
+                        stringResource(R.string.console_placeholder_teh_link),
                         color = TextGray,
                         fontFamily = FontFamily.Monospace
                     )

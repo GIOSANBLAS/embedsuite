@@ -17,7 +17,7 @@ data class DebugLine(
     val category: DebugCategory
 )
 
-object BruceDebugLog {
+object LinkDebugLog {
 
     private const val MAX_LINES = 200
 
@@ -78,14 +78,12 @@ object BruceDebugLog {
         else -> DebugCategory.OTHER
     }
 
-    /** Redacta RAW/hex largos — pueden ser códigos de apertura RF sensibles. */
     fun sanitize(text: String): String = sanitizeForLog(text)
 
     private fun sanitizeForLog(text: String): String {
         if (text.contains("RAW", ignoreCase = true) && text.length > 96) {
             return text.take(72) + "… [RAW ${text.length} chars redacted]"
         }
-        // Claves RF típicas (≥6 hex) y dumps largos
         if (Regex("""[0-9A-Fa-f]{12,}""").containsMatchIn(text)) {
             return text.replace(Regex("""[0-9A-Fa-f]{8,}"""), "[HEX_REDACTED]")
         }

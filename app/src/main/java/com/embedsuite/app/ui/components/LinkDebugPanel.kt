@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.embedsuite.app.R
-import com.embedsuite.app.connection.BruceDebugLog
+import com.embedsuite.app.connection.LinkDebugLog
 import com.embedsuite.app.connection.DebugCategory
 import com.embedsuite.app.connection.DebugDirection
 import com.embedsuite.app.ui.theme.*
@@ -38,12 +38,12 @@ fun LinkDebugPanel(
     compact: Boolean = false
 ) {
     val context = LocalContext.current
-    val lines by BruceDebugLog.lines.collectAsState()
+    val lines by LinkDebugLog.lines.collectAsState()
     var filter by remember { mutableStateOf(DebugCategory.ALL) }
     var fullscreen by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    val filtered = remember(lines, filter) { BruceDebugLog.filtered(filter) }
+    val filtered = remember(lines, filter) { LinkDebugLog.filtered(filter) }
 
     LaunchedEffect(filtered.size) {
         if (filtered.isNotEmpty()) listState.animateScrollToItem(filtered.lastIndex)
@@ -71,7 +71,7 @@ fun LinkDebugPanel(
                     IconButton(onClick = { copyDebugLog(context, filter) }) {
                         Icon(Icons.Default.ContentCopy, null, tint = NeonCyan)
                     }
-                    IconButton(onClick = { BruceDebugLog.clear() }) {
+                    IconButton(onClick = { LinkDebugLog.clear() }) {
                         Icon(Icons.Default.DeleteSweep, null, tint = NeonOrange)
                     }
                 }
@@ -175,7 +175,7 @@ private fun LinkDebugLineRow(line: com.embedsuite.app.connection.DebugLine) {
 }
 
 private fun copyDebugLog(context: Context, filter: DebugCategory) {
-    val text = BruceDebugLog.asPlainText(filter)
+    val text = LinkDebugLog.asPlainText(filter)
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("TEH-Link debug", text))
     Toast.makeText(context, context.getString(R.string.tools_debug_copied, text.lines().size), Toast.LENGTH_SHORT).show()

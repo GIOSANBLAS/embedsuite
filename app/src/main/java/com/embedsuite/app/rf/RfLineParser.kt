@@ -1,31 +1,21 @@
-package com.embedsuite.app.connection
+package com.embedsuite.app.rf
 
-import com.embedsuite.app.rf.RfProtocolDecoder
+import com.embedsuite.app.connection.SignalEntry
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-object BruceResponseParser {
+/** Parses RF spectrum/pulse lines from TEH-Link or serial capture streams. */
+object RfLineParser {
 
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.US)
-
-    fun parseLine(line: String): BruceEvent {
-        val trimmed = line.trim()
-        if (trimmed.isEmpty()) return BruceEvent.RawLine(line)
-
-        parseSubGhzSignal(trimmed)?.let { return BruceEvent.SubGhzSignal(it) }
-        parseWaveformSample(trimmed)?.let { return BruceEvent.WaveformSample(it.first, it.second) }
-        parseSystemInfo(trimmed)?.let { return BruceEvent.SystemInfoUpdate(it) }
-
-        return BruceEvent.RawLine(line)
-    }
+    private const val SPECTRUM_BINS = 128
 
     fun parseRssiDbm(line: String): Float? {
         return Regex("""(-?\d+)\s*dBm""", RegexOption.IGNORE_CASE).find(line)?.groupValues?.get(1)
             ?.toFloatOrNull()
     }
 
-    /** Multi-bin scan row: "300:-90 433:-72 868:-80" or CSV RSSI values */
     fun parseSpectrumRow(line: String): List<Float>? {
         if (!line.contains("dBm", ignoreCase = true) &&
             !line.contains("scan", ignoreCase = true) &&
@@ -54,9 +44,7 @@ object BruceResponseParser {
 
     fun parsePulseSample(line: String): Pair<Float, Long>? = parseWaveformSample(line)
 
-    private const val SPECTRUM_BINS = 128
-
-    private fun parseSubGhzSignal(line: String): SignalEntry? {
+    fun parseSubGhzSignal(line: String): SignalEntry? {
         RfProtocolDecoder.decode(line)?.let { decoded ->
             return SignalEntry(
                 timestamp = now(),
@@ -98,6 +86,16 @@ object BruceResponseParser {
         return null
     }
 
+    fun parseRawPulseTrain(rawLine: String): List<Pair<Float, Long>> {
+        val numbers = Regex("""\d+""").findAll(rawLine).map { it.value.toLongOrNull() ?: 0L }.toList()
+        if (numbers.isEmpty()) return emptyList()
+
+        return numbers.mapIndexed { index, duration ->
+            val level = if (index % 2 == 0) 1f else 0f
+            level to duration
+        }
+    }
+
     private fun parseWaveformSample(line: String): Pair<Float, Long>? {
         val pulse = Regex("""(?i)(?:Pulse|Level|Bit)\s*[:=]\s*(\d+)\s*(?:us|µs)?""").find(line)
             ?: Regex("""(?i)^(\d+)\s+(\d+)$""").find(line)
@@ -112,34 +110,6 @@ object BruceResponseParser {
                 val duration = pulse.groupValues[1].toLongOrNull() ?: return null
                 Pair(1f, duration)
             }
-        }
-    }
-
-    private fun parseSystemInfo(line: String): SystemInfo? {
-        return when {
-            line.contains("Uptime", ignoreCase = true) -> {
-                SystemInfo(uptime = line.substringAfter(":").trim())
-            }
-            line.contains("Free heap", ignoreCase = true) || line.contains("Free:", ignoreCase = true) -> {
-                SystemInfo(freeHeap = line.substringAfter(":").trim())
-            }
-            line.contains("Battery", ignoreCase = true) -> {
-                SystemInfo(battery = line.substringAfter(":").trim())
-            }
-            line.contains("Firmware", ignoreCase = true) || line.contains("Version", ignoreCase = true) -> {
-                SystemInfo(firmware = line.substringAfter(":").trim())
-            }
-            else -> null
-        }
-    }
-
-    fun parseRawPulseTrain(rawLine: String): List<Pair<Float, Long>> {
-        val numbers = Regex("""\d+""").findAll(rawLine).map { it.value.toLongOrNull() ?: 0L }.toList()
-        if (numbers.isEmpty()) return emptyList()
-
-        return numbers.mapIndexed { index, duration ->
-            val level = if (index % 2 == 0) 1f else 0f
-            level to duration
         }
     }
 

@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 fun NfcIrScreen(viewModel: NfcIrViewModel) {
     var showAddIr by remember { mutableStateOf(false) }
     var newIrName by remember { mutableStateOf("") }
-    var newIrCommand by remember { mutableStateOf(com.embedsuite.app.connection.BruceCommands.irTx("NEC", "00FF", "00FF")) }
+    var newIrCommand by remember { mutableStateOf(com.embedsuite.app.connection.TehLinkIrUtils.irTx("NEC", "00FF", "00FF")) }
 
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -93,15 +93,6 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         if (uiState.modo == "NFC / RFID") {
-            if (!isXibalba) {
-                Text(
-                    com.embedsuite.app.connection.BruceCommands.NFC_CLI_UNSUPPORTED,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 9.sp,
-                    color = NeonOrange,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                )
-            }
             if (uiState.savedDumps.isNotEmpty()) {
                 Text("DUMPS GUARDADOS — EMULAR", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonCyan, modifier = Modifier.fillMaxWidth())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
@@ -119,8 +110,8 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 nfcDump = uiState.nfcDump,
                 parsedMifare = uiState.parsedMifare,
                 isConnected = isConnected,
-                controlsEnabled = isConnected && (nfcDeviceEnabled || !isXibalba),
-                waitingHint = if (isXibalba) stringResource(R.string.nfc_waiting_teh_link) else stringResource(R.string.nfc_waiting_bruce_legacy),
+                controlsEnabled = isConnected && nfcDeviceEnabled,
+                waitingHint = stringResource(R.string.nfc_waiting_teh_link),
                 onRead = { viewModel.readNfc() },
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
@@ -170,8 +161,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                         onValueChange = { newIrCommand = it },
                         label = {
                             Text(
-                                if (isXibalba) stringResource(R.string.nfc_ir_command_teh_link)
-                                else stringResource(R.string.nfc_ir_command_bruce_legacy),
+                                stringResource(R.string.nfc_ir_command_teh_link),
                                 fontFamily = FontFamily.Monospace
                             )
                         },
@@ -270,7 +260,7 @@ private fun IrPanel(
     LazyVerticalGrid(columns = GridCells.Fixed(3), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.fillMaxWidth()) {
         items(irButtons, key = { it.id }) { button ->
             Column {
-                Button(onClick = { onSend(button.bruceCommand) }, enabled = controlsEnabled, modifier = Modifier.fillMaxWidth().height(48.dp),
+                Button(onClick = { onSend(button.irPayload) }, enabled = controlsEnabled, modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = NeonOrange.copy(alpha = 0.85f)), shape = RoundedCornerShape(6.dp)) {
                     Text(button.buttonName, fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 10.sp)
                 }

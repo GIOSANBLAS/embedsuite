@@ -1,5 +1,6 @@
 package com.embedsuite.app.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -31,7 +32,8 @@ data class IrButtonEntity(
     val buttonName: String,
     val protocol: String = "NEC",
     val hexCode: String = "",
-    val bruceCommand: String = ""
+    @ColumnInfo(name = "ir_payload")
+    val irPayload: String = ""
 )
 
 @Entity(tableName = "macros")

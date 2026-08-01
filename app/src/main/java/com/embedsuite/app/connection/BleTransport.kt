@@ -52,11 +52,11 @@ class BleTransport(private val context: Context) : TEmbedTransport {
 
         val candidates = btAdapter.bondedDevices.filter {
             val name = it.name?.lowercase() ?: ""
-            name.contains("t-embed") || name.contains("bruce") || name.contains("lilygo") || name.contains("esp32")
+            name.contains("t-embed") || name.contains("xibalba") || name.contains("lilygo") || name.contains("esp32")
         }
 
         val device = candidates.firstOrNull()
-            ?: return Result.failure(Exception("No se encontró T-Embed/Bruce emparejado. Empareja el dispositivo en Ajustes Bluetooth."))
+            ?: return Result.failure(Exception("No se encontró T-Embed emparejado. Empareja el dispositivo en Ajustes Bluetooth."))
 
         return connectToDevice(device)
     }

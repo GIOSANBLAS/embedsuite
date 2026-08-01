@@ -8,7 +8,7 @@ sealed class OtaUpdateStatus {
         val deviceVersion: String,
         val latestVersion: String,
         val release: FirmwareRelease,
-        val sourceLabel: String = "Bruce"
+        val sourceLabel: String = "Xibalba"
     ) : OtaUpdateStatus()
     data class Error(val message: String) : OtaUpdateStatus()
 }
@@ -21,7 +21,7 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
 
     suspend fun check(
         deviceFirmware: String,
-        profile: FirmwareProfile = FirmwareProfile.AUTO,
+        profile: FirmwareProfile = FirmwareProfile.XIBALBA,
         force: Boolean = false
     ): OtaUpdateStatus {
         if (!force && cachedStatus !is OtaUpdateStatus.Unknown && System.currentTimeMillis() - lastCheckMs < cacheTtlMs) {
@@ -30,19 +30,7 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
         val deviceVer = FirmwareRepository.extractVersion(deviceFirmware)
         if (deviceVer.isBlank()) return OtaUpdateStatus.Unknown
 
-        val isXibalba = when (profile) {
-            FirmwareProfile.XIBALBA -> true
-            FirmwareProfile.BRUCE -> false
-            FirmwareProfile.AUTO, FirmwareProfile.UNKNOWN ->
-                deviceFirmware.contains("xibalba", ignoreCase = true)
-        }
-        val fetchResult = if (isXibalba) {
-            firmwareRepository.fetchXibalbaReleases()
-        } else {
-            firmwareRepository.fetchTEmbedReleases()
-        }
-
-        return fetchResult.fold(
+        return firmwareRepository.fetchXibalbaReleases().fold(
             onSuccess = { releases ->
                 val latest = releases.firstOrNull { !it.isPrerelease }
                     ?: releases.firstOrNull()
@@ -50,9 +38,8 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
                     cachedStatus = OtaUpdateStatus.UpToDate
                 } else {
                     val latestVer = FirmwareRepository.extractVersion(latest.tagName)
-                    val sourceLabel = if (isXibalba) "Xibalba" else "Bruce"
                     cachedStatus = if (FirmwareRepository.isNewer(latestVer, deviceVer)) {
-                        OtaUpdateStatus.UpdateAvailable(deviceVer, latestVer, latest, sourceLabel)
+                        OtaUpdateStatus.UpdateAvailable(deviceVer, latestVer, latest, "Xibalba")
                     } else {
                         OtaUpdateStatus.UpToDate
                     }

@@ -1,6 +1,6 @@
 # EmbedSuite
 
-Android companion app for **T-Embed Xibalba** firmware (TEH-Link over USB) and optional Bruce profile.
+Android companion app for **T-Embed Xibalba** firmware (TEH-Link over USB/WiFi/BLE).
 
 Package: `com.embedsuite.app`
 

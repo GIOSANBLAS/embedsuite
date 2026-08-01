@@ -136,8 +136,121 @@ fun FirmwareFlashCard(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 9.sp,
                 color = TextGray,
-                modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)
+                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
             )
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BlackAMOLED),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                    .border(1.dp, MatrixGreen.copy(alpha = 0.55f), RoundedCornerShape(4.dp))
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(
+                        stringResource(R.string.firmware_section_official_xibalba),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MatrixGreen
+                    )
+                    recommendedRelease?.let { rec ->
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "★ ${stringResource(R.string.firmware_recommended)}",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NeonCyan
+                        )
+                        Text(
+                            "${rec.tagName} — ${rec.fileName}",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.sp,
+                            color = MatrixGreen
+                        )
+                        Text(
+                            stringResource(R.string.firmware_recommended_reason_xibalba),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 8.sp,
+                            color = TextGray,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    Text(
+                        flashStatus,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = TextGray,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                    if (otaProgress > 0) {
+                        LinearProgressIndicator(
+                            progress = { otaProgress / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MatrixGreen,
+                            trackColor = DarkSurfaceElevated
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    Button(
+                        onClick = onLoadReleases,
+                        enabled = !isLoadingReleases && !isFlashing,
+                        colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            stringResource(R.string.firmware_fetch_xibalba),
+                            fontFamily = FontFamily.Monospace,
+                            color = BlackAMOLED,
+                            fontSize = 11.sp
+                        )
+                    }
+                    val officialOptions = firmwareOptions.filter { it.source != FirmwareSource.CUSTOM_LOCAL }
+                    if (officialOptions.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.firmware_available),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            color = NeonCyan
+                        )
+                        officialOptions.forEach { release ->
+                            val selected = selectedRelease?.identityKey() == release.identityKey()
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = selected,
+                                    onClick = { onSelectRelease(release) },
+                                    colors = RadioButtonDefaults.colors(selectedColor = MatrixGreen)
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        buildString {
+                                            append(release.displayLabel)
+                                            when {
+                                                release.isRecommended -> append(" ★")
+                                                release.isPrerelease -> append(" [BETA]")
+                                                release.source == FirmwareSource.OFFICIAL_XIBALBA -> append(" [XIBALBA]")
+                                            }
+                                        },
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        color = if (selected) NeonCyan else MatrixGreen
+                                    )
+                                    Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                                    Text(
+                                        stringResource(R.string.firmware_xibalba_desc),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 8.sp,
+                                        color = TextMuted
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = BlackAMOLED),
@@ -146,7 +259,7 @@ fun FirmwareFlashCard(
             ) {
                 Column(Modifier.padding(8.dp)) {
                     Text(
-                        stringResource(R.string.firmware_pick_custom_prominent),
+                        stringResource(R.string.firmware_section_custom_bin),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -184,149 +297,33 @@ fun FirmwareFlashCard(
                             }
                         }
                     }
-                }
-            }
-
-            recommendedRelease?.let { rec ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = BlackAMOLED),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                        .border(1.dp, MatrixGreen.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                ) {
-                    Column(Modifier.padding(8.dp)) {
-                        Text(
-                            "★ ${stringResource(R.string.firmware_recommended)}",
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MatrixGreen
-                        )
-                        Text(
-                            "${rec.tagName} — ${rec.fileName}",
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 9.sp,
-                            color = NeonCyan
-                        )
-                        Text(
-                            stringResource(R.string.firmware_recommended_reason_xibalba),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 8.sp,
-                            color = TextGray,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            Text(flashStatus, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray, modifier = Modifier.padding(vertical = 4.dp))
-            if (otaProgress > 0) {
-                LinearProgressIndicator(
-                    progress = { otaProgress / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = NeonOrange,
-                    trackColor = BlackAMOLED
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = onLoadReleases,
-                enabled = !isLoadingReleases && !isFlashing,
-                colors = ButtonDefaults.buttonColors(containerColor = NeonOrange),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    stringResource(R.string.firmware_fetch_xibalba),
-                    fontFamily = FontFamily.Monospace,
-                    color = BlackAMOLED,
-                    fontSize = 11.sp
-                )
-            }
-
-            val officialOptions = firmwareOptions.filter { it.source != FirmwareSource.CUSTOM_LOCAL }
-            if (officialOptions.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.firmware_available),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp,
-                    color = NeonCyan
-                )
-            }
-
-            officialOptions.forEach { release ->
-                val selected = selectedRelease?.identityKey() == release.identityKey()
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selected,
-                        onClick = { onSelectRelease(release) },
-                        colors = RadioButtonDefaults.colors(selectedColor = NeonOrange)
-                    )
-                    Column(Modifier.weight(1f)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                buildString {
-                                    append(release.displayLabel)
-                                    when {
-                                        release.isRecommended -> append(" ★")
-                                        release.isPrerelease -> append(" [BETA]")
-                                        release.source == FirmwareSource.OFFICIAL_XIBALBA -> append(" [XIBALBA]")
-                                        release.source == FirmwareSource.CUSTOM_LOCAL -> append(" [CUSTOM]")
-                                    }
-                                },
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 10.sp,
-                                color = when {
-                                    release.source == FirmwareSource.CUSTOM_LOCAL -> NeonRed
-                                    selected -> NeonOrange
-                                    else -> MatrixGreen
-                                }
+                    firmwareOptions.filter { it.source == FirmwareSource.CUSTOM_LOCAL }.forEach { release ->
+                        val selected = selectedRelease?.identityKey() == release.identityKey()
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selected,
+                                onClick = { onSelectRelease(release) },
+                                colors = RadioButtonDefaults.colors(selectedColor = NeonRed)
                             )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "${release.displayLabel} [CUSTOM]",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    color = if (selected) NeonRed else MatrixGreen
+                                )
+                                Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                                Text(
+                                    stringResource(R.string.firmware_custom_desc),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 8.sp,
+                                    color = TextMuted
+                                )
+                            }
                         }
-                        Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                        val desc = when (release.source) {
-                            FirmwareSource.OFFICIAL_XIBALBA ->
-                                stringResource(R.string.firmware_xibalba_desc)
-                            FirmwareSource.CUSTOM_LOCAL ->
-                                stringResource(R.string.firmware_custom_desc)
-                            else -> release.description
-                        }
-                        if (desc.isNotBlank()) {
-                            Text(desc, fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = TextMuted)
-                        }
-                    }
-                }
-            }
-
-            firmwareOptions.filter { it.source == FirmwareSource.CUSTOM_LOCAL }.forEach { release ->
-                val selected = selectedRelease?.identityKey() == release.identityKey()
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selected,
-                        onClick = { onSelectRelease(release) },
-                        colors = RadioButtonDefaults.colors(selectedColor = NeonRed)
-                    )
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "${release.displayLabel} [CUSTOM]",
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 10.sp,
-                            color = if (selected) NeonRed else MatrixGreen
-                        )
-                        Text(release.fileName, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                        Text(
-                            stringResource(R.string.firmware_custom_desc),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 8.sp,
-                            color = TextMuted
-                        )
                     }
                 }
             }

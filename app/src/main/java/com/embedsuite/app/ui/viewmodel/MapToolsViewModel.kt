@@ -101,17 +101,8 @@ class MapToolsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingReleases = true) }
             val profile = detectedProfile.value
-            val fetchResult = when (profile) {
-                FirmwareProfile.BRUCE -> firmwareRepository.fetchAllReleases(profile)
-                else -> firmwareRepository.fetchDeviceFirmwares()
-            }
-            fetchResult.fold(
-                onSuccess = { rawList ->
-                    val list = if (profile == FirmwareProfile.BRUCE) {
-                        rawList
-                    } else {
-                        rawList.filter { it.source != FirmwareSource.OFFICIAL_BRUCE }
-                    }
+            firmwareRepository.fetchDeviceFirmwares().fold(
+                onSuccess = { list ->
                     val recommended = FirmwareCatalog.pickRecommended(list, profile)
                     _uiState.update { state ->
                         val keepSelection = state.customRelease != null &&

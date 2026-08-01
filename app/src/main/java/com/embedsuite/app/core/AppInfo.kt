@@ -41,9 +41,9 @@ object AppInfo {
             date = "Ago 2026",
             highlights = listOf(
                 "Xibalba Native: app orientada 100% a T-Embed CC1101 Plus + firmware Xibalba",
-                "Catálogo firmware solo releases Xibalba oficiales; custom .bin local para CC1101 Plus",
-                "Cero UX Bruce en flujos principales; Bruce solo interno/legacy oculto en ajustes",
-                "OTA USB (TEH-Link) para Xibalba; LinkDebugPanel reemplaza debug Bruce en MapTools",
+                "Eliminación completa de código y UI legacy; solo TEH-Link",
+                "Catálogo firmware solo releases Xibalba oficiales; custom .bin local",
+                "OTA USB (TEH-Link); LinkDebugPanel en MapTools",
                 "Versión 4.0.0 build 20"
             )
         ),
@@ -52,9 +52,9 @@ object AppInfo {
             date = "Jul 2026",
             highlights = listOf(
                 "Xibalba Symbiosis: perfil Xibalba por defecto en instalaciones nuevas",
-                "TEH-Link primario en RF/NFC/IR/wardriving/OTA; Bruce relegado a legacy/avanzado",
+                "TEH-Link primario en RF/NFC/IR/wardriving/OTA",
                 "Splash, ajustes y copy orientados a T-Embed CC1101 Plus + te-embed-xibalba",
-                "Consola TEH-Link JSON; BruceSdSync solo con perfil Bruce detectado",
+                "Consola TEH-Link JSON",
                 "OTA Xibalba v0.16.2 catalog preservado; versión 3.9.0 build 19"
             )
         ),
@@ -63,7 +63,7 @@ object AppInfo {
             date = "Jul 2026",
             highlights = listOf(
                 "Seguridad: widget TX/RX con token anti-broadcast; CLI redacta RAW/hex",
-                "Validador Bruce ampliado (rm/storage rm/mkfs); AI auto-ejecutar OFF por defecto",
+                "Validador TEH-Link; AI auto-ejecutar OFF por defecto",
                 "Batería: BLE BALANCED, GPS 5s, stop BLE/GPS al ir a segundo plano",
                 "Legal: checkbox onboarding + aviso WAR-DRIVE; backup excluye Room RF/GPS",
                 "Fixes: wake lock campo, USB reconnect leak, sin runBlocking en onDestroy"
@@ -73,7 +73,7 @@ object AppInfo {
             version = "3.8.0",
             date = "Jul 2026",
             highlights = listOf(
-                "TX RAW: push .sub por USB (storage write + EOF) y luego tx_from_file",
+                "TX RAW vía TEH-Link subghz_tx / replay",
                 "Widget: botón TX ★ del favorito RF #1 con toasts de error/offline",
                 "Dashboard: preview TX bloquea RAW sin USB y muestra motivo",
                 "Hardening push: límite 48KB, sin línea EOF embebida, mkdir/write validados"
@@ -93,17 +93,17 @@ object AppInfo {
             version = "3.6.0",
             date = "Jul 2026",
             highlights = listOf(
-                "Hardware Alignment: comandos Bruce según wiki Serial oficial",
-                "TX RF: formato {key} {Hz} {te} {count}; RAW solo desde SD del T-Embed",
-                "storage list/read, IR sin 0x, NFC CLI desactivado (no documentado)",
-                "USB preferido para RF Live; WiFi=comandos/OTA; BLE marcado experimental"
+                "Alineación hardware: acciones TEH-Link documentadas",
+                "TX RF: subghz_tx / subghz_replay vía TEH-Link",
+                "IR/NFC vía plugins ir_toolkit / nfc_toolkit",
+                "USB preferido; WiFi/BLE transporte TEH-Link experimental"
             )
         ),
         ChangelogEntry(
             version = "3.5.1",
             date = "Jul 2026",
             highlights = listOf(
-                "Seguridad: validador Bruce, redacción RAW en debug, HTTPS estricto en release",
+                "Seguridad: validación TEH-Link, redacción RAW en debug, HTTPS estricto en release",
                 "MockTransport DEBUG, macros validados, escaneos se detienen al cambiar tab",
                 "i18n RF/mapa/wireless, accesibilidad en botones neon, SecureStore warning"
             )
@@ -112,7 +112,7 @@ object AppInfo {
             version = "3.5.0",
             date = "Jul 2026",
             highlights = listOf(
-                "RF Live: spectrum/waterfall en vivo desde stream Bruce",
+                "RF Live: spectrum/waterfall desde stream TEH-Link (cuando disponible)",
                 "Inspector de ondas con timings µs + botón SCAN",
                 "Deep link RF: scroll + highlight en biblioteca",
                 "Hardening: flash persistente, paths seguros, singleTop, bootloader USB"
@@ -124,8 +124,8 @@ object AppInfo {
             highlights = listOf(
                 "Multilenguaje: Español, English, Português + idioma del sistema",
                 "Manual interactivo in-app (Acerca de) + docs/manual HTML",
-                "Flash: catálogo Bruce + custom .bin con disclaimer de responsabilidad",
-                "Panel debug Bruce (200 líneas, filtros, copiar)",
+                "Flash: catálogo Xibalba + custom .bin con disclaimer de responsabilidad",
+                "Panel Link Debug (200 líneas, filtros, copiar)",
                 "Import señales .sub/.ir/.nfc desde SD del T-Embed",
                 "Widget: última freq + RX 15s + estado LINK",
                 "RF rules → ejecutar macro + tap notificación abre biblioteca"
@@ -191,7 +191,7 @@ object AppInfo {
             date = "Jul 2026",
             highlights = listOf(
                 "ViewModels en pantallas principales",
-                "Import .bruce, export Flipper, perfiles SCENARIO",
+                "Import macros TEH-Link JSON, export Flipper, perfiles SCENARIO",
                 "GATT write UI, replay preview, SecureStore sin fallback plaintext"
             )
         ),
@@ -201,7 +201,7 @@ object AppInfo {
             highlights = listOf(
                 "Dashboard, RF hub (spectrum/waterfall/biblioteca/análisis)",
                 "WiFi/BLE scanner, war-driving, heatmap osmdroid",
-                "NFC/IR, CLI Bruce, AI (LOCAL + Gemini), macros, flash esptool",
+                "NFC/IR, CLI TEH-Link, AI (LOCAL + Gemini), macros, flash esptool",
                 "Modo campo FGS, widget, Quick Settings tile, OTA check",
                 "Reportes HTML/PDF, onboarding, permisos guiados"
             )
@@ -211,7 +211,7 @@ object AppInfo {
             date = "2026",
             highlights = listOf(
                 "Jetpack Compose UI cyberpunk/matrix",
-                "Conexión USB serial + parser respuestas Bruce",
+                "Conexión USB serial + parser TEH-Link JSON",
                 "Captura Sub-GHz básica y log de señales"
             )
         ),
@@ -221,7 +221,7 @@ object AppInfo {
             highlights = listOf(
                 "Concepto inicial EMBED SUITE",
                 "Companion Android para T-Embed CC1101 Plus",
-                "Terminal serial USB OTG hacia firmware Bruce"
+                "Terminal TEH-Link USB OTG hacia firmware Xibalba"
             )
         )
     )
@@ -257,7 +257,7 @@ EMBED SUITE es una aplicación companion de uso personal desarrollada por GIOSÁ
 • No hay cuenta de usuario ni login en servidores propios.
 
 4. PERMISOS ANDROID
-La app solicita permisos según la función: INTERNET (WiFi TEH-Link/OTA/Gemini/Ollama), ubicación, Bluetooth, notificaciones, USB host, micrófono (comandos por voz opcionales). Puedes denegarlos; algunas funciones quedarán limitadas. El modo legacy Bruce (CLI serial) es opcional y no es la experiencia principal.
+La app solicita permisos según la función: INTERNET (WiFi TEH-Link/OTA/Gemini/Ollama), ubicación, Bluetooth, notificaciones, USB host, micrófono (comandos por voz opcionales). Puedes denegarlos; algunas funciones quedarán limitadas.
 
 5. BACKUP
 Android Auto Backup / transferencia de dispositivo EXCLUYE: SecureStore (API Gemini), preferencias de app/AI, estado del widget y la base Room `embed_suite.db` (señales RF, dumps, GPS). Los exports que tú generes (JSON/HTML/.sub) sí pueden salir del teléfono si los compartes.

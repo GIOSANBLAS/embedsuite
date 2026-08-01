@@ -327,7 +327,6 @@ fun MainScreen(
                         profileRepository = container.profileRepository,
                         rfAutomationRepository = container.rfAutomationRepository,
                         mapTileCacheManager = container.mapTileCacheManager,
-                        bruceStorageSync = container.bruceStorageSync,
                         signalRepository = container.signalRepository,
                         irRepository = container.irRepository,
                         nfcDumpRepository = container.nfcDumpRepository

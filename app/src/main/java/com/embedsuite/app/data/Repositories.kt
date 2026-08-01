@@ -147,10 +147,10 @@ class ProfileRepository(private val dao: ProfileDao) {
         val DEFAULT_PROFILES = listOf(
             ProfileEntity(name = "433.92 MHz Listen", category = "RF", commands = "subghz rx raw 15", description = "Escucha Sub-GHz 15s (freq en menú T-Embed)"),
             ProfileEntity(name = "Raw Capture 30s", category = "RF", commands = "subghz rx raw 30", description = "Captura RAW extendida"),
-            ProfileEntity(name = "TV Power NEC", category = "IR", commands = "ir tx NEC FF000000 FF000000", description = "Power NEC formato Bruce"),
+            ProfileEntity(name = "TV Power NEC", category = "IR", commands = """{"cmd":"run_action","plugin_id":"ir_toolkit","action":"send","params":{"protocol":"NEC","address":"00FF","command":"00FF"}}""", description = "Power NEC vía TEH-Link"),
             ProfileEntity(name = "IR Sniff 10s", category = "IR", commands = "ir rx raw 10", description = "Captura señal IR"),
             ProfileEntity(name = "System Recon", category = "RECON", commands = "info\nfree\nuptime", description = "Info ESP32-S3"),
-            ProfileEntity(name = "Enable WebUI", category = "RECON", commands = "webui", description = "Activa Bruce WebUI WiFi"),
+            ProfileEntity(name = "WiFi Scan", category = "RECON", commands = """{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}""", description = "Escaneo WiFi vía TEH-Link"),
             ProfileEntity(name = "I2C Bus Scan", category = "RECON", commands = "i2c scan", description = "Escanea bus I2C"),
             ProfileEntity(name = "Storage List", category = "RECON", commands = "storage list /", description = "Lista archivos SD/LittleFS")
         )

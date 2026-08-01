@@ -6,10 +6,9 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    <!-- Bruce WebUI / OTA y Ollama en LAN (IPs/hostnames explícitos) -->
+    <!-- TEH-Link / Ollama en LAN (IPs/hostnames explícitos) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">192.168.4.1</domain>
-        <domain includeSubdomains="true">bruce.local</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
     </domain-config>

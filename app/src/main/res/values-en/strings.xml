@@ -75,6 +75,7 @@
     <string name="settings_firmware_profile">Device firmware</string>
     <string name="settings_firmware_profile_sub">Xibalba + TEH-Link is the official mode for T-Embed CC1101 Plus</string>
     <string name="settings_firmware_profile_xibalba_recommended">Recommended for T-Embed CC1101 Plus with Xibalba firmware</string>
+    <string name="settings_firmware_detected">Detected: %1$s</string>
     <string name="settings_system">SYSTEM</string>
     <string name="settings_about">About</string>
     <string name="settings_about_sub">Version, changelog, team &amp; legal</string>
@@ -91,12 +92,11 @@
     <string name="teh_link_pairing_mock_btn">Simulate long-press</string>
 
     <string name="dash_command_center">COMMAND CENTER</string>
-    <string name="dash_ota_title">BRUCE UPDATE (LEGACY) AVAILABLE</string>
     <string name="dash_ota_title_xibalba">XIBALBA UPDATE AVAILABLE</string>
     <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.16.2 (real CC1101 Plus profile).</string>
     <string name="plus_compat_subghz_xibalba_hint">Xibalba mode: live spectrum/waterfall not available via TEH-Link. Use TEH-Link capture or the T-Embed Sub-GHz menu.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
-    <string name="plus_compat_subghz_header_bruce">BRUCE (LEGACY) · T-EMBED</string>
+    <string name="subghz_freq_local_hint">Frequency saved in app. Also set RF frequency on the T-Embed Sub-GHz menu if needed.</string>
     <string name="plus_compat_nfc_unavailable">Device NFC unavailable (update Xibalba firmware v0.15+ or PN532 hardware profile).</string>
     <string name="plus_compat_ir_unavailable">Device IR unavailable (update Xibalba firmware v0.15+ or IR hardware profile).</string>
     <string name="plus_compat_capture_tehlink">TEH-LINK CAPTURE (15s)</string>
@@ -173,8 +173,6 @@
     <string name="link_debug_fullscreen_title">TEH-LINK DEBUG FULL</string>
     <string name="tools_debug_empty">No link lines yet. Connect T-Embed and operate.</string>
     <string name="tools_debug_copied">Log copied (%1$d lines)</string>
-    <string name="tools_sd_sync">T-EMBED SD SYNC</string>
-    <string name="tools_sd_hint">List signal files on T-Embed SD (Bruce legacy firmware only).</string>
     <string name="tools_connect_first">Connect T-Embed first.</string>
     <string name="tools_listing">Listing storage…</string>
     <string name="tools_rf_highlight">RF signal #%1$d in library</string>
@@ -185,11 +183,10 @@
 
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
     <string name="firmware_flash_sub">Official Xibalba or custom .bin for T-Embed CC1101 Plus — at your own risk</string>
+    <string name="firmware_section_official_xibalba">OFFICIAL XIBALBA</string>
+    <string name="firmware_section_custom_bin">CUSTOM .bin — CC1101 Plus</string>
     <string name="firmware_recommended">RECOMMENDED</string>
-    <string name="firmware_recommended_reason">Latest stable Bruce (legacy) — only if you run Bruce firmware on T-Embed.</string>
     <string name="firmware_recommended_reason_xibalba">Latest Xibalba for T-Embed CC1101 Plus — TEH-Link, plugins and native EMBED SUITE.</string>
-    <string name="firmware_fetch_bruce">FETCH BRUCE FIRMWARES (LEGACY)</string>
-    <string name="firmware_fetch_all">FETCH FIRMWARES (XIBALBA + BRUCE)</string>
     <string name="firmware_fetch_xibalba">FETCH XIBALBA FIRMWARE</string>
     <string name="firmware_available">Available</string>
     <string name="firmware_pick_custom">PICK CUSTOM .bin</string>
@@ -199,13 +196,11 @@
     <string name="firmware_ota_wifi">OTA WiFi</string>
     <string name="firmware_ota_teh_link">OTA USB (TEH-Link)</string>
     <string name="firmware_usb_flash">USB Flash</string>
-    <string name="firmware_custom_ota_hint">WiFi OTA for Bruce legacy only. Xibalba: USB OTA (TEH-Link). Custom: USB Flash (bootloader).</string>
     <string name="firmware_custom_usb_hint">Custom: flash via USB (bootloader). OTA only for official Xibalba releases.</string>
     <string name="firmware_disclaimer_title">⚠ UNOFFICIAL FIRMWARE</string>
     <string name="firmware_disclaimer_body">Flashing custom or third-party firmware may brick your T-Embed, void warranty and break EMBED SUITE features. You assume all risk. Ensure you can recover via USB bootloader (Encoder + RST). EMBED SUITE authors are not liable for hardware damage.</string>
     <string name="firmware_disclaimer_accept">I accept responsibility and wish to continue</string>
     <string name="firmware_disclaimer_continue">Flash</string>
-    <string name="firmware_official_desc">Bruce legacy · T-Embed CC1101 Plus</string>
     <string name="firmware_xibalba_desc">Official Xibalba · T-Embed CC1101 Plus (TEH-Link)</string>
     <string name="firmware_custom_desc">Custom firmware — use at your own risk</string>
     <string name="firmware_status_ready">Ready to flash firmware.</string>
@@ -222,18 +217,9 @@
     <string name="firmware_status_error">Error: %1$s</string>
 
     <string name="console_title_teh_link">TEH-Link Console: %1$s</string>
-    <string name="console_title_bruce_legacy">Bruce CLI (legacy): %1$s</string>
     <string name="console_placeholder_teh_link">TEH-Link JSON, e.g. {\"cmd\":\"ping\"} (↑↓ history)</string>
-    <string name="console_placeholder_bruce">Bruce legacy command (↑↓ history)</string>
-    <string name="console_import_bruce">Import .bruce script (legacy)</string>
-    <string name="console_bruce_scripts">.bruce scripts (legacy):</string>
+    <string name="console_import_macro">Import TEH-Link macro (JSON)</string>
+    <string name="console_teh_link_macros">TEH-Link macros:</string>
     <string name="nfc_ir_command_teh_link">IR command (TEH-Link)</string>
-    <string name="nfc_ir_command_bruce_legacy">Bruce command (legacy)</string>
     <string name="nfc_waiting_teh_link">Waiting for TEH-Link response…</string>
-    <string name="nfc_waiting_bruce_legacy">Waiting for Bruce (legacy) response…</string>
-
-    <!-- Bruce WiFi AP (documented by Bruce legacy firmware) -->
-    <string name="bruce_net_host">192.168.4.1</string>
-    <string name="bruce_net_ssid">BruceNet</string>
-    <string name="bruce_net_password">bruce32</string>
 </resources>

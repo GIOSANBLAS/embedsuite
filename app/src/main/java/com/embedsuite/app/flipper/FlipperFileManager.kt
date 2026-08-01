@@ -97,7 +97,7 @@ object FlipperFileManager {
             buttonName = name,
             protocol = protocol,
             hexCode = command,
-            bruceCommand = "ir tx $protocol 0x00FF $command"
+            irPayload = "ir tx $protocol 0x00FF $command"
         )
     }
 

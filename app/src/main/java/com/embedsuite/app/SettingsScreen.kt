@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.BuildConfig
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
@@ -42,7 +41,6 @@ fun SettingsScreen(
     val scanlinesEnabled by preferences.scanlinesEnabled.collectAsState()
     val autoReconnect by preferences.autoReconnect.collectAsState()
     val defaultTransport by preferences.defaultTransport.collectAsState()
-    val firmwareProfile by preferences.firmwareProfile.collectAsState()
     val detectedProfile by connectionManager.detectedProfile.collectAsState()
     val glassIntensity by preferences.glassIntensity.collectAsState()
     val fieldFrequency by preferences.fieldFrequencyMhzFlow.collectAsState()
@@ -172,24 +170,21 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(stringResource(R.string.settings_firmware_profile), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)
-                Text(stringResource(R.string.settings_firmware_profile_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                if (firmwareProfile == FirmwareProfile.XIBALBA) {
+                Text(
+                    stringResource(R.string.settings_firmware_profile_xibalba_recommended),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = MatrixGreen,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                detectedProfile.takeIf { it != FirmwareProfile.UNKNOWN }?.let { profile ->
                     Text(
-                        stringResource(R.string.settings_firmware_profile_xibalba_recommended),
+                        stringResource(R.string.settings_firmware_detected, profile.label),
                         fontFamily = FontFamily.Monospace,
                         fontSize = 9.sp,
-                        color = MatrixGreen
+                        color = NeonCyan,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FirmwareProfile.settingsDisplayOrder.forEach { profile ->
-                        GlassChip(
-                            label = profile.label,
-                            selected = firmwareProfile == profile,
-                            onClick = { preferences.setFirmwareProfile(profile) },
-                            accent = NeonOrange
-                        )
-                    }
                 }
                 if (BuildConfig.ENABLE_MOCK_TRANSPORT) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -267,8 +262,7 @@ fun SettingsScreen(
 
             GlassCard(accent = MatrixGreen, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(stringResource(R.string.settings_system), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
-                if (firmwareProfile == FirmwareProfile.XIBALBA || detectedProfile == FirmwareProfile.XIBALBA) {
-                    TextButton(onClick = onNavigateHardwareBringup, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = onNavigateHardwareBringup, modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -281,7 +275,6 @@ fun SettingsScreen(
                             Text("→", fontFamily = FontFamily.Monospace, color = NeonCyan)
                         }
                     }
-                }
                 TextButton(onClick = onNavigateAbout, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

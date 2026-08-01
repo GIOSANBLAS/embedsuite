@@ -152,7 +152,7 @@ private fun AboutMainContent(
         HackerSectionHeader("LEGAL", accent = NeonCyan)
         GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Text(
-                "EMBED SUITE es software companion de uso personal. No está afiliada a LilyGO, Bruce ni Flipper.",
+                "EMBED SUITE es software companion de uso personal. No está afiliada a LilyGO ni Flipper.",
                 fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
             )
             Spacer(Modifier.height(8.dp))

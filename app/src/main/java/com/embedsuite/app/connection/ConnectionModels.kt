@@ -39,12 +39,12 @@ data class SystemInfo(
     val xibalbaCapabilities: Map<String, Boolean> = emptyMap()
 )
 
-sealed class BruceEvent {
-    data class RawLine(val line: String) : BruceEvent()
-    data class SubGhzSignal(val entry: SignalEntry) : BruceEvent()
-    data class SubGhzSignalSaved(val entry: SignalEntry, val signalId: Long) : BruceEvent()
-    data class WaveformSample(val level: Float, val durationUs: Long) : BruceEvent()
-    data class SystemInfoUpdate(val info: SystemInfo) : BruceEvent()
+sealed class DeviceEvent {
+    data class RawLine(val line: String) : DeviceEvent()
+    data class SubGhzSignal(val entry: SignalEntry) : DeviceEvent()
+    data class SubGhzSignalSaved(val entry: SignalEntry, val signalId: Long) : DeviceEvent()
+    data class WaveformSample(val level: Float, val durationUs: Long) : DeviceEvent()
+    data class SystemInfoUpdate(val info: SystemInfo) : DeviceEvent()
     /** Avisos TEH-Link (pairing, auth). */
-    data class TehLinkNotice(val message: String) : BruceEvent()
+    data class TehLinkNotice(val message: String) : DeviceEvent()
 }

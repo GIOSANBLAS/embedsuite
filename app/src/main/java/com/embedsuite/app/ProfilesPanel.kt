@@ -30,13 +30,13 @@ fun ProfilesPanel(
     val scope = rememberCoroutineScope()
     val profiles by profileRepository.allProfiles.collectAsState(initial = emptyList())
     var filter by remember { mutableStateOf("ALL") }
-    var status by remember { mutableStateOf("${profiles.size} perfiles Bruce listos") }
+    var status by remember { mutableStateOf("${profiles.size} perfiles TEH-Link listos") }
 
     val categories = listOf("ALL", "RF", "IR", "NFC", "RECON", "SCENARIO")
     val filtered = if (filter == "ALL") profiles else profiles.filter { it.category == filter }
 
     GlassCard(accent = KaliBlue, modifier = modifier.fillMaxWidth()) {
-        HackerSectionHeader("BRUCE PROFILES // CC1101", accent = KaliBlue)
+        HackerSectionHeader("TEH-LINK PROFILES // CC1101", accent = KaliBlue)
         Text(status, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(vertical = 6.dp)) {

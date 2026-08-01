@@ -1,7 +1,5 @@
 package com.embedsuite.app.rf
 
-import com.embedsuite.app.connection.BruceResponseParser
-
 object RfLiveEngine {
     const val SPECTRUM_BINS = 128
     const val WATERFALL_ROWS = 64
@@ -10,7 +8,7 @@ object RfLiveEngine {
     fun feed(current: RfLiveSnapshot, line: String, centerMhz: String): RfLiveSnapshot {
         var next = current.copy(centerFreqMhz = centerMhz)
 
-        BruceResponseParser.parseSpectrumRow(line)?.let { row ->
+        RfLineParser.parseSpectrumRow(line)?.let { row ->
             next = next.copy(
                 spectrumBins = row,
                 waterfall = (next.waterfall + listOf(row.map { binToRssi(it) })).takeLast(WATERFALL_ROWS),
@@ -19,7 +17,7 @@ object RfLiveEngine {
             return next
         }
 
-        BruceResponseParser.parseRssiDbm(line)?.let { rssi ->
+        RfLineParser.parseRssiDbm(line)?.let { rssi ->
             val bin = rssiToBin(rssi)
             val bins = rollSpectrum(next.spectrumBins, bin)
             val row = List(SPECTRUM_BINS) { idx ->
@@ -34,7 +32,7 @@ object RfLiveEngine {
         }
 
         if (line.contains("RAW", ignoreCase = true)) {
-            val pulses = BruceResponseParser.parseRawPulseTrain(line)
+            val pulses = RfLineParser.parseRawPulseTrain(line)
             if (pulses.isNotEmpty()) {
                 val totalUs = pulses.sumOf { it.second }
                 next = next.copy(
@@ -45,7 +43,7 @@ object RfLiveEngine {
             }
         }
 
-        BruceResponseParser.parsePulseSample(line)?.let { (level, us) ->
+        RfLineParser.parsePulseSample(line)?.let { (level, us) ->
             next = next.copy(
                 waveform = (next.waveform + (level to us)).takeLast(MAX_WAVEFORM),
                 pulseCount = next.pulseCount + 1,

@@ -1,7 +1,7 @@
 package com.embedsuite.app.rf
 
 import android.content.Context
-import com.embedsuite.app.connection.BruceEvent
+import com.embedsuite.app.connection.DeviceEvent
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.SignalEntry
 import com.embedsuite.app.core.SoundFeedback
@@ -31,7 +31,7 @@ class RfAutomationEngine(
     fun start() {
         connectionManager.events
             .onEach { event ->
-                if (event is BruceEvent.SubGhzSignalSaved) {
+                if (event is DeviceEvent.SubGhzSignalSaved) {
                     scope.launch { onSignalCaptured(event.entry, event.signalId) }
                 }
             }

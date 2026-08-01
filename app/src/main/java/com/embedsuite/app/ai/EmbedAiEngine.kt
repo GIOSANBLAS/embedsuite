@@ -39,15 +39,19 @@ class EmbedAiEngine(
                 response.actionType == AiActionType.EXECUTE_COMMAND &&
                 response.suggestedCommand != null
             ) {
-                val result = connectionManager.sendCommand(response.suggestedCommand)
-                result.fold(
-                    onSuccess = {
-                        addMessage("system", "✓ Comando enviado: ${response.suggestedCommand}")
-                    },
-                    onFailure = { error ->
-                        addMessage("system", "✗ Error: ${error.message}")
-                    }
-                )
+                val cmd = response.suggestedCommand.trim()
+                if (cmd.startsWith("{")) {
+                    connectionManager.sendTehLinkRaw(cmd).fold(
+                        onSuccess = {
+                            addMessage("system", "✓ TEH-Link enviado")
+                        },
+                        onFailure = { error ->
+                            addMessage("system", "✗ Error: ${error.message}")
+                        }
+                    )
+                } else {
+                    addMessage("system", "✗ Auto-ejecución solo acepta JSON TEH-Link.")
+                }
             }
 
             return response
@@ -59,7 +63,7 @@ class EmbedAiEngine(
     suspend fun analyzeLastSignal(): String {
         val signals = signalRepository.getRecent(1)
         if (signals.isEmpty()) {
-            val msg = "No hay señales capturadas. Usa RF → CAPTURAR RAW primero."
+            val msg = "No hay señales capturadas. Usa RF → CAPTURAR TEH-Link primero."
             addMessage("assistant", msg)
             return msg
         }
@@ -90,7 +94,7 @@ class EmbedAiEngine(
                     gemini.chat(
                         apiKey = preferences.getGeminiApiKey(),
                         userMessage = "Genera un informe de auditoría RF profesional basado en estos datos:\n$report",
-                        context = "T-Embed CC1101 war-driving session"
+                        context = "T-Embed CC1101 Plus + Xibalba TEH-Link session"
                     ).onSuccess { enhanced ->
                         addMessage("assistant", enhanced)
                         return enhanced
@@ -102,7 +106,7 @@ class EmbedAiEngine(
                     baseUrl = preferences.getOllamaHost(),
                     model = preferences.getOllamaModel(),
                     userMessage = "Genera un informe de auditoría RF profesional basado en estos datos:\n$report",
-                    context = "T-Embed CC1101 war-driving session"
+                    context = "T-Embed CC1101 Plus + Xibalba TEH-Link session"
                 ).onSuccess { enhanced ->
                     addMessage("assistant", enhanced)
                     return enhanced
@@ -127,12 +131,12 @@ class EmbedAiEngine(
             appendLine(analysis.summary)
             when {
                 analysis.protocol.contains("PT2262", ignoreCase = true) || analysis.protocol.contains("Princeton", ignoreCase = true) ->
-                    appendLine("→ Parece mando fijo 433.92 MHz (portón/garage). Replay viable.")
+                    appendLine("→ Parece mando fijo 433.92 MHz (portón/garage). Replay viable vía TEH-Link.")
                 analysis.protocol.contains("Keeloq", ignoreCase = true) ->
                     appendLine("→ Rolling code. Replay limitado; captura múltiples tramas.")
                 analysis.protocol.equals("RAW", ignoreCase = true) ->
                     appendLine("→ Señal RAW. Analiza pulsos en tab Análisis RF.")
-                else -> appendLine("→ Revisa biblioteca para retransmitir.")
+                else -> appendLine("→ Revisa biblioteca para retransmitir vía TEH-Link.")
             }
             analysis.recommendations.take(2).forEach { appendLine("• $it") }
         }
@@ -140,11 +144,11 @@ class EmbedAiEngine(
 
     fun getContextualHint(activeTab: String): String = when (activeTab) {
         "dashboard" -> "Dashboard: verifica LINK OK antes de operar."
-        "rf" -> "RF: usa CAPTURAR RAW 15s en 433.92 MHz."
+        "rf" -> "RF: usa CAPTURAR TEH-Link 15s en 433.92 MHz."
         "wireless" -> "WiFi: activa WAR-DRIVE para guardar APs con GPS."
         "nfc_ir" -> "NFC: acerca tag al T-Embed y pulsa LEER TAG."
-        "terminal" -> "CLI: ↑/↓ para historial. Escribe 'subghz' para autocompletar."
-        "ai" -> "Pregunta: 'Capturé esto, ¿qué es?' o 'Genera macro para...'"
+        "terminal" -> "CLI: JSON TEH-Link. Ej: {\"cmd\":\"ping\"}"
+        "ai" -> "Pregunta: 'Capturé esto, ¿qué es?' o 'Genera macro TEH-Link para...'"
         "map_tools" -> "Tools: exporta KML para Google Earth."
         else -> ""
     }
@@ -171,7 +175,7 @@ class EmbedAiEngine(
             return AiResponse("Biblioteca local: $count señales capturadas con GPS/metadata.")
         }
 
-        return BruceCommandGenerator.parse(input)
+        return TehLinkActionSuggester.parse(input)
     }
 
     private suspend fun processOllama(input: String): AiResponse {
@@ -185,7 +189,7 @@ class EmbedAiEngine(
         }
 
         val signalCount = signalRepository.count()
-        val context = "Señales guardadas: $signalCount. T-Embed CC1101 + Bruce firmware."
+        val context = "Señales guardadas: $signalCount. T-Embed CC1101 Plus + Xibalba TEH-Link."
 
         return ollama.chat(host, model, input, context).fold(
             onSuccess = { text ->
@@ -198,7 +202,7 @@ class EmbedAiEngine(
                 )
             },
             onFailure = { error ->
-                val fallback = BruceCommandGenerator.parse(input)
+                val fallback = TehLinkActionSuggester.parse(input)
                 AiResponse(
                     message = "Ollama falló: ${error.message}. Usando motor local...\n\n${fallback.message}",
                     suggestedCommand = fallback.suggestedCommand,
@@ -219,7 +223,7 @@ class EmbedAiEngine(
         }
 
         val signalCount = signalRepository.count()
-        val context = "Señales guardadas: $signalCount. T-Embed CC1101 + Bruce firmware."
+        val context = "Señales guardadas: $signalCount. T-Embed CC1101 Plus + Xibalba TEH-Link."
 
         return gemini.chat(apiKey, input, context).fold(
             onSuccess = { text ->
@@ -232,10 +236,11 @@ class EmbedAiEngine(
                 )
             },
             onFailure = { error ->
+                val fallback = TehLinkActionSuggester.parse(input)
                 AiResponse(
-                    message = "Gemini falló: ${error.message}. Usando motor local...\n\n${BruceCommandGenerator.parse(input).message}",
-                    suggestedCommand = BruceCommandGenerator.parse(input).suggestedCommand,
-                    actionType = BruceCommandGenerator.parse(input).actionType,
+                    message = "Gemini falló: ${error.message}. Usando motor local...\n\n${fallback.message}",
+                    suggestedCommand = fallback.suggestedCommand,
+                    actionType = fallback.actionType,
                     confidence = 0.6f
                 )
             }
@@ -249,10 +254,10 @@ class EmbedAiEngine(
     private fun welcomeMessage() = AiChatMessage(
         role = "assistant",
         content = """
-            EMBED AI v1.0 — Motor de inteligencia T-Embed
+            EMBED AI v1.0 — Motor de inteligencia T-Embed Xibalba
             
             Modo LOCAL activo (offline, sin internet).
-            Puedo traducir tus órdenes a comandos Bruce y analizar señales.
+            Puedo sugerir acciones TEH-Link JSON y analizar señales.
             
             Prueba: "Captura RF 15 segundos" o "Analiza última señal"
         """.trimIndent()

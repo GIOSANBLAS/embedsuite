@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.embedsuite.app.connection.FirmwareProfile
-import com.embedsuite.app.connection.BruceNetConfig
+import com.embedsuite.app.connection.WifiTransport
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareRelease
@@ -41,7 +41,6 @@ import com.embedsuite.app.macro.MacroEngine
 import com.embedsuite.app.scan.LocationTracker
 import com.embedsuite.app.ui.components.FirmwareFlashCard
 import com.embedsuite.app.ui.components.LinkDebugPanel
-import com.embedsuite.app.ui.components.BruceSdSyncCard
 import com.embedsuite.app.ui.components.HeatmapMapView
 import com.embedsuite.app.ui.components.OfflineMapCard
 import com.embedsuite.app.ui.components.RfAutomationCard
@@ -64,7 +63,6 @@ fun MapToolsScreen(
     profileRepository: ProfileRepository,
     rfAutomationRepository: com.embedsuite.app.data.RfAutomationRepository,
     mapTileCacheManager: com.embedsuite.app.map.MapTileCacheManager,
-    bruceStorageSync: com.embedsuite.app.connection.BruceStorageSync,
     signalRepository: com.embedsuite.app.data.SignalRepository,
     irRepository: com.embedsuite.app.data.IrRepository,
     nfcDumpRepository: com.embedsuite.app.data.NfcDumpRepository
@@ -77,7 +75,7 @@ fun MapToolsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var wifiHost by remember { mutableStateOf(BruceNetConfig.defaultHost(context)) }
+    var wifiHost by remember { mutableStateOf(WifiTransport.DEFAULT_HOST) }
     var selectedTransport by remember { mutableStateOf(TransportType.USB) }
     val otaProgress by flashCoordinator.otaProgress.collectAsState()
     val isFlashing by flashCoordinator.isFlashing.collectAsState()
@@ -219,18 +217,6 @@ fun MapToolsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (detectedProfile == FirmwareProfile.BRUCE) {
-            BruceSdSyncCard(
-                storageSync = bruceStorageSync,
-                connectionManager = connectionManager,
-                signalRepository = signalRepository,
-                irRepository = irRepository,
-                nfcDumpRepository = nfcDumpRepository
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             shape = RoundedCornerShape(6.dp),
@@ -363,7 +349,7 @@ private fun MacroPanel(
     var showCreate by remember { mutableStateOf(false) }
     var macroName by remember { mutableStateOf("") }
     var macroCommands by remember { mutableStateOf("") }
-    var macroStatus by remember { mutableStateOf("Macros Bruce: comandos por línea, # comentarios, wait 1000ms") }
+    var macroStatus by remember { mutableStateOf("Macros TEH-Link: JSON por línea, # comentarios, wait 1000ms") }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -491,19 +477,19 @@ private fun ConnectionCard(
             if (selectedTransport == TransportType.BLE) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    com.embedsuite.app.connection.BruceCommands.BLE_TRANSPORT_EXPERIMENTAL,
+                    "BLE experimental para TEH-Link. Preferir USB OTG.",
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange
                 )
             }
             if (selectedTransport == TransportType.WIFI) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    com.embedsuite.app.connection.BruceCommands.WIFI_TRANSPORT_HINT,
+                    "WiFi: transporte TEH-Link (HTTP). RF Live mejor por USB.",
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
                 )
                 OutlinedTextField(
                     value = wifiHost, onValueChange = onWifiHostChange,
-                    label = { Text("Host Bruce", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
+                    label = { Text("Host WiFi", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MatrixGreen, unfocusedBorderColor = TextGray, focusedTextColor = MatrixGreen, unfocusedTextColor = MatrixGreen)
                 )
@@ -548,7 +534,7 @@ private fun SystemMonitorCard(
             InfoLine("UPTIME", systemInfo.uptime.ifBlank { "—" })
             InfoLine("FREE HEAP", systemInfo.freeHeap.ifBlank { "—" })
             InfoLine("BATERÍA", systemInfo.battery.ifBlank { "—" })
-            InfoLine("FIRMWARE", systemInfo.firmware.ifBlank { "Bruce" })
+            InfoLine("FIRMWARE", systemInfo.firmware.ifBlank { "Xibalba" })
             InfoLine("ESTADO", if (connectionState is ConnectionState.Connected) "ONLINE" else "OFFLINE")
         }
     }

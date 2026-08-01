@@ -2,10 +2,9 @@ package com.embedsuite.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.embedsuite.app.connection.BruceCommandValidator
 import com.embedsuite.app.connection.TehLinkResponseParser
-import com.embedsuite.app.connection.BruceDebugLog
-import com.embedsuite.app.connection.BruceEvent
+import com.embedsuite.app.connection.LinkDebugLog
+import com.embedsuite.app.connection.DeviceEvent
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareProfile
@@ -17,14 +16,11 @@ import com.embedsuite.app.macro.MacroEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-private fun consoleHeader(profile: FirmwareProfile): String = when (profile) {
-    FirmwareProfile.XIBALBA -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — TEH-Link / Xibalba"
-    FirmwareProfile.BRUCE -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — BRUCE CLI"
-    else -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — CLI"
-}
+private fun consoleHeader(): String =
+    "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — TEH-Link / Xibalba"
 
 data class ConsoleUiState(
-    val logs: List<String> = listOf(consoleHeader(FirmwareProfile.XIBALBA)),
+    val logs: List<String> = listOf(consoleHeader()),
     val inputText: String = "",
     val showSuggestions: Boolean = false,
     val commandHistory: List<String> = emptyList(),
@@ -47,27 +43,14 @@ class ConsoleViewModel(
 
     init {
         viewModelScope.launch {
-            connectionManager.detectedProfile.collect { profile ->
-                val header = consoleHeader(profile)
-                _uiState.update { state ->
-                    val logs = if (state.logs.size == 1 && state.logs[0].startsWith("[SYSTEM]")) {
-                        listOf(header)
-                    } else {
-                        state.logs
-                    }
-                    state.copy(logs = logs)
-                }
-            }
-        }
-        viewModelScope.launch {
             connectionManager.events.collect { event ->
                 when (event) {
-                    is BruceEvent.RawLine -> appendLog(event.line)
-                    is BruceEvent.SubGhzSignal -> appendLog("[RF] ${event.entry.protocol} @ ${event.entry.frequency}")
-                    is BruceEvent.SubGhzSignalSaved -> appendLog("[RF] saved #${event.signalId} ${event.entry.protocol}")
-                    is BruceEvent.SystemInfoUpdate -> appendLog("[SYS] uptime=${event.info.uptime} heap=${event.info.freeHeap}")
-                    is BruceEvent.TehLinkNotice -> appendLog("[TEH-LINK] ${event.message}")
-                    is BruceEvent.WaveformSample -> Unit
+                    is DeviceEvent.RawLine -> appendLog(event.line)
+                    is DeviceEvent.SubGhzSignal -> appendLog("[RF] ${event.entry.protocol} @ ${event.entry.frequency}")
+                    is DeviceEvent.SubGhzSignalSaved -> appendLog("[RF] saved #${event.signalId} ${event.entry.protocol}")
+                    is DeviceEvent.SystemInfoUpdate -> appendLog("[SYS] uptime=${event.info.uptime} heap=${event.info.freeHeap}")
+                    is DeviceEvent.TehLinkNotice -> appendLog("[TEH-LINK] ${event.message}")
+                    is DeviceEvent.WaveformSample -> Unit
                 }
             }
         }
@@ -96,21 +79,17 @@ class ConsoleViewModel(
     fun sendCommand(cmd: String) {
         if (cmd.isBlank()) return
         val trimmed = cmd.trim()
-        val display = if (trimmed.startsWith("{")) {
-            TehLinkResponseParser.redactSensitiveRequest(trimmed)
-        } else {
-            trimmed
+        if (!trimmed.startsWith("{")) {
+            appendLog("[ERROR] Solo JSON TEH-Link. Ej: {\"cmd\":\"ping\"}")
+            return
         }
+        val display = TehLinkResponseParser.redactSensitiveRequest(trimmed)
         appendLog("> $display")
         val history = _uiState.value.commandHistory + cmd
         _uiState.update { it.copy(commandHistory = history, historyIndex = history.size, inputText = "", showSuggestions = false) }
         viewModelScope.launch {
-            val result = if (trimmed.startsWith("{")) {
-                connectionManager.sendTehLinkRaw(trimmed)
-            } else {
-                connectionManager.sendCommand(trimmed)
-            }
-            result.onFailure { appendLog("[ERROR] ${it.message}") }
+            connectionManager.sendTehLinkRaw(trimmed)
+                .onFailure { appendLog("[ERROR] ${it.message}") }
         }
     }
 
@@ -120,24 +99,24 @@ class ConsoleViewModel(
         }
     }
 
-    fun importBruceScript(name: String, content: String) {
+    fun importTehLinkMacro(name: String, content: String) {
         viewModelScope.launch {
             val lines = content.lines()
                 .map { it.trim() }
                 .filter { it.isNotBlank() && !it.startsWith("#") }
             if (lines.isEmpty()) {
-                appendLog("[ERROR] Script vacío o sin comandos válidos")
+                appendLog("[ERROR] Macro vacío o sin pasos válidos")
                 return@launch
             }
             for (cmd in lines) {
                 if (cmd.startsWith("wait ", ignoreCase = true)) continue
-                BruceCommandValidator.validate(cmd).getOrElse {
-                    appendLog("[ERROR] Script inválido: ${it.message}")
+                if (!cmd.startsWith("{")) {
+                    appendLog("[ERROR] Macro inválido: solo JSON TEH-Link o wait Nms")
                     return@launch
                 }
             }
             macroRepository.save(MacroEntity(name = name, commands = content))
-            appendLog("[INFO] Script '$name' importado (${lines.size} líneas)")
+            appendLog("[INFO] Macro TEH-Link '$name' importado (${lines.size} líneas)")
         }
     }
 
@@ -146,7 +125,7 @@ class ConsoleViewModel(
     }
 
     private fun appendLog(line: String) {
-        val safe = BruceDebugLog.sanitize(line)
+        val safe = LinkDebugLog.sanitize(line)
         _uiState.update { it.copy(logs = (it.logs + safe).takeLast(500)) }
     }
 }

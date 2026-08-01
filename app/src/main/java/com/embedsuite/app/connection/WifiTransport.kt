@@ -1,18 +1,13 @@
 package com.embedsuite.app.connection
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 class WifiTransport(
@@ -45,7 +40,7 @@ class WifiTransport(
     }
 
     override suspend fun connect(): Result<String> = withContext(Dispatchers.IO) {
-        val candidates = listOf(host, "bruce.local", DEFAULT_HOST).distinct()
+        val candidates = listOf(host, DEFAULT_HOST).distinct()
         for (candidate in candidates) {
             try {
                 val request = Request.Builder()
@@ -56,7 +51,7 @@ class WifiTransport(
                     if (response.isSuccessful) {
                         host = candidate
                         connected = true
-                        _incoming.tryEmit("[WIFI] Conectado a Bruce WebUI en $candidate")
+                        _incoming.tryEmit("[WIFI] Conectado a T-Embed en $candidate")
                         return@withContext Result.success("WiFi: $candidate")
                     }
                 }
@@ -64,7 +59,7 @@ class WifiTransport(
                 // try next host
             }
         }
-        Result.failure(Exception("No se alcanzó el WebUI de Bruce. Conéctate a BruceNet (192.168.4.1)."))
+        Result.failure(Exception("No se alcanzó el dispositivo por WiFi. Verifica IP/host."))
     }
 
     override suspend fun disconnect() {
@@ -76,13 +71,14 @@ class WifiTransport(
             return@withContext Result.failure(Exception("WiFi no conectado."))
         }
 
-        val validated = BruceCommandValidator.validate(command).getOrElse {
-            return@withContext Result.failure(it)
+        val payload = command.trim()
+        if (payload.isBlank()) {
+            return@withContext Result.failure(Exception("Comando vacío."))
         }
 
         try {
             val body = FormBody.Builder()
-                .add("cmnd", validated)
+                .add("cmnd", payload)
                 .build()
 
             val request = Request.Builder()
@@ -106,55 +102,7 @@ class WifiTransport(
 
     override fun incomingLines(): Flow<String> = _incoming.asSharedFlow()
 
-    suspend fun uploadFirmware(binFile: File, onProgress: (Int) -> Unit): Result<String> =
-        withContext(Dispatchers.IO) {
-            if (!connected) {
-                return@withContext Result.failure(Exception("WiFi no conectado."))
-            }
-
-            try {
-                onProgress(10)
-                val endpoints = listOf("/update", "/ota", "/upload")
-                var lastError = "Sin respuesta del servidor OTA."
-
-                for (endpoint in endpoints) {
-                    try {
-                        onProgress(30)
-                        val multipart = MultipartBody.Builder()
-                            .setType(MultipartBody.FORM)
-                            .addFormDataPart(
-                                "update",
-                                binFile.name,
-                                binFile.asRequestBody("application/octet-stream".toMediaType())
-                            )
-                            .build()
-                        val request = Request.Builder()
-                            .url("http://$host$endpoint")
-                            .post(multipart)
-                            .build()
-
-                        client.newCall(request).execute().use { response ->
-                            val body = response.body?.string().orEmpty()
-                            if (response.isSuccessful) {
-                                onProgress(100)
-                                _incoming.tryEmit("[OTA] Firmware enviado correctamente. Reiniciando T-Embed...")
-                                return@withContext Result.success(body.ifBlank { "OTA OK" })
-                            }
-                            lastError = "HTTP ${response.code}: $body"
-                        }
-                    } catch (e: Exception) {
-                        lastError = e.message ?: lastError
-                    }
-                }
-
-                Result.failure(Exception(lastError))
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
-        }
-
     companion object {
-        /** Host AP Bruce por defecto — ver [BruceNetConfig.defaultHost]. */
         const val DEFAULT_HOST = "192.168.4.1"
 
         private val HOST_PATTERN = Regex(

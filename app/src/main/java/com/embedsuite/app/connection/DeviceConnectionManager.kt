@@ -16,7 +16,6 @@ import com.embedsuite.app.widget.WidgetStateStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -32,9 +31,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.CancellationException
 import java.io.File
-import java.io.IOException
+import com.embedsuite.app.rf.RfLineParser
 import com.embedsuite.app.BuildConfig
 import org.json.JSONObject
 
@@ -71,8 +69,8 @@ class DeviceConnectionManager(
     private val _activeTransportType = MutableStateFlow(TransportType.USB)
     val activeTransportType: StateFlow<TransportType> = _activeTransportType.asStateFlow()
 
-    private val _events = MutableSharedFlow<BruceEvent>(extraBufferCapacity = 128)
-    val events: SharedFlow<BruceEvent> = _events.asSharedFlow()
+    private val _events = MutableSharedFlow<DeviceEvent>(extraBufferCapacity = 128)
+    val events: SharedFlow<DeviceEvent> = _events.asSharedFlow()
 
     private val _systemInfo = MutableStateFlow(SystemInfo())
     val systemInfo: StateFlow<SystemInfo> = _systemInfo.asStateFlow()
@@ -141,7 +139,7 @@ class DeviceConnectionManager(
         }
     }
 
-    fun wifiHost(): String = BruceNetConfig.defaultHost(appContext)
+    fun wifiHost(): String = WifiTransport.DEFAULT_HOST
 
     fun setWifiHost(host: String) {
         wifiTransport.updateHost(host)
@@ -151,9 +149,7 @@ class DeviceConnectionManager(
         val normalized = mhz.trim().ifBlank { RfFrequencyPresets.DEFAULT }
         _subGhzFrequencyMhz.value = normalized
         appPreferences?.rfFrequencyMhz = normalized
-        // Bruce Serial wiki no documenta `subghz setfrequency`. Solo persistimos en app;
-        // el usuario debe fijar freq en el menú RF del T-Embed si el firmware lo requiere.
-        return Result.success(BruceCommands.FREQ_LOCAL_HINT)
+        return Result.success(FREQ_LOCAL_HINT)
     }
 
     suspend fun connect(type: TransportType): Result<String> {
@@ -223,32 +219,6 @@ class DeviceConnectionManager(
     fun isUsbActive(): Boolean =
         activeTransport is UsbTransport && _connectionState.value is ConnectionState.Connected
 
-    /**
-     * Sube texto a SD/LittleFS vía Serial (`storage write` + EOF). Requiere USB.
-     */
-    suspend fun writeTextFileToDevice(relativePath: String, content: String): Result<String> {
-        if (BuildConfig.ENABLE_MOCK_TRANSPORT && appPreferences?.useMockTransport == true &&
-            activeTransport is MockTransport
-        ) {
-            BruceDebugLog.appendOutgoing("storage write $relativePath (mock)")
-            return Result.success(BruceCommands.sanitizeDeviceRelativePath(relativePath))
-        }
-        val usb = activeTransport as? UsbTransport
-            ?: return Result.failure(Exception("Push de archivo solo por USB OTG (no WiFi/BLE)."))
-        return try {
-            withTimeout(30_000L) {
-                usb.writeTextFile(relativePath, content).also { result ->
-                    result.onSuccess {
-                        BruceDebugLog.appendOutgoing("storage write $it OK")
-                        _events.tryEmit(BruceEvent.RawLine("[PUSH] $it"))
-                    }
-                }
-            }
-        } catch (_: TimeoutCancellationException) {
-            Result.failure(Exception("Timeout subiendo archivo al T-Embed."))
-        }
-    }
-
     suspend fun sendTehLinkRaw(json: String): Result<String> {
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
@@ -274,89 +244,26 @@ class DeviceConnectionManager(
         val first = tehLinkClient.sendRawJson(transport, json)
         if (first.isSuccess) {
             return first.onSuccess { response ->
-                BruceDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
+                LinkDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
                 val safe = TehLinkResponseParser.redactSensitiveResponse(response)
-                _events.tryEmit(BruceEvent.RawLine(safe))
+                _events.tryEmit(DeviceEvent.RawLine(safe))
             }
         }
         if (isAuthError(first.exceptionOrNull()?.message)) {
             clearTehLinkAuth()
             ensureTehLinkAuth(transport)
             return tehLinkClient.sendRawJson(transport, json).onSuccess { response ->
-                BruceDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
+                LinkDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
                 val safe = TehLinkResponseParser.redactSensitiveResponse(response)
-                _events.tryEmit(BruceEvent.RawLine(safe))
+                _events.tryEmit(DeviceEvent.RawLine(safe))
             }
         }
         return first
     }
 
-    suspend fun sendCommand(command: String): Result<String> {
-        val validated = BruceCommandValidator.validate(command).getOrElse {
-            return Result.failure(it)
-        }
-
-        val transport = activeTransport
-            ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
-
-        return try {
-            withTimeout(5_000L) {
-                val result = transport.sendCommand(validated)
-                result.onSuccess {
-                    BruceDebugLog.appendOutgoing(validated)
-                    _events.tryEmit(BruceEvent.RawLine("> $validated"))
-                }
-                result
-            }
-        } catch (_: TimeoutCancellationException) {
-            Result.failure(Exception("Timeout: T-Embed no respondió en 5s."))
-        }
-    }
-
-    suspend fun sendCommandAndCollect(command: String, waitMs: Long = 5000L): Result<List<String>> {
-        val validated = BruceCommandValidator.validate(command).getOrElse {
-            return Result.failure(it)
-        }
-
-        val transport = activeTransport
-            ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
-
-        val wait = waitMs.coerceIn(100L, 30_000L)
-        val collected = mutableListOf<String>()
-        var collectorJob: Job? = null
-        return try {
-            collectorJob = scope.launch {
-                transport.incomingLines().collect { collected.add(it) }
-            }
-            delay(100)
-            collected.clear()
-            BruceDebugLog.appendOutgoing(validated)
-            val sent = transport.sendCommand(validated)
-            if (sent.isFailure) return sent.map { emptyList() }
-            delay(wait)
-            Result.success(collected.toList())
-        } catch (_: TimeoutCancellationException) {
-            Result.failure(Exception("Timeout esperando respuesta Bruce."))
-        } catch (e: IOException) {
-            Result.failure(Exception("Error de transporte: ${e.message}"))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(Exception("Error inesperado: ${e.message}"))
-        } finally {
-            collectorJob?.cancel()
-        }
-    }
-
     suspend fun refreshSystemInfo() {
         val transport = activeTransport ?: return
-        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
-            refreshTehLinkSystemInfo(transport)
-            return
-        }
-        sendCommand(BruceCommands.info())
-        sendCommand(BruceCommands.free())
-        sendCommand(BruceCommands.uptime())
+        refreshTehLinkSystemInfo(transport)
     }
 
     private suspend fun refreshTehLinkSystemInfo(transport: TEmbedTransport) {
@@ -370,9 +277,9 @@ class DeviceConnectionManager(
                 xibalbaPlugins = device.plugins
             )
             _systemInfo.value = info
-            _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
+            _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
         }.onFailure {
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] get_info: ${it.message}"))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] get_info: ${it.message}"))
         }
 
         tehLinkClient.getStatus(transport).onSuccess { status ->
@@ -390,23 +297,17 @@ class DeviceConnectionManager(
                 battery = status.batteryPct?.let { "$it%" } ?: info.battery
             )
             _systemInfo.value = info
-            _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] UI: ${status.uiScreen}"))
+            _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] UI: ${status.uiScreen}"))
         }.onFailure {
             _systemInfo.value = info
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] get_status: ${it.message}"))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] get_status: ${it.message}"))
         }
     }
 
     private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareProfile {
-        val pref = appPreferences?.firmwareProfile?.value ?: FirmwareProfile.XIBALBA
-        if (pref == FirmwareProfile.BRUCE) return FirmwareProfile.BRUCE
         val pingOk = tehLinkClient.ping(transport).getOrElse { false }
-        // Xibalba Native: con pref XIBALBA/AUTO/UNKNOWN nunca detectar Bruce legacy.
-        return when {
-            pingOk -> FirmwareProfile.XIBALBA
-            else -> FirmwareProfile.UNKNOWN
-        }
+        return if (pingOk) FirmwareProfile.XIBALBA else FirmwareProfile.UNKNOWN
     }
 
     suspend fun tehLinkOpenPlugin(pluginId: String): Result<TehLinkScreenInfo> {
@@ -416,7 +317,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.openPlugin(transport, pluginId).onSuccess { screen ->
             _systemInfo.value = _systemInfo.value.copy(uiScreen = screen.uiScreen)
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] open_plugin: ${screen.openedPluginId.ifBlank { pluginId }} → ${screen.uiScreen}"))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] open_plugin: ${screen.openedPluginId.ifBlank { pluginId }} → ${screen.uiScreen}"))
         }
     }
 
@@ -427,7 +328,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.backToMenu(transport).onSuccess { screen ->
             _systemInfo.value = _systemInfo.value.copy(uiScreen = screen.uiScreen)
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] back_to_menu → ${screen.uiScreen}"))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] back_to_menu → ${screen.uiScreen}"))
         }
     }
 
@@ -437,7 +338,7 @@ class DeviceConnectionManager(
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
         return tehLinkClient.listActions(transport).onSuccess { actions ->
-            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] list_actions: ${actions.size} acciones"))
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] list_actions: ${actions.size} acciones"))
         }
     }
 
@@ -456,7 +357,7 @@ class DeviceConnectionManager(
         ensureTehLinkAuth(transport)
         return tehLinkClient.runAction(transport, pluginId, action, params).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] run_action $pluginId/$action → ${result.state.state.ifBlank { result.state.message }}"
                 )
             )
@@ -497,7 +398,7 @@ class DeviceConnectionManager(
         val alt = altitudeM ?: locationTracker?.location?.value?.altitude
         return tehLinkClient.runWardrivingStart(transport, lat, lon, alt).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] wardriving/start → ${result.state.state.ifBlank { result.state.message }}"
                 )
             )
@@ -530,7 +431,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runIrSend(transport, protocol, address, command).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] ir_toolkit/send → ${result.state.message.ifBlank { result.state.state }}"
                 )
             )
@@ -545,7 +446,7 @@ class DeviceConnectionManager(
         return tehLinkClient.runAction(transport, "wardriving", "stop").onSuccess { result ->
             locationTracker?.stopTracking()
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] wardriving/stop → ${result.state.state.ifBlank { result.state.message }}"
                 )
             )
@@ -574,7 +475,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runSubGhzTx(transport, rawHex, freqMhz).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] subghz_tx → ${result.state.message.ifBlank { result.state.state }}"
                 )
             )
@@ -588,7 +489,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runSubGhzReplay(transport, devicePath).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine(
+                DeviceEvent.RawLine(
                     "[TEH-Link] subghz_replay → ${result.state.message.ifBlank { result.state.state }}"
                 )
             )
@@ -629,7 +530,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runCryptoHash(transport, input, algo).onSuccess { result ->
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/hash → [REDACTED]")
+                DeviceEvent.RawLine("[TEH-Link] crypto_toolkit/hash → [REDACTED]")
             )
         }
     }
@@ -641,7 +542,7 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runCryptoBase64Encode(transport, input).onSuccess {
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/base64_encode → [REDACTED]")
+                DeviceEvent.RawLine("[TEH-Link] crypto_toolkit/base64_encode → [REDACTED]")
             )
         }
     }
@@ -653,21 +554,15 @@ class DeviceConnectionManager(
         }
         return tehLinkClient.runGenPassword(transport, length).onSuccess {
             _events.tryEmit(
-                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/gen_password → [REDACTED]")
+                DeviceEvent.RawLine("[TEH-Link] crypto_toolkit/gen_password → [REDACTED]")
             )
         }
     }
 
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {
-        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
-            startSubGhzTehLinkCapture(seconds).onFailure {
-                _events.tryEmit(BruceEvent.TehLinkNotice(it.message ?: "Captura Sub-GHz falló"))
-            }
-            return
+        startSubGhzTehLinkCapture(seconds).onFailure {
+            _events.tryEmit(DeviceEvent.TehLinkNotice(it.message ?: "Captura Sub-GHz falló"))
         }
-        _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
-        setSubGhzFrequency(_subGhzFrequencyMhz.value)
-        sendCommand(BruceCommands.subGhzRxRaw(seconds))
     }
 
     /** Captura Sub-GHz remota vía TEH-Link (Xibalba / CC1101 Plus). */
@@ -682,19 +577,13 @@ class DeviceConnectionManager(
         )
     }
 
-    /** Spectrum/waterfall se alimentan del stream de `rx raw` (no hay `subghz scan` en wiki). */
-    suspend fun startSubGhzSpectrumScan() {
-        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
-            return
-        }
-        _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
-        setSubGhzFrequency(_subGhzFrequencyMhz.value)
-        sendCommand(BruceCommands.subGhzRxRaw(20))
+    /** Spectrum/waterfall requiere captura TEH-Link en vivo (no disponible en stream legacy). */
+    suspend fun startSubGhzSpectrumScan(): Result<String> {
+        return Result.failure(Exception("Spectrum requiere captura TEH-Link (Xibalba)."))
     }
 
     /**
-     * Bruce no documenta stop explícito; la RX termina al acabar los segundos.
-     * Solo resetea estado local de live UI.
+     * Resetea estado local de live UI.
      */
     suspend fun stopSubGhzCapture() {
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
@@ -723,12 +612,7 @@ class DeviceConnectionManager(
                 ensureTehLinkAuth(transport)
                 tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
             }
-            else -> {
-                if (_activeTransportType.value != TransportType.WIFI) {
-                    return Result.failure(Exception("OTA Bruce requiere conexión WiFi (BruceNet)."))
-                }
-                wifiTransport.uploadFirmware(binFile, onProgress)
-            }
+            else -> Result.failure(Exception("OTA requiere firmware Xibalba conectado por USB (TEH-Link)."))
         }
     }
 
@@ -743,12 +627,12 @@ class DeviceConnectionManager(
     }
 
     private suspend fun pairTehLink(transport: TEmbedTransport) {
-        _events.tryEmit(BruceEvent.TehLinkNotice(TEH_LINK_PAIR_HINT))
+        _events.tryEmit(DeviceEvent.TehLinkNotice(TEH_LINK_PAIR_HINT))
         tehLinkClient.pair(transport).fold(
             onSuccess = { token ->
                 tehLinkClient.authToken = token
                 secureStore?.setTehLinkAuthToken(token)
-                _events.tryEmit(BruceEvent.TehLinkNotice("TEH-Link emparejado correctamente."))
+                _events.tryEmit(DeviceEvent.TehLinkNotice("TEH-Link emparejado correctamente."))
             },
             onFailure = { err ->
                 val msg = when {
@@ -758,7 +642,7 @@ class DeviceConnectionManager(
                         "Pairing sin token. Long-press en el botón lateral del T-Embed e intenta de nuevo."
                     else -> "Pairing TEH-Link falló: ${err.message ?: "error desconocido"}"
                 }
-                _events.tryEmit(BruceEvent.TehLinkNotice(msg))
+                _events.tryEmit(DeviceEvent.TehLinkNotice(msg))
             }
         )
     }
@@ -793,7 +677,7 @@ class DeviceConnectionManager(
         }
         mockTransport.openPairingWindow(120)
         mockTransport.armBadusbRemote(120)
-        _events.tryEmit(BruceEvent.TehLinkNotice("Mock: ventana pairing + BadUSB arm (120 s)."))
+        _events.tryEmit(DeviceEvent.TehLinkNotice("Mock: ventana pairing + BadUSB arm (120 s)."))
         return Result.success(Unit)
     }
 
@@ -810,76 +694,55 @@ class DeviceConnectionManager(
         if (TehLinkResponseParser.isTehLinkLine(line)) {
             val safe = TehLinkResponseParser.redactSensitiveResponse(line)
             _incomingRaw.tryEmit(safe)
-            BruceDebugLog.appendIncoming(safe)
+            LinkDebugLog.appendIncoming(safe)
             return
         }
 
         _incomingRaw.tryEmit(line)
-        BruceDebugLog.appendIncoming(line)
+        LinkDebugLog.appendIncoming(line)
+        _events.tryEmit(DeviceEvent.RawLine(line))
 
         _rfLive.value = RfLiveEngine.feed(_rfLive.value, line, _subGhzFrequencyMhz.value)
 
         val decoded = RfProtocolDecoder.decode(line)
         decoded?.let { _lastDecoded.value = RfProtocolDecoder.formatDecoded(it) }
 
-        val event = BruceResponseParser.parseLine(line)
-        _events.tryEmit(event)
-
-        when (event) {
-            is BruceEvent.SubGhzSignal -> {
-                signalLogDeque.addLast(event.entry)
-                while (signalLogDeque.size > SIGNAL_LOG_MAX) {
-                    signalLogDeque.removeFirst()
-                }
-                _signalLog.value = signalLogDeque.toList()
-                SoundFeedback.playCapture()
-                WidgetStateStore.updateLastSignal(
-                    appContext,
-                    event.entry.protocol,
-                    event.entry.frequency
-                )
-                scope.launch {
-                    val repo = signalRepository ?: return@launch
-                    val (lat, lng) = locationTracker?.currentLatLng() ?: (null to null)
-                    val signalId = repo.saveSubGhzSignal(event.entry, lat, lng, decoded)
-                    _events.tryEmit(BruceEvent.SubGhzSignalSaved(event.entry, signalId))
-                    sessionStats?.incrementSignals()
-                }
+        RfLineParser.parseSubGhzSignal(line)?.let { entry ->
+            val event = DeviceEvent.SubGhzSignal(entry)
+            _events.tryEmit(event)
+            signalLogDeque.addLast(entry)
+            while (signalLogDeque.size > SIGNAL_LOG_MAX) {
+                signalLogDeque.removeFirst()
             }
-            is BruceEvent.SystemInfoUpdate -> {
-                _systemInfo.value = mergeSystemInfo(_systemInfo.value, event.info)
+            _signalLog.value = signalLogDeque.toList()
+            SoundFeedback.playCapture()
+            WidgetStateStore.updateLastSignal(
+                appContext,
+                entry.protocol,
+                entry.frequency
+            )
+            scope.launch {
+                val repo = signalRepository ?: return@launch
+                val (lat, lng) = locationTracker?.currentLatLng() ?: (null to null)
+                val signalId = repo.saveSubGhzSignal(entry, lat, lng, decoded)
+                _events.tryEmit(DeviceEvent.SubGhzSignalSaved(entry, signalId))
+                sessionStats?.incrementSignals()
             }
-            is BruceEvent.RawLine -> {
+        } ?: run {
+            if (decoded != null) {
                 scope.launch {
                     val (lat, lng) = locationTracker?.currentLatLng() ?: (null to null)
-                    if (decoded != null) {
-                        signalRepository?.saveFromDecodedLine(line, lat, lng)
-                    }
+                    signalRepository?.saveFromDecodedLine(line, lat, lng)
                 }
             }
-            else -> Unit
         }
-    }
-
-    private fun mergeSystemInfo(current: SystemInfo, update: SystemInfo): SystemInfo {
-        return SystemInfo(
-            uptime = update.uptime.ifBlank { current.uptime },
-            freeHeap = update.freeHeap.ifBlank { current.freeHeap },
-            battery = update.battery.ifBlank { current.battery },
-            firmware = update.firmware.ifBlank { current.firmware },
-            codename = update.codename.ifBlank { current.codename },
-            channel = update.channel.ifBlank { current.channel },
-            uiScreen = update.uiScreen.ifBlank { current.uiScreen },
-            sdMounted = update.sdMounted.ifBlank { current.sdMounted },
-            profile = if (update.profile != FirmwareProfile.UNKNOWN) update.profile else current.profile,
-            xibalbaPlugins = update.xibalbaPlugins.ifEmpty { current.xibalbaPlugins },
-            simFlags = update.simFlags.ifEmpty { current.simFlags }
-        )
     }
 
     companion object {
         private const val SIGNAL_LOG_MAX = 500
         private const val TEH_LINK_PAIR_HINT =
             "Para emparejar TEH-Link: mantén pulsado el botón lateral del T-Embed ~2 s (ventana 120 s), luego reconecta USB."
+        private const val FREQ_LOCAL_HINT =
+            "Frecuencia guardada en la app. Ajusta también la frecuencia en el menú Sub-GHz del T-Embed si hace falta."
     }
 }

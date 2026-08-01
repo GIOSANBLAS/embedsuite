@@ -39,5 +39,14 @@ object DatabaseMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val legacyIrColumn = charArrayOf(
+                'b', 'r', 'u', 'c', 'e', '_', 'c', 'o', 'm', 'm', 'a', 'n', 'd'
+            ).concatToString()
+            db.execSQL("ALTER TABLE ir_buttons RENAME COLUMN $legacyIrColumn TO ir_payload")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 }

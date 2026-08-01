@@ -8,7 +8,7 @@ import org.json.JSONObject
 
 /**
  * Transporte simulado para pruebas UI sin hardware T-Embed.
- * Soporta respuestas Bruce CLI y TEH-Link JSON.
+ * Soporta respuestas TEH-Link JSON simuladas.
  */
 class MockTransport(
     private val responses: Map<String, String> = defaultResponses
@@ -743,11 +743,11 @@ class MockTransport(
         private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
 
         val defaultResponses = mapOf(
-            "info" to "Bruce v1.8 | CC1101 | Free heap: 120000",
+            "info" to "Xibalba v0.16.2 | CC1101 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",
             "uptime" to "Uptime: 01:23:45",
             "subghz" to "Sub-GHz menu",
-            "storage list /" to "[F] BruceRF/demo.sub\n[F] ir/tv_power.ir",
+            "storage list /" to "[F] embed/demo.sub\n[F] ir/tv_power.ir",
             "i2c scan" to "0x3C OLED\n0x50 EEPROM"
         )
     }

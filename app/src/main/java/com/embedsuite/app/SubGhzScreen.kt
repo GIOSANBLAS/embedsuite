@@ -56,7 +56,7 @@ fun SubGhzScreen(
 
     LaunchedEffect(connectionManager) {
         connectionManager.events.collect { event ->
-            if (event is com.embedsuite.app.connection.BruceEvent.SubGhzSignal) {
+            if (event is com.embedsuite.app.connection.DeviceEvent.SubGhzSignal) {
                 if (event.entry.frequency.isNotBlank()) {
                     currentFrequency = "${event.entry.frequency} MHz"
                 }
@@ -74,7 +74,7 @@ fun SubGhzScreen(
     }
 
     val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
-    val liveRfEnabled = isConnected && !isXibalba
+    val liveRfEnabled = false
 
     Column(
         modifier = Modifier
@@ -92,11 +92,7 @@ fun SubGhzScreen(
             )
         }
         HeaderSection(
-            headerTitle = if (isXibalba) {
-                stringResource(R.string.plus_compat_subghz_header_xibalba)
-            } else {
-                stringResource(R.string.plus_compat_subghz_header_bruce)
-            },
+            headerTitle = stringResource(R.string.plus_compat_subghz_header_xibalba),
             frequency = currentFrequency,
             isConnected = isConnected,
             lastRssi = if (liveRfEnabled) rfLive.lastRssiDbm else null
@@ -113,7 +109,7 @@ fun SubGhzScreen(
             modifier = Modifier.padding(vertical = 6.dp)
         )
         Text(
-            com.embedsuite.app.connection.BruceCommands.FREQ_LOCAL_HINT,
+            stringResource(R.string.subghz_freq_local_hint),
             fontFamily = FontFamily.Monospace,
             fontSize = 8.sp,
             color = FlipperTextSecondary,
@@ -204,16 +200,9 @@ fun SubGhzScreen(
                 }
             },
             onToggleScan = {
-                if (isXibalba) return@QuickActionButtons
                 scope.launch {
-                    if (isScanning) {
-                        connectionManager.stopSubGhzCapture()
-                        isScanning = false
-                    } else {
-                        isCapturingRaw = false
-                        connectionManager.startSubGhzSpectrumScan()
-                        isScanning = true
-                    }
+                    connectionManager.startSubGhzSpectrumScan()
+                        .onFailure { /* spectrum not available via TEH-Link stream */ }
                 }
             }
         )

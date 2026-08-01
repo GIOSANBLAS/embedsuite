@@ -1,6 +1,5 @@
 package com.embedsuite.app.macro
 
-import com.embedsuite.app.connection.BruceCommandValidator
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.data.MacroEntity
 import kotlinx.coroutines.TimeoutCancellationException
@@ -39,10 +38,12 @@ class MacroEngine(
                 delay(ms)
                 continue
             }
-            BruceCommandValidator.validate(cmd).getOrElse {
-                return Result.failure(Exception("Macro inválido en '$cmd': ${it.message}"))
+            if (!cmd.startsWith("{")) {
+                return Result.failure(
+                    Exception("Macros solo soportan pasos JSON TEH-Link o wait Nms. Línea inválida: $cmd")
+                )
             }
-            connectionManager.sendCommand(cmd).fold(
+            connectionManager.sendTehLinkRaw(cmd).fold(
                 onSuccess = { executed++ },
                 onFailure = { return Result.failure(Exception("Falló en '$cmd': ${it.message}")) }
             )

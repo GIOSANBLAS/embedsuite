@@ -2,8 +2,8 @@ package com.embedsuite.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.embedsuite.app.connection.BruceCommands
-import com.embedsuite.app.connection.BruceEvent
+import com.embedsuite.app.connection.TehLinkIrUtils
+import com.embedsuite.app.connection.DeviceEvent
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareProfile
@@ -45,7 +45,7 @@ class NfcIrViewModel(
         connectionState,
         detectedProfile,
         systemInfo
-    ) { conn, profile, info ->
+    ) { conn, profile, _ ->
         conn is ConnectionState.Connected &&
             (profile != FirmwareProfile.XIBALBA || connectionManager.hasXibalbaCapability("nfc"))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -54,7 +54,7 @@ class NfcIrViewModel(
         connectionState,
         detectedProfile,
         systemInfo
-    ) { conn, profile, info ->
+    ) { conn, profile, _ ->
         conn is ConnectionState.Connected &&
             (profile != FirmwareProfile.XIBALBA || connectionManager.hasXibalbaCapability("ir"))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -63,12 +63,12 @@ class NfcIrViewModel(
         viewModelScope.launch {
             if (irRepository.allButtons.first().isEmpty()) {
                 listOf(
-                    IrButtonEntity(buttonName = "POWER", bruceCommand = BruceCommands.irTx("NEC", "00FF", "00FF")),
-                    IrButtonEntity(buttonName = "VOL+", bruceCommand = BruceCommands.irTx("NEC", "00FF", "807F")),
-                    IrButtonEntity(buttonName = "VOL-", bruceCommand = BruceCommands.irTx("NEC", "00FF", "40BF")),
-                    IrButtonEntity(buttonName = "CH+", bruceCommand = BruceCommands.irTx("NEC", "00FF", "20DF")),
-                    IrButtonEntity(buttonName = "CH-", bruceCommand = BruceCommands.irTx("NEC", "00FF", "A05F")),
-                    IrButtonEntity(buttonName = "MUTE", bruceCommand = BruceCommands.irTx("NEC", "00FF", "906F"))
+                    IrButtonEntity(buttonName = "POWER", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "00FF")),
+                    IrButtonEntity(buttonName = "VOL+", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "807F")),
+                    IrButtonEntity(buttonName = "VOL-", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "40BF")),
+                    IrButtonEntity(buttonName = "CH+", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "20DF")),
+                    IrButtonEntity(buttonName = "CH-", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "A05F")),
+                    IrButtonEntity(buttonName = "MUTE", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "906F"))
                 ).forEach { irRepository.save(it) }
             }
         }
@@ -79,7 +79,7 @@ class NfcIrViewModel(
         }
         viewModelScope.launch {
             connectionManager.events.collect { event ->
-                if (event is BruceEvent.RawLine) handleLine(event.line)
+                if (event is DeviceEvent.RawLine) handleLine(event.line)
             }
         }
     }
@@ -104,25 +104,25 @@ class NfcIrViewModel(
     fun readNfc() {
         viewModelScope.launch {
             _uiState.update { it.copy(estadoOperacion = "LEYENDO TAG...", nfcDump = "", parsedMifare = "") }
-            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
-                connectionManager.tehLinkRunNfcRead().fold(
-                    onSuccess = { result ->
-                        val uid = result.state.nfc?.uid.orEmpty().ifBlank { "—" }
-                        _uiState.update {
-                            it.copy(
-                                nfcUid = uid,
-                                nfcDump = if (uid != "—") "UID: $uid\nSAK: ${result.state.nfc?.sak ?: 0}" else "",
-                                estadoOperacion = result.state.message.ifBlank { result.state.state }.ifBlank { "LECTURA OK" }
-                            )
-                        }
-                    },
-                    onFailure = { err ->
-                        _uiState.update { it.copy(estadoOperacion = "ERROR NFC: ${err.message}") }
-                    }
-                )
-            } else {
-                _uiState.update { it.copy(estadoOperacion = BruceCommands.NFC_CLI_UNSUPPORTED) }
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "NFC requiere firmware Xibalba (TEH-Link).") }
+                return@launch
             }
+            connectionManager.tehLinkRunNfcRead().fold(
+                onSuccess = { result ->
+                    val uid = result.state.nfc?.uid.orEmpty().ifBlank { "—" }
+                    _uiState.update {
+                        it.copy(
+                            nfcUid = uid,
+                            nfcDump = if (uid != "—") "UID: $uid\nSAK: ${result.state.nfc?.sak ?: 0}" else "",
+                            estadoOperacion = result.state.message.ifBlank { result.state.state }.ifBlank { "LECTURA OK" }
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(estadoOperacion = "ERROR NFC: ${err.message}") }
+                }
+            )
         }
     }
 
@@ -133,26 +133,24 @@ class NfcIrViewModel(
             return
         }
         viewModelScope.launch {
-            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
-                connectionManager.tehLinkRunNfcEmulate(targetUid.replace(":", "")).fold(
-                    onSuccess = { result ->
-                        _uiState.update {
-                            it.copy(
-                                estadoOperacion = result.state.message.ifBlank {
-                                    "UID staged (validación hardware pendiente)"
-                                }
-                            )
-                        }
-                    },
-                    onFailure = { err ->
-                        _uiState.update { it.copy(estadoOperacion = "Emulate error: ${err.message}") }
-                    }
-                )
-            } else {
-                _uiState.update {
-                    it.copy(estadoOperacion = "Emulación UID no soportada en este perfil.")
-                }
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "Emulación UID requiere Xibalba (TEH-Link).") }
+                return@launch
             }
+            connectionManager.tehLinkRunNfcEmulate(targetUid.replace(":", "")).fold(
+                onSuccess = { result ->
+                    _uiState.update {
+                        it.copy(
+                            estadoOperacion = result.state.message.ifBlank {
+                                "UID staged (validación hardware pendiente)"
+                            }
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(estadoOperacion = "Emulate error: ${err.message}") }
+                }
+            )
         }
     }
 
@@ -163,7 +161,7 @@ class NfcIrViewModel(
                 nfcDump = dump.rawDump,
                 parsedMifare = dump.parsedSectors,
                 selectedDumpId = dump.id,
-                estadoOperacion = "Dump cargado (emulación no disponible en Plus)."
+                estadoOperacion = "Dump cargado (emulación vía TEH-Link)."
             )
         }
     }
@@ -187,41 +185,32 @@ class NfcIrViewModel(
 
     fun sendIr(cmd: String) {
         viewModelScope.launch {
-            val normalized = BruceCommands.normalizeIrCommand(cmd)
-            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
-                val match = Regex("""(?i)^ir\s+tx\s+(\w+)\s+([0-9a-f]+)\s+([0-9a-f]+)$""").find(normalized)
-                if (match == null) {
-                    _uiState.update { it.copy(estadoOperacion = "Comando IR inválido: $normalized") }
-                    return@launch
-                }
-                connectionManager.tehLinkRunIrSend(
-                    protocol = match.groupValues[1],
-                    address = match.groupValues[2],
-                    command = match.groupValues[3]
-                ).fold(
-                    onSuccess = { result ->
-                        _uiState.update {
-                            it.copy(estadoOperacion = result.state.message.ifBlank { "TX OK: $normalized" })
-                        }
-                    },
-                    onFailure = { error ->
-                        _uiState.update {
-                            it.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
-                        }
-                    }
-                )
-            } else {
-                connectionManager.sendCommand(normalized).fold(
-                    onSuccess = {
-                        _uiState.update { state -> state.copy(estadoOperacion = "TX OK: $normalized") }
-                    },
-                    onFailure = { error ->
-                        _uiState.update { state ->
-                            state.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
-                        }
-                    }
-                )
+            val normalized = TehLinkIrUtils.normalizeIrCommand(cmd)
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "IR requiere firmware Xibalba (TEH-Link).") }
+                return@launch
             }
+            val match = Regex("""(?i)^ir\s+tx\s+(\w+)\s+([0-9a-f]+)\s+([0-9a-f]+)$""").find(normalized)
+            if (match == null) {
+                _uiState.update { it.copy(estadoOperacion = "Comando IR inválido: $normalized") }
+                return@launch
+            }
+            connectionManager.tehLinkRunIrSend(
+                protocol = match.groupValues[1],
+                address = match.groupValues[2],
+                command = match.groupValues[3]
+            ).fold(
+                onSuccess = { result ->
+                    _uiState.update {
+                        it.copy(estadoOperacion = result.state.message.ifBlank { "TX OK: $normalized" })
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
+                    }
+                }
+            )
         }
     }
 
@@ -258,7 +247,7 @@ class NfcIrViewModel(
     fun saveIrButton(name: String, command: String) {
         viewModelScope.launch {
             irRepository.save(
-                IrButtonEntity(buttonName = name, bruceCommand = BruceCommands.normalizeIrCommand(command))
+                IrButtonEntity(buttonName = name, irPayload = TehLinkIrUtils.normalizeIrCommand(command))
             )
         }
     }

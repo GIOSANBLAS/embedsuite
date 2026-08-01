@@ -47,7 +47,7 @@ class BackupManager(
                     put("panelName", b.panelName); put("buttonName", b.buttonName)
                     put("protocol", b.protocol)
                     put("hexCode", if (includeSensitive) b.hexCode else OMITTED)
-                    put("bruceCommand", if (includeSensitive) b.bruceCommand else OMITTED)
+                    put("irPayload", if (includeSensitive) b.irPayload else OMITTED)
                 }
             })
             put("macros", macros.toJsonArray { m ->
@@ -154,7 +154,7 @@ class BackupManager(
                             buttonName = o.optString("buttonName", "Imported"),
                             protocol = o.optString("protocol", "NEC"),
                             hexCode = o.optString("hexCode", ""),
-                            bruceCommand = o.optString("bruceCommand", "")
+                            irPayload = o.optString("irPayload", "")
                         )
                     )
                     ir++
@@ -241,8 +241,8 @@ class BackupManager(
             .map { it.trim() }
             .filter { it.isNotBlank() && !it.startsWith("#") }
             .forEach { line ->
-                if (!line.startsWith("wait ", ignoreCase = true)) {
-                    com.embedsuite.app.connection.BruceCommandValidator.validate(line).getOrThrow()
+                if (!line.startsWith("wait ", ignoreCase = true) && !line.startsWith("{")) {
+                    throw IllegalArgumentException("Macros deben ser JSON TEH-Link o wait Nms: $line")
                 }
             }
     }

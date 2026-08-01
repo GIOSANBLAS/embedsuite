@@ -14,7 +14,8 @@ class EmbedViewModelFactory(private val container: AppContainer) : ViewModelProv
                 txHistoryRepository = container.txHistoryRepository,
                 sessionStats = container.sessionStats,
                 firmwareRepository = container.firmwareRepository,
-                otaUpdateChecker = container.otaUpdateChecker
+                otaUpdateChecker = container.otaUpdateChecker,
+                locationTracker = container.locationTracker
             ) as T
         modelClass.isAssignableFrom(MapToolsViewModel::class.java) ->
             MapToolsViewModel(

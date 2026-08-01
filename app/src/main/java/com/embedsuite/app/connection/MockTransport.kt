@@ -121,15 +121,17 @@ class MockTransport(
             }
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
-                .put("version", "0.12")
-                .put("codename", "Mimic")
+                .put("version", "0.15.0")
+                .put("codename", "Pulse")
                 .put("channel", "release")
                 .put("proto", "teh-link")
                 .put("proto_ver", 3)
                 .put("plugins", JSONArray().apply {
                     put(JSONObject().put("id", "subghz_analyzer").put("name", "Sub-GHz").put("version", "1.0.0").put("author", "Xibalba"))
                     put(JSONObject().put("id", "badusb").put("name", "BadUSB").put("version", "1.0.0").put("author", "Xibalba"))
-                    put(JSONObject().put("id", "wifi").put("name", "WiFi").put("version", "1.0.0").put("author", "Xibalba"))
+                    put(JSONObject().put("id", "wifi_toolkit").put("name", "WiFi").put("version", "1.0.0").put("author", "Xibalba"))
+                    put(JSONObject().put("id", "nfc_toolkit").put("name", "NFC").put("version", "1.0.0").put("author", "Xibalba"))
+                    put(JSONObject().put("id", "ir_toolkit").put("name", "IR").put("version", "1.0.0").put("author", "Xibalba"))
                 })
             "get_status", "get_screen" -> JSONObject()
                 .put("sd_mounted", false)
@@ -142,7 +144,12 @@ class MockTransport(
                     .put("ble", true)
                     .put("wifi", true)
                     .put("badusb", true)
-                    .put("gps", true))
+                    .put("gps", true)
+                    .put("pn532", true))
+                .put("capabilities", JSONObject()
+                    .put("nfc", true)
+                    .put("ir", true)
+                    .put("gps_external", false))
             "open_plugin" -> {
                 val pluginId = root.optString("plugin_id")
                 if (pluginId.isBlank()) {
@@ -185,9 +192,14 @@ class MockTransport(
                     .put("params", JSONArray().put("seconds")))
                 put(JSONObject().put("plugin_id", "wifi_toolkit").put("action", "scan_stop"))
                 put(JSONObject().put("plugin_id", "wifi_toolkit").put("action", "status"))
-                put(JSONObject().put("plugin_id", "wardriving").put("action", "start"))
+                put(JSONObject().put("plugin_id", "wardriving").put("action", "start").put("params", JSONArray().put("lat").put("lon")))
+                put(JSONObject().put("plugin_id", "wardriving").put("action", "gps_update").put("params", JSONArray().put("lat").put("lon")))
                 put(JSONObject().put("plugin_id", "wardriving").put("action", "stop"))
                 put(JSONObject().put("plugin_id", "wardriving").put("action", "status"))
+                put(JSONObject().put("plugin_id", "nfc_toolkit").put("action", "read"))
+                put(JSONObject().put("plugin_id", "nfc_toolkit").put("action", "status"))
+                put(JSONObject().put("plugin_id", "ir_toolkit").put("action", "send").put("params", JSONArray().put("protocol").put("address")))
+                put(JSONObject().put("plugin_id", "ir_toolkit").put("action", "status"))
                 put(JSONObject()
                     .put("plugin_id", "ble_toolkit")
                     .put("action", "scan_start")
@@ -533,17 +545,51 @@ class MockTransport(
                 else -> null
             }
             "wardriving" -> when (action) {
-                "start" -> {
-                    wardrivingRunning = true
-                    wardrivingApCount = 0
-                    wardrivingCsvPath = "/sdcard/wardriving/session_${System.currentTimeMillis()}.csv"
-                    wardrivingStateJson().put("action", action).put("state", "started")
+                "start", "gps_update" -> {
+                    if (action == "start") {
+                        wardrivingRunning = true
+                        wardrivingApCount = 0
+                        wardrivingCsvPath = "/sdcard/wardriving/session_${System.currentTimeMillis()}.csv"
+                    }
+                    wardrivingStateJson()
+                        .put("action", action)
+                        .put("state", if (action == "start") "started" else "gps_updated")
+                        .put("lat", params.optDouble("lat"))
+                        .put("lon", params.optDouble("lon"))
                 }
                 "stop" -> {
                     wardrivingRunning = false
                     wardrivingStateJson().put("action", action).put("state", "stopped")
                 }
                 "status" -> wardrivingStateJson()
+                else -> null
+            }
+            "nfc_toolkit" -> when (action) {
+                "read" -> JSONObject()
+                    .put("plugin_id", "nfc_toolkit")
+                    .put("action", action)
+                    .put("ready", true)
+                    .put("uid", "04:A1:B2:C3")
+                    .put("sak", 8)
+                    .put("state", "tag_found")
+                    .put("message", "tag_read")
+                "status" -> JSONObject()
+                    .put("plugin_id", "nfc_toolkit")
+                    .put("ready", true)
+                    .put("state", "idle")
+                else -> null
+            }
+            "ir_toolkit" -> when (action) {
+                "send" -> JSONObject()
+                    .put("plugin_id", "ir_toolkit")
+                    .put("action", action)
+                    .put("ready", true)
+                    .put("state", "sent")
+                    .put("message", "ir_tx_ok")
+                "status" -> JSONObject()
+                    .put("plugin_id", "ir_toolkit")
+                    .put("ready", true)
+                    .put("state", "idle")
                 else -> null
             }
             "ble_toolkit" -> when (action) {
@@ -615,6 +661,8 @@ class MockTransport(
             "subghz_analyzer" -> subghzStateJson()
             "wifi_toolkit" -> wifiStateJson()
             "wardriving" -> wardrivingStateJson()
+            "nfc_toolkit" -> JSONObject().put("plugin_id", "nfc_toolkit").put("ready", true).put("state", "idle")
+            "ir_toolkit" -> JSONObject().put("plugin_id", "ir_toolkit").put("ready", true).put("state", "idle")
             "ble_toolkit" -> bleStateJson()
             "crypto_toolkit" -> cryptoStateJson()
             else -> null

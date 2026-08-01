@@ -105,9 +105,10 @@
     <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall en vivo requieren firmware Bruce. Usa «Captura TEH-Link» o el menú Sub-GHz del T-Embed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="plus_compat_subghz_header_bruce">BRUCE T-EMBED COMPANION</string>
-    <string name="plus_compat_nfc_ir_unavailable">Control NFC/IR del dispositivo no disponible en firmware Xibalba (PN532 e IR pendientes — Fase 4). Puedes gestionar dumps .nfc/.ir importados en el teléfono.</string>
+    <string name="plus_compat_nfc_unavailable">NFC del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware PN532).</string>
+    <string name="plus_compat_ir_unavailable">IR del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware IR).</string>
     <string name="plus_compat_capture_tehlink">CAPTURA TEH-LINK (15s)</string>
-    <string name="plus_compat_wardriving_xibalba_hint">Wardriving remoto y BadUSB: solo en el menú del T-Embed (sin GPS onboard en Plus).</string>
+    <string name="plus_compat_wardriving_xibalba_hint">Wardriving Xibalba: WiFi scan en el T-Embed + coordenadas GPS del teléfono vía TEH-Link.</string>
     <string name="dash_link">ENLACE T-EMBED</string>
     <string name="dash_system">ESP32-S3 / CC1101</string>
     <string name="dash_uptime">UPTIME</string>

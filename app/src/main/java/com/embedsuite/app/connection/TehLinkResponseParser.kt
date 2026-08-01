@@ -106,6 +106,21 @@ object TehLinkResponseParser {
         )
     }
 
+    fun parseNfcResult(data: JSONObject): TehLinkNfcResult {
+        return TehLinkNfcResult(
+            uid = data.optString("uid"),
+            sak = data.optInt("sak"),
+            ready = data.optBoolean("ready")
+        )
+    }
+
+    fun parseIrResult(data: JSONObject): TehLinkIrResult {
+        return TehLinkIrResult(
+            ready = data.optBoolean("ready"),
+            message = data.optString("message")
+        )
+    }
+
     fun parseCryptoResult(data: JSONObject): TehLinkCryptoResult {
         return TehLinkCryptoResult(
             digest = data.optString("digest"),
@@ -125,6 +140,16 @@ object TehLinkResponseParser {
         } else {
             null
         }
+        val nfc = if (data.has("uid") || data.optString("plugin_id") == "nfc_toolkit") {
+            parseNfcResult(data)
+        } else {
+            null
+        }
+        val ir = if (data.optString("plugin_id") == "ir_toolkit") {
+            parseIrResult(data)
+        } else {
+            null
+        }
         return TehLinkActionState(
             pluginId = data.optString("plugin_id"),
             action = data.optString("action"),
@@ -139,7 +164,9 @@ object TehLinkResponseParser {
             aps = parseWifiAps(data.optJSONArray("aps")),
             devices = parseBleDevices(data.optJSONArray("devices")),
             wardriving = wardriving,
-            crypto = crypto
+            crypto = crypto,
+            nfc = nfc,
+            ir = ir
         )
     }
 
@@ -158,12 +185,19 @@ object TehLinkResponseParser {
                 sim[key] = obj.optBoolean(key)
             }
         }
+        val capabilities = mutableMapOf<String, Boolean>()
+        data.optJSONObject("capabilities")?.let { obj ->
+            obj.keys().forEach { key ->
+                capabilities[key] = obj.optBoolean(key)
+            }
+        }
         return TehLinkDeviceStatus(
             sdMounted = data.optBoolean("sd_mounted"),
             flashMounted = data.optBoolean("flash_mounted"),
             uiScreen = data.optString("ui_screen"),
             uptimeMs = data.optLong("uptime_ms"),
-            sim = sim
+            sim = sim,
+            capabilities = capabilities
         )
     }
 

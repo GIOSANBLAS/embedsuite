@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.embedsuite.app.connection.BruceCommands
 import com.embedsuite.app.connection.BruceEvent
+import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.data.IrButtonEntity
 import com.embedsuite.app.data.IrRepository
 import com.embedsuite.app.data.NfcDumpEntity
@@ -35,8 +37,27 @@ class NfcIrViewModel(
 
     val connectionState = connectionManager.connectionState
     val detectedProfile = connectionManager.detectedProfile
+    val systemInfo = connectionManager.systemInfo
     val irButtons: StateFlow<List<IrButtonEntity>> = irRepository.allButtons
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val nfcDeviceEnabled: StateFlow<Boolean> = combine(
+        connectionState,
+        detectedProfile,
+        systemInfo
+    ) { conn, profile, info ->
+        conn is ConnectionState.Connected &&
+            (profile != FirmwareProfile.XIBALBA || connectionManager.hasXibalbaCapability("nfc"))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val irDeviceEnabled: StateFlow<Boolean> = combine(
+        connectionState,
+        detectedProfile,
+        systemInfo
+    ) { conn, profile, info ->
+        conn is ConnectionState.Connected &&
+            (profile != FirmwareProfile.XIBALBA || connectionManager.hasXibalbaCapability("ir"))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     init {
         viewModelScope.launch {
@@ -81,14 +102,33 @@ class NfcIrViewModel(
     fun setModo(modo: String) { _uiState.update { it.copy(modo = modo) } }
 
     fun readNfc() {
-        _uiState.update {
-            it.copy(estadoOperacion = BruceCommands.NFC_CLI_UNSUPPORTED, nfcDump = "", parsedMifare = "")
+        viewModelScope.launch {
+            _uiState.update { it.copy(estadoOperacion = "LEYENDO TAG...", nfcDump = "", parsedMifare = "") }
+            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
+                connectionManager.tehLinkRunNfcRead().fold(
+                    onSuccess = { result ->
+                        val uid = result.state.nfc?.uid.orEmpty().ifBlank { "—" }
+                        _uiState.update {
+                            it.copy(
+                                nfcUid = uid,
+                                nfcDump = if (uid != "—") "UID: $uid\nSAK: ${result.state.nfc?.sak ?: 0}" else "",
+                                estadoOperacion = result.state.message.ifBlank { result.state.state }.ifBlank { "LECTURA OK" }
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(estadoOperacion = "ERROR NFC: ${err.message}") }
+                    }
+                )
+            } else {
+                _uiState.update { it.copy(estadoOperacion = BruceCommands.NFC_CLI_UNSUPPORTED) }
+            }
         }
     }
 
     fun emulateUid(uid: String? = null) {
         _uiState.update {
-            it.copy(estadoOperacion = BruceCommands.NFC_CLI_UNSUPPORTED)
+            it.copy(estadoOperacion = "Emulación UID no soportada en Xibalba (solo lectura PN532).")
         }
     }
 
@@ -99,7 +139,7 @@ class NfcIrViewModel(
                 nfcDump = dump.rawDump,
                 parsedMifare = dump.parsedSectors,
                 selectedDumpId = dump.id,
-                estadoOperacion = BruceCommands.NFC_CLI_UNSUPPORTED
+                estadoOperacion = "Dump cargado (emulación no disponible en Plus)."
             )
         }
     }
@@ -124,22 +164,47 @@ class NfcIrViewModel(
     fun sendIr(cmd: String) {
         viewModelScope.launch {
             val normalized = BruceCommands.normalizeIrCommand(cmd)
-            connectionManager.sendCommand(normalized).fold(
-                onSuccess = {
-                    _uiState.update { state -> state.copy(estadoOperacion = "TX OK: $normalized") }
-                },
-                onFailure = { error ->
-                    _uiState.update { state ->
-                        state.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
-                    }
+            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
+                val match = Regex("""(?i)^ir\s+tx\s+(\w+)\s+([0-9a-f]+)\s+([0-9a-f]+)$""").find(normalized)
+                if (match == null) {
+                    _uiState.update { it.copy(estadoOperacion = "Comando IR inválido: $normalized") }
+                    return@launch
                 }
-            )
+                connectionManager.tehLinkRunIrSend(
+                    protocol = match.groupValues[1],
+                    address = match.groupValues[2],
+                    command = match.groupValues[3]
+                ).fold(
+                    onSuccess = { result ->
+                        _uiState.update {
+                            it.copy(estadoOperacion = result.state.message.ifBlank { "TX OK: $normalized" })
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
+                        }
+                    }
+                )
+            } else {
+                connectionManager.sendCommand(normalized).fold(
+                    onSuccess = {
+                        _uiState.update { state -> state.copy(estadoOperacion = "TX OK: $normalized") }
+                    },
+                    onFailure = { error ->
+                        _uiState.update { state ->
+                            state.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
+                        }
+                    }
+                )
+            }
         }
     }
 
     fun captureIr() {
-        _uiState.update { it.copy(estadoOperacion = "ESCUCHANDO SEÑAL IR (10s)...") }
-        viewModelScope.launch { connectionManager.sendCommand(BruceCommands.irRxRaw(10)) }
+        _uiState.update {
+            it.copy(estadoOperacion = "Captura IR RX pendiente en firmware (stub GPIO1).")
+        }
     }
 
     fun saveIrButton(name: String, command: String) {

@@ -385,7 +385,8 @@ class DeviceConnectionManager(
                 uiScreen = status.uiScreen,
                 sdMounted = if (status.sdMounted) "OK" else "MISSING",
                 profile = FirmwareProfile.XIBALBA,
-                simFlags = status.sim
+                simFlags = status.sim,
+                xibalbaCapabilities = status.capabilities
             )
             _systemInfo.value = info
             _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
@@ -482,8 +483,59 @@ class DeviceConnectionManager(
         )
     }
 
-    suspend fun tehLinkRunWardrivingStart(): Result<TehLinkActionResult> {
-        return tehLinkRunAction(pluginId = "wardriving", action = "start")
+    suspend fun tehLinkRunWardrivingStart(
+        latitude: Double? = null,
+        longitude: Double? = null,
+        altitudeM: Double? = null
+    ): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        locationTracker?.startTracking()
+        val lat = latitude ?: locationTracker?.location?.value?.latitude
+        val lon = longitude ?: locationTracker?.location?.value?.longitude
+        val alt = altitudeM ?: locationTracker?.location?.value?.altitude
+        return tehLinkClient.runWardrivingStart(transport, lat, lon, alt).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] wardriving/start → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunWardrivingGpsUpdate(): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        val loc = locationTracker?.location?.value
+            ?: return Result.failure(Exception("GPS del teléfono no disponible."))
+        return tehLinkClient.runWardrivingGpsUpdate(
+            transport,
+            latitude = loc.latitude,
+            longitude = loc.longitude,
+            altitudeM = loc.altitude.toDouble()
+        )
+    }
+
+    suspend fun tehLinkRunNfcRead(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "nfc_toolkit", action = "read")
+    }
+
+    suspend fun tehLinkRunIrSend(protocol: String, address: String, command: String): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runIrSend(transport, protocol, address, command).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] ir_toolkit/send → ${result.state.message.ifBlank { result.state.state }}"
+                )
+            )
+        }
     }
 
     suspend fun tehLinkRunWardrivingStop(): Result<TehLinkActionResult> {
@@ -492,12 +544,25 @@ class DeviceConnectionManager(
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
         return tehLinkClient.runAction(transport, "wardriving", "stop").onSuccess { result ->
+            locationTracker?.stopTracking()
             _events.tryEmit(
                 BruceEvent.RawLine(
                     "[TEH-Link] wardriving/stop → ${result.state.state.ifBlank { result.state.message }}"
                 )
             )
         }
+    }
+
+    fun hasXibalbaCapability(key: String): Boolean {
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) return false
+        val caps = _systemInfo.value.xibalbaCapabilities
+        if (caps[key] == true) return true
+        val pluginId = when (key) {
+            "nfc" -> "nfc_toolkit"
+            "ir" -> "ir_toolkit"
+            else -> key
+        }
+        return _systemInfo.value.xibalbaPlugins.any { it.id == pluginId }
     }
 
     suspend fun tehLinkRunBleScan(seconds: Int): Result<TehLinkActionResult> {

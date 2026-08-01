@@ -15,6 +15,7 @@ import com.embedsuite.app.data.TxHistoryEntity
 import com.embedsuite.app.data.TxHistoryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 
 data class DashboardUiState(
@@ -37,7 +38,8 @@ class DashboardViewModel(
     private val txHistoryRepository: TxHistoryRepository,
     private val sessionStats: SessionStatsTracker,
     private val firmwareRepository: FirmwareRepository,
-    private val otaUpdateChecker: OtaUpdateChecker
+    private val otaUpdateChecker: OtaUpdateChecker,
+    private val locationTracker: com.embedsuite.app.scan.LocationTracker? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -45,6 +47,7 @@ class DashboardViewModel(
 
     private var lastOtaCheckMs = 0L
     private var lastOtaFirmware = ""
+    private var wardrivingGpsJob: kotlinx.coroutines.Job? = null
 
     init {
         viewModelScope.launch {
@@ -154,8 +157,11 @@ class DashboardViewModel(
 
     fun runWardrivingStart() {
         viewModelScope.launch {
+            locationTracker?.startTracking()
             connectionManager.tehLinkRunWardrivingStart().onSuccess { result ->
                 _uiState.update { it.copy(lastActionState = result.state) }
+                startWardrivingGpsUpdates()
+                refreshActionState("wardriving")
             }.onFailure {
                 refreshActionState("wardriving")
             }
@@ -164,10 +170,23 @@ class DashboardViewModel(
 
     fun runWardrivingStop() {
         viewModelScope.launch {
+            wardrivingGpsJob?.cancel()
+            wardrivingGpsJob = null
             connectionManager.tehLinkRunWardrivingStop().onSuccess { result ->
                 _uiState.update { it.copy(lastActionState = result.state) }
+                refreshActionState("wardriving")
             }.onFailure {
                 refreshActionState("wardriving")
+            }
+        }
+    }
+
+    private fun startWardrivingGpsUpdates() {
+        wardrivingGpsJob?.cancel()
+        wardrivingGpsJob = viewModelScope.launch {
+            while (true) {
+                delay(5_000)
+                connectionManager.tehLinkRunWardrivingGpsUpdate()
             }
         }
     }

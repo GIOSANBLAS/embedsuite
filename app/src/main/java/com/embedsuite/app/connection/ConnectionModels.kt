@@ -34,7 +34,9 @@ data class SystemInfo(
     val profile: FirmwareProfile = FirmwareProfile.UNKNOWN,
     val xibalbaPlugins: List<TehLinkPluginInfo> = emptyList(),
     /** Subsistemas en modo simulación (TEH-Link get_status.sim). Vacío = desconocido. */
-    val simFlags: Map<String, Boolean> = emptyMap()
+    val simFlags: Map<String, Boolean> = emptyMap(),
+    /** Capabilities reportadas por TEH-Link get_status.capabilities. */
+    val xibalbaCapabilities: Map<String, Boolean> = emptyMap()
 )
 
 sealed class BruceEvent {

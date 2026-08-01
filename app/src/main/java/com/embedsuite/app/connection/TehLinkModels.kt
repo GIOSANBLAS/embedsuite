@@ -28,7 +28,8 @@ data class TehLinkDeviceStatus(
     val flashMounted: Boolean,
     val uiScreen: String,
     val uptimeMs: Long,
-    val sim: Map<String, Boolean>
+    val sim: Map<String, Boolean>,
+    val capabilities: Map<String, Boolean> = emptyMap()
 )
 
 data class TehLinkActionInfo(
@@ -65,6 +66,17 @@ data class TehLinkCryptoResult(
     val algo: String = ""
 )
 
+data class TehLinkNfcResult(
+    val uid: String = "",
+    val sak: Int = 0,
+    val ready: Boolean = false
+)
+
+data class TehLinkIrResult(
+    val ready: Boolean = false,
+    val message: String = ""
+)
+
 data class TehLinkActionState(
     val pluginId: String,
     val action: String = "",
@@ -79,7 +91,9 @@ data class TehLinkActionState(
     val aps: List<TehLinkWifiAp> = emptyList(),
     val devices: List<TehLinkBleDevice> = emptyList(),
     val wardriving: TehLinkWardrivingStatus? = null,
-    val crypto: TehLinkCryptoResult? = null
+    val crypto: TehLinkCryptoResult? = null,
+    val nfc: TehLinkNfcResult? = null,
+    val ir: TehLinkIrResult? = null
 )
 
 data class TehLinkActionResult(

@@ -342,6 +342,47 @@ class TehLinkResponseParserTest {
     }
 
     @Test
+    fun parseDeviceStatus_readsCapabilities() {
+        val status = TehLinkResponseParser.parseDeviceStatus(
+            JSONObject(
+                """
+                {
+                  "sd_mounted": true,
+                  "flash_mounted": true,
+                  "ui_screen": "Home",
+                  "uptime_ms": 5000,
+                  "sim": {"pn532": false},
+                  "capabilities": {"nfc": true, "ir": true, "gps_external": false}
+                }
+                """.trimIndent()
+            )
+        )
+        assertTrue(status.capabilities["nfc"] == true)
+        assertTrue(status.capabilities["ir"] == true)
+        assertFalse(status.capabilities["gps_external"] == true)
+    }
+
+    @Test
+    fun parseActionState_readsNfcUid() {
+        val state = TehLinkResponseParser.parseActionState(
+            JSONObject(
+                """
+                {
+                  "plugin_id": "nfc_toolkit",
+                  "action": "read",
+                  "ready": true,
+                  "uid": "04:A1:B2:C3",
+                  "sak": 8,
+                  "state": "tag_found"
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals("04:A1:B2:C3", state.nfc?.uid)
+        assertEquals(8, state.nfc?.sak)
+    }
+
+    @Test
     fun validateConsoleRequest_blocksRunAction() {
         val err = TehLinkCommandPolicy.validateConsoleRequest(
             """{"cmd":"run_action","id":2,"plugin_id":"badusb","action":"run_script"}"""

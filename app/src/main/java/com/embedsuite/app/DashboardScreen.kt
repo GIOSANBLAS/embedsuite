@@ -211,28 +211,27 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                if (!isXibalba) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        val wardrivingActive = uiState.lastActionState?.let {
-                            it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
-                        } == true
-                        NeonButton(
-                            text = "Wardriving Start",
-                            onClick = { viewModel.runWardrivingStart() },
-                            enabled = !wardrivingActive,
-                            modifier = Modifier.weight(1f)
-                        )
-                        NeonOutlinedButton(
-                            text = "Wardriving Stop",
-                            onClick = { viewModel.runWardrivingStop() },
-                            enabled = wardrivingActive,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val wardrivingActive = uiState.lastActionState?.let {
+                        it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
+                    } == true
+                    NeonButton(
+                        text = "Wardriving Start",
+                        onClick = { viewModel.runWardrivingStart() },
+                        enabled = !wardrivingActive,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NeonOutlinedButton(
+                        text = "Wardriving Stop",
+                        onClick = { viewModel.runWardrivingStop() },
+                        enabled = wardrivingActive,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (isXibalba) {
                     Text(
                         stringResource(R.string.plus_compat_wardriving_xibalba_hint),
                         fontFamily = FontFamily.Monospace,

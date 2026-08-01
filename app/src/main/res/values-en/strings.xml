@@ -94,7 +94,8 @@
     <string name="plus_compat_subghz_xibalba_hint">Xibalba mode: live spectrum/waterfall need Bruce firmware. Use TEH-Link capture or the T-Embed Sub-GHz menu.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="plus_compat_subghz_header_bruce">BRUCE T-EMBED COMPANION</string>
-    <string name="plus_compat_nfc_ir_unavailable">Device NFC/IR control unavailable on Xibalba firmware (PN532 and IR drivers pending). Manage imported .nfc/.ir files on the phone.</string>
+    <string name="plus_compat_nfc_unavailable">Device NFC unavailable (update Xibalba firmware v0.15+ or PN532 hardware profile).</string>
+    <string name="plus_compat_ir_unavailable">Device IR unavailable (update Xibalba firmware v0.15+ or IR hardware profile).</string>
     <string name="plus_compat_capture_tehlink">TEH-LINK CAPTURE (15s)</string>
     <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
     <string name="dash_ota_action">Go to Tools → Flash</string>

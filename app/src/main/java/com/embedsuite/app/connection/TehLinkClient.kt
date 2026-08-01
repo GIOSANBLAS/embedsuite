@@ -97,8 +97,66 @@ class TehLinkClient(
         )
     }
 
-    suspend fun runWardrivingStart(transport: TEmbedTransport): Result<TehLinkActionResult> {
-        return runAction(transport, pluginId = "wardriving", action = "start")
+    suspend fun runWardrivingStart(
+        transport: TEmbedTransport,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        altitudeM: Double? = null
+    ): Result<TehLinkActionResult> {
+        val params = JSONObject()
+        if (latitude != null && longitude != null) {
+            params.put("lat", latitude)
+            params.put("lon", longitude)
+            if (altitudeM != null) {
+                params.put("alt", altitudeM)
+            }
+        }
+        return runAction(transport, pluginId = "wardriving", action = "start", params = params)
+    }
+
+    suspend fun runWardrivingGpsUpdate(
+        transport: TEmbedTransport,
+        latitude: Double,
+        longitude: Double,
+        altitudeM: Double? = null
+    ): Result<TehLinkActionResult> {
+        val params = JSONObject()
+            .put("lat", latitude)
+            .put("lon", longitude)
+        if (altitudeM != null) {
+            params.put("alt", altitudeM)
+        }
+        return runAction(transport, pluginId = "wardriving", action = "gps_update", params = params)
+    }
+
+    suspend fun runNfcRead(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, pluginId = "nfc_toolkit", action = "read")
+    }
+
+    suspend fun runIrSend(
+        transport: TEmbedTransport,
+        protocol: String,
+        address: String,
+        command: String
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "ir_toolkit",
+            action = "send",
+            params = JSONObject()
+                .put("protocol", protocol)
+                .put("address", address)
+                .put("command", command)
+        )
+    }
+
+    suspend fun runIrSendRaw(transport: TEmbedTransport, raw: String): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "ir_toolkit",
+            action = "send",
+            params = JSONObject().put("raw", raw)
+        )
     }
 
     suspend fun runBleScan(transport: TEmbedTransport, seconds: Int): Result<TehLinkActionResult> {

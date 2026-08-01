@@ -44,19 +44,31 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val detectedProfile by viewModel.detectedProfile.collectAsState()
+    val nfcDeviceEnabled by viewModel.nfcDeviceEnabled.collectAsState()
+    val irDeviceEnabled by viewModel.irDeviceEnabled.collectAsState()
     val irButtons by viewModel.irButtons.collectAsState()
     val isConnected = connectionState is ConnectionState.Connected
     val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
-    val deviceOpsEnabled = isConnected && !isXibalba
+    val showNfcUnavailableBanner = isXibalba && isConnected && !nfcDeviceEnabled
+    val showIrUnavailableBanner = isXibalba && isConnected && !irDeviceEnabled
     val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (isXibalba) {
+        if (showNfcUnavailableBanner && uiState.modo == "NFC / RFID") {
             Text(
-                stringResource(R.string.plus_compat_nfc_ir_unavailable),
+                stringResource(R.string.plus_compat_nfc_unavailable),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                color = NeonOrange,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            )
+        }
+        if (showIrUnavailableBanner && uiState.modo == "INFRARED") {
+            Text(
+                stringResource(R.string.plus_compat_ir_unavailable),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 9.sp,
                 color = NeonOrange,
@@ -81,18 +93,20 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         if (uiState.modo == "NFC / RFID") {
-            Text(
-                com.embedsuite.app.connection.BruceCommands.NFC_CLI_UNSUPPORTED,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 9.sp,
-                color = NeonOrange,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-            )
+            if (!isXibalba) {
+                Text(
+                    com.embedsuite.app.connection.BruceCommands.NFC_CLI_UNSUPPORTED,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = NeonOrange,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                )
+            }
             if (uiState.savedDumps.isNotEmpty()) {
                 Text("DUMPS GUARDADOS — EMULAR", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonCyan, modifier = Modifier.fillMaxWidth())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
                     items(uiState.savedDumps, key = { it.id }) { dump ->
-                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = deviceOpsEnabled) {
+                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = isConnected && !isXibalba) {
                             Text(dump.uid, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
                         }
                     }
@@ -105,7 +119,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 nfcDump = uiState.nfcDump,
                 parsedMifare = uiState.parsedMifare,
                 isConnected = isConnected,
-                controlsEnabled = deviceOpsEnabled,
+                controlsEnabled = isConnected && (nfcDeviceEnabled || !isXibalba),
                 onRead = { viewModel.readNfc() },
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
@@ -130,7 +144,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 modifier = Modifier.weight(1f),
                 irButtons = irButtons,
                 isConnected = isConnected,
-                controlsEnabled = deviceOpsEnabled,
+                controlsEnabled = isConnected && (irDeviceEnabled || !isXibalba),
                 onSend = { viewModel.sendIr(it) },
                 onCapture = { viewModel.captureIr() },
                 onAdd = { showAddIr = true },

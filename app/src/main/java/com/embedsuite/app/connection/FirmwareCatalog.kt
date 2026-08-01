@@ -61,7 +61,7 @@ object FirmwareCatalog {
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
         description = "T-Embed Xibalba v0.16.2 Glow (embedded splash logo + LVGL polish)",
-        sha256Hex = "6307492884a76b744b177ebbc9af0fde5140752d72d414a74c53e713baa541f8"
+        sha256Hex = "6fbdbaeeccfbd017bf71ffe1475e170c8b9970d5528f1c9466ed749fc404c512"
     )
 
     /** @deprecated Use [XIBALBA_FALLBACK_V0162] */

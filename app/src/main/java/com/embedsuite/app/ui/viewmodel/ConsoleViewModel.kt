@@ -6,6 +6,7 @@ import com.embedsuite.app.connection.BruceDebugLog
 import com.embedsuite.app.connection.BruceEvent
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
 import com.embedsuite.app.core.AppVersion
 import com.embedsuite.app.data.MacroEntity
@@ -14,8 +15,14 @@ import com.embedsuite.app.macro.MacroEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+private fun consoleHeader(profile: FirmwareProfile): String = when (profile) {
+    FirmwareProfile.XIBALBA -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — TEH-Link / Xibalba"
+    FirmwareProfile.BRUCE -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — BRUCE CLI"
+    else -> "[SYSTEM] EMBED SUITE v${AppVersion.NAME} — CLI"
+}
+
 data class ConsoleUiState(
-    val logs: List<String> = listOf("[SYSTEM] EMBED SUITE v${AppVersion.NAME} — BRUCE CLI"),
+    val logs: List<String> = listOf(consoleHeader(FirmwareProfile.UNKNOWN)),
     val inputText: String = "",
     val showSuggestions: Boolean = false,
     val commandHistory: List<String> = emptyList(),
@@ -32,10 +39,24 @@ class ConsoleViewModel(
     val uiState: StateFlow<ConsoleUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<ConnectionState> = connectionManager.connectionState
+    val detectedProfile: StateFlow<FirmwareProfile> = connectionManager.detectedProfile
     val macros: StateFlow<List<MacroEntity>> = macroRepository.allMacros
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        viewModelScope.launch {
+            connectionManager.detectedProfile.collect { profile ->
+                val header = consoleHeader(profile)
+                _uiState.update { state ->
+                    val logs = if (state.logs.size == 1 && state.logs[0].startsWith("[SYSTEM]")) {
+                        listOf(header)
+                    } else {
+                        state.logs
+                    }
+                    state.copy(logs = logs)
+                }
+            }
+        }
         viewModelScope.launch {
             connectionManager.events.collect { event ->
                 when (event) {
@@ -75,7 +96,13 @@ class ConsoleViewModel(
         val history = _uiState.value.commandHistory + cmd
         _uiState.update { it.copy(commandHistory = history, historyIndex = history.size, inputText = "", showSuggestions = false) }
         viewModelScope.launch {
-            connectionManager.sendCommand(cmd).onFailure { appendLog("[ERROR] ${it.message}") }
+            val trimmed = cmd.trim()
+            val result = if (trimmed.startsWith("{")) {
+                connectionManager.sendTehLinkRaw(trimmed)
+            } else {
+                connectionManager.sendCommand(trimmed)
+            }
+            result.onFailure { appendLog("[ERROR] ${it.message}") }
         }
     }
 

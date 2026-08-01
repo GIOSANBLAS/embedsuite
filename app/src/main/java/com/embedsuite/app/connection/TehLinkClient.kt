@@ -30,9 +30,26 @@ class TehLinkClient(
         return execute(transport, "get_status").map(TehLinkResponseParser::parseDeviceStatus)
     }
 
-    private suspend fun execute(transport: TEmbedTransport, cmd: String): Result<JSONObject> {
-        val id = requestId.incrementAndGet()
-        val payload = JSONObject().put("cmd", cmd).put("id", id).toString()
+    suspend fun getScreen(transport: TEmbedTransport): Result<TehLinkScreenInfo> {
+        return execute(transport, "get_screen").map(TehLinkResponseParser::parseScreenInfo)
+    }
+
+    suspend fun openPlugin(transport: TEmbedTransport, pluginId: String): Result<TehLinkScreenInfo> {
+        val args = JSONObject().put("plugin_id", pluginId)
+        return execute(transport, "open_plugin", args).map(TehLinkResponseParser::parseScreenInfo)
+    }
+
+    suspend fun backToMenu(transport: TEmbedTransport): Result<TehLinkScreenInfo> {
+        return execute(transport, "back_to_menu").map(TehLinkResponseParser::parseScreenInfo)
+    }
+
+    /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
+    suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> {
+        val trimmed = json.trim()
+        val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
+            return Result.failure(it)
+        }
+
         val buffer = mutableListOf<String>()
         val job = scope.launch {
             transport.incomingLines().collect { line ->
@@ -46,7 +63,7 @@ class TehLinkClient(
             withTimeout(5_000L) {
                 delay(80)
                 buffer.clear()
-                transport.sendCommand(payload).getOrElse {
+                transport.sendCommand(trimmed).getOrElse {
                     return@withTimeout Result.failure(it)
                 }
 
@@ -56,13 +73,7 @@ class TehLinkClient(
                         runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
                     }
                     if (match != null) {
-                        val root = JSONObject(match)
-                        if (!root.optBoolean("ok")) {
-                            return@withTimeout Result.failure(
-                                Exception(root.optString("error", "teh_link_error"))
-                            )
-                        }
-                        return@withTimeout Result.success(root.optJSONObject("data") ?: JSONObject())
+                        return@withTimeout Result.success(match)
                     }
                     delay(30)
                 }
@@ -72,6 +83,25 @@ class TehLinkClient(
             Result.failure(Exception("TEH-Link: ${e.message}"))
         } finally {
             job.cancel()
+        }
+    }
+
+    private suspend fun execute(
+        transport: TEmbedTransport,
+        cmd: String,
+        args: JSONObject? = null
+    ): Result<JSONObject> {
+        val id = requestId.incrementAndGet()
+        val payload = JSONObject().put("cmd", cmd).put("id", id)
+        args?.keys()?.forEach { key ->
+            payload.put(key, args.get(key))
+        }
+        return sendRawJson(transport, payload.toString()).mapCatching { line ->
+            val root = JSONObject(line)
+            if (!root.optBoolean("ok")) {
+                throw Exception(root.optString("error", "teh_link_error"))
+            }
+            root.optJSONObject("data") ?: JSONObject()
         }
     }
 }

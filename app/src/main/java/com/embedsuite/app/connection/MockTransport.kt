@@ -17,6 +17,9 @@ class MockTransport(
     override val type: TransportType = TransportType.USB
     override val isConnected: Boolean = true
 
+    private var mockUiScreen = "Home"
+    private var mockActivePlugin = ""
+
     private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     override fun incomingLines(): Flow<String> = _incoming.asSharedFlow()
@@ -50,25 +53,24 @@ class MockTransport(
             "ping" -> JSONObject()
                 .put("pong", true)
                 .put("proto", "teh-link")
-                .put("proto_ver", 1)
+                .put("proto_ver", 2)
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
                 .put("version", "0.12")
                 .put("codename", "Mimic")
                 .put("channel", "release")
                 .put("proto", "teh-link")
-                .put("proto_ver", 1)
-                .put("plugins", JSONArray().put(
-                    JSONObject()
-                        .put("id", "badusb")
-                        .put("name", "BadUSB")
-                        .put("version", "1.0.0")
-                        .put("author", "Xibalba")
-                ))
-            "get_status" -> JSONObject()
+                .put("proto_ver", 2)
+                .put("plugins", JSONArray().apply {
+                    put(JSONObject().put("id", "subghz").put("name", "Sub-GHz").put("version", "1.0.0").put("author", "Xibalba"))
+                    put(JSONObject().put("id", "badusb").put("name", "BadUSB").put("version", "1.0.0").put("author", "Xibalba"))
+                    put(JSONObject().put("id", "wifi").put("name", "WiFi").put("version", "1.0.0").put("author", "Xibalba"))
+                })
+            "get_status", "get_screen" -> JSONObject()
                 .put("sd_mounted", false)
                 .put("flash_mounted", true)
-                .put("ui_screen", "Home")
+                .put("ui_screen", mockUiScreen)
+                .put("active_plugin", mockActivePlugin)
                 .put("uptime_ms", 12345)
                 .put("sim", JSONObject()
                     .put("cc1101", true)
@@ -76,6 +78,29 @@ class MockTransport(
                     .put("wifi", true)
                     .put("badusb", true)
                     .put("gps", true))
+            "open_plugin" -> {
+                val pluginId = root.optString("plugin_id")
+                if (pluginId.isBlank()) {
+                    return Result.success("OK").also {
+                        _incoming.emit(
+                            JSONObject().put("ok", false).put("id", id).put("error", "missing_plugin_id").toString()
+                        )
+                    }
+                }
+                mockActivePlugin = pluginId
+                mockUiScreen = pluginId.replaceFirstChar { it.uppercase() }
+                JSONObject()
+                    .put("plugin_id", pluginId)
+                    .put("ui_screen", mockUiScreen)
+                    .put("active_plugin", mockActivePlugin)
+            }
+            "back_to_menu" -> {
+                mockActivePlugin = ""
+                mockUiScreen = "Home"
+                JSONObject()
+                    .put("ui_screen", mockUiScreen)
+                    .put("active_plugin", mockActivePlugin)
+            }
             else -> null
         }
 

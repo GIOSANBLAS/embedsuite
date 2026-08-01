@@ -77,6 +77,22 @@ class DashboardViewModel(
         viewModelScope.launch { connectionManager.refreshSystemInfo() }
     }
 
+    fun openXibalbaPlugin(pluginId: String) {
+        viewModelScope.launch {
+            connectionManager.tehLinkOpenPlugin(pluginId).onSuccess {
+                refreshSystemInfo()
+            }
+        }
+    }
+
+    fun backToXibalbaMenu() {
+        viewModelScope.launch {
+            connectionManager.tehLinkBackToMenu().onSuccess {
+                refreshSystemInfo()
+            }
+        }
+    }
+
     private fun checkOta(deviceFirmware: String) {
         viewModelScope.launch {
             val status = otaUpdateChecker.check(deviceFirmware)

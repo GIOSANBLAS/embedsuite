@@ -233,6 +233,22 @@ class DeviceConnectionManager(
         }
     }
 
+    suspend fun sendTehLinkRaw(json: String): Result<String> {
+        val transport = activeTransport
+            ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
+
+        return try {
+            withTimeout(5_000L) {
+                tehLinkClient.sendRawJson(transport, json).onSuccess { response ->
+                    BruceDebugLog.appendOutgoing(json.trim())
+                    _events.tryEmit(BruceEvent.RawLine(response))
+                }
+            }
+        } catch (_: TimeoutCancellationException) {
+            Result.failure(Exception("Timeout TEH-Link: sin respuesta en 5s."))
+        }
+    }
+
     suspend fun sendCommand(command: String): Result<String> {
         val validated = BruceCommandValidator.validate(command).getOrElse {
             return Result.failure(it)
@@ -307,7 +323,8 @@ class DeviceConnectionManager(
                 firmware = "${device.product} v${device.version} (${device.codename})",
                 codename = device.codename,
                 channel = device.channel,
-                profile = FirmwareProfile.XIBALBA
+                profile = FirmwareProfile.XIBALBA,
+                xibalbaPlugins = device.plugins
             )
             _systemInfo.value = info
             _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
@@ -345,6 +362,28 @@ class DeviceConnectionManager(
             pref == FirmwareProfile.AUTO && pingOk -> FirmwareProfile.XIBALBA
             pref == FirmwareProfile.AUTO && !pingOk -> FirmwareProfile.BRUCE
             else -> if (pingOk) FirmwareProfile.XIBALBA else FirmwareProfile.BRUCE
+        }
+    }
+
+    suspend fun tehLinkOpenPlugin(pluginId: String): Result<TehLinkScreenInfo> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.openPlugin(transport, pluginId).onSuccess { screen ->
+            _systemInfo.value = _systemInfo.value.copy(uiScreen = screen.uiScreen)
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] open_plugin: ${screen.openedPluginId.ifBlank { pluginId }} → ${screen.uiScreen}"))
+        }
+    }
+
+    suspend fun tehLinkBackToMenu(): Result<TehLinkScreenInfo> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.backToMenu(transport).onSuccess { screen ->
+            _systemInfo.value = _systemInfo.value.copy(uiScreen = screen.uiScreen)
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] back_to_menu → ${screen.uiScreen}"))
         }
     }
 

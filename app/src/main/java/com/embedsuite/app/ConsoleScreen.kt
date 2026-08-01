@@ -24,19 +24,23 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.embedsuite.app.connection.BruceCommands
 import com.embedsuite.app.connection.ConnectionState
+import com.embedsuite.app.connection.FirmwareProfile
+import com.embedsuite.app.connection.TehLinkConsoleChips
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.ConsoleViewModel
-import kotlinx.coroutines.launch
-
-private val BRUCE_COMMANDS = BruceCommands.safeConsoleChips
 
 @Composable
 fun ConsoleScreen(viewModel: ConsoleViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
+    val detectedProfile by viewModel.detectedProfile.collectAsState()
     val macros by viewModel.macros.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
+
+    val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
+    val bruceCommands = BruceCommands.safeConsoleChips
+    val tehLinkChips = TehLinkConsoleChips.chips
 
     val bruceImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
@@ -62,6 +66,7 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
         line.startsWith("[SYS]") -> KaliBlue
         line.startsWith("[WARN]") -> NeonOrange
         line.startsWith("[INFO]") || line.startsWith("[SYSTEM]") -> MatrixGreen.copy(alpha = 0.7f)
+        line.startsWith("{") -> NeonCyan
         else -> MatrixGreen
     }
 
@@ -69,17 +74,32 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
         if (uiState.logs.isNotEmpty()) listState.animateScrollToItem(uiState.logs.size - 1)
     }
 
-    val suggestions = remember(uiState.inputText) {
+    val suggestions = remember(uiState.inputText, isXibalba) {
         if (uiState.inputText.isBlank()) emptyList()
-        else BRUCE_COMMANDS.filter { it.contains(uiState.inputText, ignoreCase = true) }.take(6)
+        else if (isXibalba) {
+            tehLinkChips
+                .filter { it.label.contains(uiState.inputText, ignoreCase = true) ||
+                    it.json.contains(uiState.inputText, ignoreCase = true) }
+                .take(6)
+                .map { it.json }
+        } else {
+            bruceCommands.filter { it.contains(uiState.inputText, ignoreCase = true) }.take(6)
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("CLI: $connectionStatus", color = if (isConnected) MatrixGreen else NeonRed, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+            Text(
+                "CLI: $connectionStatus${if (isXibalba) " // TEH-Link" else ""}",
+                color = if (isConnected) MatrixGreen else NeonRed,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp
+            )
             Row {
-                IconButton(onClick = { bruceImportLauncher.launch(arrayOf("text/*", "*/*")) }) {
-                    Icon(Icons.Default.Upload, "Import .bruce", tint = NeonCyan)
+                if (!isXibalba) {
+                    IconButton(onClick = { bruceImportLauncher.launch(arrayOf("text/*", "*/*")) }) {
+                        Icon(Icons.Default.Upload, "Import .bruce", tint = NeonCyan)
+                    }
                 }
                 IconButton(onClick = { viewModel.reconnect() }) {
                     Icon(Icons.Default.Refresh, null, tint = MatrixGreen)
@@ -94,6 +114,19 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
+        if (isXibalba) {
+            Text("TEH-Link:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                tehLinkChips.forEach { chip ->
+                    TextButton(onClick = { viewModel.sendCommand(chip.json) }) {
+                        Text(chip.label, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
+                    }
+                }
+            }
+        }
         if (uiState.showSuggestions && suggestions.isNotEmpty()) {
             suggestions.forEach { s ->
                 TextButton(onClick = { viewModel.setInput(s, false) }, modifier = Modifier.fillMaxWidth()) {
@@ -101,7 +134,7 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        if (macros.isNotEmpty()) {
+        if (!isXibalba && macros.isNotEmpty()) {
             Text("Scripts .bruce:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
             macros.take(3).forEach { m ->
                 TextButton(onClick = { viewModel.runMacro(m) }) {
@@ -114,7 +147,13 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
             OutlinedTextField(
                 value = uiState.inputText,
                 onValueChange = { viewModel.setInput(it) },
-                placeholder = { Text("Comando Bruce (↑↓ historial)", color = TextGray, fontFamily = FontFamily.Monospace) },
+                placeholder = {
+                    Text(
+                        if (isXibalba) "JSON TEH-Link (↑↓ historial)" else "Comando Bruce (↑↓ historial)",
+                        color = TextGray,
+                        fontFamily = FontFamily.Monospace
+                    )
+                },
                 modifier = Modifier.weight(1f).onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && uiState.commandHistory.isNotEmpty()) {
                         when (event.key) {

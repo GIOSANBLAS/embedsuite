@@ -113,6 +113,36 @@ fun DashboardScreen(
             }
         }
 
+        if (
+            uiState.connectionState is ConnectionState.Connected &&
+            uiState.systemInfo.profile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA &&
+            uiState.systemInfo.xibalbaPlugins.isNotEmpty()
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            HackerSectionHeader("XIBALBA PLUGINS", accent = MatrixGreen)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                uiState.systemInfo.xibalbaPlugins.chunked(3).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        row.forEach { plugin ->
+                            NeonOutlinedButton(
+                                text = plugin.name.ifBlank { plugin.id },
+                                onClick = { viewModel.openXibalbaPlugin(plugin.id) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+                NeonButton(
+                    text = "MENU",
+                    onClick = { viewModel.backToXibalbaMenu() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBadge(stringResource(R.string.dash_signals_today), uiState.signalsToday.toString(), MatrixGreen, Modifier.weight(1f))
             StatBadge(stringResource(R.string.dash_aps_today), uiState.apsToday.toString(), NeonCyan, Modifier.weight(1f))

@@ -30,6 +30,14 @@ object TehLinkResponseParser {
         )
     }
 
+    fun parseScreenInfo(data: JSONObject): TehLinkScreenInfo {
+        return TehLinkScreenInfo(
+            uiScreen = data.optString("ui_screen"),
+            activePlugin = data.optString("active_plugin"),
+            openedPluginId = data.optString("plugin_id")
+        )
+    }
+
     fun parseDeviceStatus(data: JSONObject): TehLinkDeviceStatus {
         val sim = mutableMapOf<String, Boolean>()
         data.optJSONObject("sim")?.let { obj ->
@@ -53,5 +61,23 @@ object TehLinkResponseParser {
             val obj = JSONObject(trimmed)
             obj.has("ok") && (obj.has("data") || obj.has("error"))
         }.getOrDefault(false)
+    }
+
+    /** Valida petición TEH-Link cruda (cmd + id obligatorios). */
+    fun validateRawRequest(json: String): Result<Int> {
+        val trimmed = json.trim()
+        if (!trimmed.startsWith("{")) {
+            return Result.failure(IllegalArgumentException("TEH-Link: se esperaba JSON"))
+        }
+        val obj = runCatching { JSONObject(trimmed) }.getOrElse {
+            return Result.failure(IllegalArgumentException("TEH-Link: JSON inválido"))
+        }
+        if (obj.optString("cmd").isBlank()) {
+            return Result.failure(IllegalArgumentException("TEH-Link requiere campo cmd"))
+        }
+        if (!obj.has("id")) {
+            return Result.failure(IllegalArgumentException("TEH-Link requiere campo id"))
+        }
+        return Result.success(obj.optInt("id"))
     }
 }

@@ -31,7 +31,8 @@ data class SystemInfo(
     val channel: String = "",
     val uiScreen: String = "",
     val sdMounted: String = "",
-    val profile: FirmwareProfile = FirmwareProfile.UNKNOWN
+    val profile: FirmwareProfile = FirmwareProfile.UNKNOWN,
+    val xibalbaPlugins: List<TehLinkPluginInfo> = emptyList()
 )
 
 sealed class BruceEvent {

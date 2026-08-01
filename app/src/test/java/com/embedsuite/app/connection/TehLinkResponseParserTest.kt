@@ -32,8 +32,33 @@ class TehLinkResponseParserTest {
     }
 
     @Test
+    fun parseScreenInfo_readsActivePlugin() {
+        val data = JSONObject()
+            .put("ui_screen", "BadUSB")
+            .put("active_plugin", "badusb")
+            .put("plugin_id", "badusb")
+
+        val screen = TehLinkResponseParser.parseScreenInfo(data)
+        assertEquals("BadUSB", screen.uiScreen)
+        assertEquals("badusb", screen.activePlugin)
+        assertEquals("badusb", screen.openedPluginId)
+    }
+
+    @Test
     fun isTehLinkLine_detectsResponse() {
         val line = """{"ok":true,"id":1,"data":{"pong":true}}"""
         assertTrue(TehLinkResponseParser.isTehLinkLine(line))
+    }
+
+    @Test
+    fun validateRawRequest_requiresCmdAndId() {
+        val ok = TehLinkResponseParser.validateRawRequest("""{"cmd":"ping","id":7}""")
+        assertTrue(ok.isSuccess)
+        assertEquals(7, ok.getOrNull())
+
+        assertTrue(TehLinkResponseParser.validateRawRequest("not json").isFailure)
+        assertTrue(TehLinkResponseParser.validateRawRequest("""{"id":1}""").isFailure)
+        assertTrue(TehLinkResponseParser.validateRawRequest("""{"cmd":"ping"}""").isFailure)
+        assertTrue(TehLinkResponseParser.validateRawRequest("""{"cmd":"","id":1}""").isFailure)
     }
 }

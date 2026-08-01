@@ -72,6 +72,28 @@ class TehLinkClient(
         return execute(transport, "get_action_state", args).map(TehLinkResponseParser::parseActionState)
     }
 
+    suspend fun runWifiScan(transport: TEmbedTransport, seconds: Int): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "wifi_toolkit",
+            action = "scan_start",
+            params = JSONObject().put("seconds", seconds)
+        )
+    }
+
+    suspend fun runWardrivingStart(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, pluginId = "wardriving", action = "start")
+    }
+
+    suspend fun runBleScan(transport: TEmbedTransport, seconds: Int): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "ble_toolkit",
+            action = "scan_start",
+            params = JSONObject().put("seconds", seconds)
+        )
+    }
+
     /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
     suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> {
         val trimmed = json.trim()

@@ -60,7 +60,57 @@ object TehLinkResponseParser {
         return actions
     }
 
+    fun parseWifiAp(item: JSONObject): TehLinkWifiAp {
+        return TehLinkWifiAp(
+            ssid = item.optString("ssid"),
+            bssid = item.optString("bssid"),
+            channel = item.optInt("channel"),
+            rssi = item.optInt("rssi"),
+            security = item.optString("security")
+        )
+    }
+
+    fun parseWifiAps(arr: JSONArray?): List<TehLinkWifiAp> {
+        if (arr == null) return emptyList()
+        val aps = mutableListOf<TehLinkWifiAp>()
+        for (i in 0 until arr.length()) {
+            arr.optJSONObject(i)?.let { aps += parseWifiAp(it) }
+        }
+        return aps
+    }
+
+    fun parseBleDevice(item: JSONObject): TehLinkBleDevice {
+        return TehLinkBleDevice(
+            name = item.optString("name"),
+            address = item.optString("address"),
+            rssi = item.optInt("rssi"),
+            isTracker = item.optBoolean("is_tracker")
+        )
+    }
+
+    fun parseBleDevices(arr: JSONArray?): List<TehLinkBleDevice> {
+        if (arr == null) return emptyList()
+        val devices = mutableListOf<TehLinkBleDevice>()
+        for (i in 0 until arr.length()) {
+            arr.optJSONObject(i)?.let { devices += parseBleDevice(it) }
+        }
+        return devices
+    }
+
+    fun parseWardrivingStatus(data: JSONObject): TehLinkWardrivingStatus {
+        return TehLinkWardrivingStatus(
+            running = data.optBoolean("running"),
+            apCount = data.optInt("ap_count"),
+            csvPath = data.optString("csv_path")
+        )
+    }
+
     fun parseActionState(data: JSONObject): TehLinkActionState {
+        val wardriving = if (data.has("ap_count") || data.has("csv_path")) {
+            parseWardrivingStatus(data)
+        } else {
+            null
+        }
         return TehLinkActionState(
             pluginId = data.optString("plugin_id"),
             action = data.optString("action"),
@@ -71,7 +121,10 @@ object TehLinkResponseParser {
             running = data.optBoolean("running"),
             capturing = data.optBoolean("capturing"),
             packets = data.optInt("packets"),
-            secondsRemaining = data.optInt("seconds_remaining")
+            secondsRemaining = data.optInt("seconds_remaining"),
+            aps = parseWifiAps(data.optJSONArray("aps")),
+            devices = parseBleDevices(data.optJSONArray("devices")),
+            wardriving = wardriving
         )
     }
 

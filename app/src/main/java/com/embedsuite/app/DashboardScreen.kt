@@ -160,6 +160,41 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    NeonButton(
+                        text = "WiFi Scan 10s",
+                        onClick = { viewModel.runWifiScan(10) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    NeonButton(
+                        text = "BLE Scan 10s",
+                        onClick = { viewModel.runBleScan(10) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val wardrivingActive = uiState.lastActionState?.let {
+                        it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
+                    } == true
+                    NeonButton(
+                        text = "Wardriving Start",
+                        onClick = { viewModel.runWardrivingStart() },
+                        enabled = !wardrivingActive,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NeonOutlinedButton(
+                        text = "Wardriving Stop",
+                        onClick = { viewModel.runWardrivingStop() },
+                        enabled = wardrivingActive,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 val actionState = uiState.lastActionState
                 if (actionState != null) {
                     val label = actionState.pluginId.ifBlank { "action" }
@@ -177,6 +212,19 @@ fun DashboardScreen(
                             if (isNotEmpty()) append(" · ")
                             append("${actionState.packets} pkts")
                         }
+                        actionState.wardriving?.let { wd ->
+                            if (isNotEmpty()) append(" · ")
+                            append("${wd.apCount} APs")
+                            if (wd.csvPath.isNotBlank()) append(" → ${wd.csvPath.substringAfterLast('/')}")
+                        }
+                        if (actionState.aps.isNotEmpty()) {
+                            if (isNotEmpty()) append(" · ")
+                            append("${actionState.aps.size} APs")
+                        }
+                        if (actionState.devices.isNotEmpty()) {
+                            if (isNotEmpty()) append(" · ")
+                            append("${actionState.devices.size} BLE")
+                        }
                         if (actionState.message.isNotBlank()) {
                             if (isNotEmpty()) append(" — ")
                             append(actionState.message)
@@ -187,7 +235,11 @@ fun DashboardScreen(
                 } else {
                     StatRow("action", "—")
                 }
-                TextButton(onClick = { viewModel.refreshActionState("subghz_analyzer") }) {
+                TextButton(onClick = {
+                    val pluginId = uiState.lastActionState?.pluginId?.takeIf { it.isNotBlank() }
+                        ?: "subghz_analyzer"
+                    viewModel.refreshActionState(pluginId)
+                }) {
                     Text("Refresh state", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
                 }
             }

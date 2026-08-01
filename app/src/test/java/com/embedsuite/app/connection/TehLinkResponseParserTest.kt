@@ -164,4 +164,83 @@ class TehLinkResponseParserTest {
         assertEquals("started", result.state.state)
         assertTrue(result.state.running)
     }
+
+    @Test
+    fun parseActionState_readsWifiAps() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "wifi_toolkit",
+              "action": "status",
+              "state": "idle",
+              "running": false,
+              "message": "3 APs",
+              "aps": [
+                {"ssid": "HomeWiFi_5G", "bssid": "AA:BB:CC:DD:EE:01", "channel": 6, "rssi": -42, "security": "WPA2"},
+                {"ssid": "Guest_Open", "bssid": "AA:BB:CC:DD:EE:03", "channel": 1, "rssi": -71, "security": "Open"}
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("wifi_toolkit", state.pluginId)
+        assertEquals(2, state.aps.size)
+        assertEquals("HomeWiFi_5G", state.aps[0].ssid)
+        assertEquals(-42, state.aps[0].rssi)
+        assertEquals("WPA2", state.aps[0].security)
+    }
+
+    @Test
+    fun parseActionState_readsBleDevices() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "ble_toolkit",
+              "action": "status",
+              "state": "scanning",
+              "running": true,
+              "seconds_remaining": 5,
+              "devices": [
+                {"name": "AirTag", "address": "A1:B2:C3:D4:E5:F6", "rssi": -45, "is_tracker": true},
+                {"name": "iPhone", "address": "11:22:33:44:55:66", "rssi": -55, "is_tracker": false}
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("ble_toolkit", state.pluginId)
+        assertTrue(state.running)
+        assertEquals(5, state.secondsRemaining)
+        assertEquals(2, state.devices.size)
+        assertEquals("AirTag", state.devices[0].name)
+        assertTrue(state.devices[0].isTracker)
+    }
+
+    @Test
+    fun parseActionState_readsWardrivingStatus() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "wardriving",
+              "action": "status",
+              "state": "recording",
+              "running": true,
+              "ap_count": 42,
+              "csv_path": "/sdcard/wardriving/session.csv",
+              "message": "Wardriving… 42 APs"
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("wardriving", state.pluginId)
+        assertTrue(state.running)
+        assertEquals("recording", state.state)
+        val wd = state.wardriving
+        assertEquals(true, wd?.running)
+        assertEquals(42, wd?.apCount)
+        assertEquals("/sdcard/wardriving/session.csv", wd?.csvPath)
+    }
 }

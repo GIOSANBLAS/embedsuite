@@ -124,6 +124,46 @@ class DashboardViewModel(
         }
     }
 
+    fun runWifiScan(seconds: Int = 10) {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunWifiScan(seconds).onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("wifi_toolkit")
+            }
+        }
+    }
+
+    fun runWardrivingStart() {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunWardrivingStart().onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("wardriving")
+            }
+        }
+    }
+
+    fun runWardrivingStop() {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunWardrivingStop().onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("wardriving")
+            }
+        }
+    }
+
+    fun runBleScan(seconds: Int = 10) {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunBleScan(seconds).onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("ble_toolkit")
+            }
+        }
+    }
+
     fun refreshActionState(pluginId: String, action: String? = null) {
         viewModelScope.launch {
             connectionManager.tehLinkGetActionState(pluginId, action).onSuccess { state ->

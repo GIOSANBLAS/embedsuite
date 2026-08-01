@@ -37,6 +37,27 @@ data class TehLinkActionInfo(
     val params: List<String> = emptyList()
 )
 
+data class TehLinkWifiAp(
+    val ssid: String,
+    val bssid: String,
+    val channel: Int,
+    val rssi: Int,
+    val security: String = ""
+)
+
+data class TehLinkBleDevice(
+    val name: String,
+    val address: String,
+    val rssi: Int,
+    val isTracker: Boolean = false
+)
+
+data class TehLinkWardrivingStatus(
+    val running: Boolean = false,
+    val apCount: Int = 0,
+    val csvPath: String = ""
+)
+
 data class TehLinkActionState(
     val pluginId: String,
     val action: String = "",
@@ -47,7 +68,10 @@ data class TehLinkActionState(
     val running: Boolean = false,
     val capturing: Boolean = false,
     val packets: Int = 0,
-    val secondsRemaining: Int = 0
+    val secondsRemaining: Int = 0,
+    val aps: List<TehLinkWifiAp> = emptyList(),
+    val devices: List<TehLinkBleDevice> = emptyList(),
+    val wardriving: TehLinkWardrivingStatus? = null
 )
 
 data class TehLinkActionResult(

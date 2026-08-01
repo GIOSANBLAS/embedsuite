@@ -427,6 +427,62 @@ class DeviceConnectionManager(
         return tehLinkClient.getActionState(transport, pluginId, action)
     }
 
+    suspend fun tehLinkRunWifiScan(seconds: Int): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runWifiScan(transport, seconds).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] wifi_toolkit/scan_start → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunWardrivingStart(): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runWardrivingStart(transport).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] wardriving/start → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunWardrivingStop(): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runAction(transport, "wardriving", "stop").onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] wardriving/stop → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunBleScan(seconds: Int): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runBleScan(transport, seconds).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] ble_toolkit/scan_start → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
         setSubGhzFrequency(_subGhzFrequencyMhz.value)

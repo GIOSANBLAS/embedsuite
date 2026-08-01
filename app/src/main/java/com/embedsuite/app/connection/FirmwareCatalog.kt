@@ -52,17 +52,20 @@ object FirmwareCatalog {
     /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.13.0 Primed). SHA256 se actualiza tras build. */
-    val XIBALBA_FALLBACK_V013: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.13.0",
-        name = "v0.13 Primed",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.13.0/te-embed-xibalba.bin",
+    /** Fallback embebido si GitHub API no responde (v0.14.0 Ward). */
+    val XIBALBA_FALLBACK_V014: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.14.0",
+        name = "v0.14 Ward",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.14.0/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.13 Primed (hardware-ready pre-release)",
-        sha256Hex = "3349f5fab045896f0f9b1dc3aadcf64caee63c2df9f8815e833e3dd5c99d548d"
+        description = "T-Embed Xibalba v0.14 Ward (security hardening + hardware bring-up)",
+        sha256Hex = "abbe04f351633f55e9f30e9835d702e76a16b10396a238d8080e1e62d69847d4"
     )
+
+    /** @deprecated Use [XIBALBA_FALLBACK_V014] */
+    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V014
 
     fun markRecommended(
         releases: List<FirmwareRelease>,

@@ -52,20 +52,23 @@ object FirmwareCatalog {
     /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.16.1 Beacon — boot splash UX). */
-    val XIBALBA_FALLBACK_V0161: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.16.1",
-        name = "v0.16.1 Beacon",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.1/te-embed-xibalba.bin",
+    /** Fallback embebido si GitHub API no responde (v0.16.2 Glow — splash logo). */
+    val XIBALBA_FALLBACK_V0162: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.16.2",
+        name = "v0.16.2 Glow",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.2/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.16.1 Beacon (boot splash LVGL + WS2812 chase)",
-        sha256Hex = "5b24cd124073210dfcb5cb0c280ed738f9bb196530892fd116aff53679408555"
+        description = "T-Embed Xibalba v0.16.2 Glow (embedded splash logo + LVGL polish)",
+        sha256Hex = "6307492884a76b744b177ebbc9af0fde5140752d72d414a74c53e713baa541f8"
     )
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
-    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0161
+    /** @deprecated Use [XIBALBA_FALLBACK_V0162] */
+    val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0162
+
+    /** @deprecated Use [XIBALBA_FALLBACK_V0162] */
+    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0162
 
     /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
     val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0161

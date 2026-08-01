@@ -173,8 +173,16 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(stringResource(R.string.settings_firmware_profile), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)
                 Text(stringResource(R.string.settings_firmware_profile_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                if (firmwareProfile == FirmwareProfile.XIBALBA) {
+                    Text(
+                        stringResource(R.string.settings_firmware_profile_xibalba_recommended),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp,
+                        color = MatrixGreen
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FirmwareProfile.entries.filter { it != FirmwareProfile.UNKNOWN }.forEach { profile ->
+                    FirmwareProfile.settingsDisplayOrder.forEach { profile ->
                         GlassChip(
                             label = profile.label,
                             selected = firmwareProfile == profile,

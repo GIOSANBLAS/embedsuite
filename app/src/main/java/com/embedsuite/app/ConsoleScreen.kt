@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.connection.BruceCommands
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.FirmwareProfile
@@ -38,7 +39,8 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
 
-    val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
+    val isBruceLegacy = detectedProfile == FirmwareProfile.BRUCE
+    val isXibalba = !isBruceLegacy
     val bruceCommands = BruceCommands.safeConsoleChips
     val tehLinkChips = TehLinkConsoleChips.chips
 
@@ -90,15 +92,19 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                "CLI: $connectionStatus${if (isXibalba) " // TEH-Link" else ""}",
+                if (isXibalba) {
+                    stringResource(R.string.console_title_teh_link, connectionStatus)
+                } else {
+                    stringResource(R.string.console_title_bruce_legacy, connectionStatus)
+                },
                 color = if (isConnected) MatrixGreen else NeonRed,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp
             )
             Row {
-                if (!isXibalba) {
+                if (isBruceLegacy) {
                     IconButton(onClick = { bruceImportLauncher.launch(arrayOf("text/*", "*/*")) }) {
-                        Icon(Icons.Default.Upload, "Import .bruce", tint = NeonCyan)
+                        Icon(Icons.Default.Upload, stringResource(R.string.console_import_bruce), tint = NeonCyan)
                     }
                 }
                 IconButton(onClick = { viewModel.reconnect() }) {
@@ -134,8 +140,8 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        if (!isXibalba && macros.isNotEmpty()) {
-            Text("Scripts .bruce:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
+        if (isBruceLegacy && macros.isNotEmpty()) {
+            Text(stringResource(R.string.console_bruce_scripts), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
             macros.take(3).forEach { m ->
                 TextButton(onClick = { viewModel.runMacro(m) }) {
                     Text("▶ ${m.name}", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange)
@@ -149,7 +155,8 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 onValueChange = { viewModel.setInput(it) },
                 placeholder = {
                     Text(
-                        if (isXibalba) "JSON TEH-Link (↑↓ historial)" else "Comando Bruce (↑↓ historial)",
+                        if (isXibalba) stringResource(R.string.console_placeholder_teh_link)
+                        else stringResource(R.string.console_placeholder_bruce),
                         color = TextGray,
                         fontFamily = FontFamily.Monospace
                     )

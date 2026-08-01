@@ -24,7 +24,7 @@ private fun consoleHeader(profile: FirmwareProfile): String = when (profile) {
 }
 
 data class ConsoleUiState(
-    val logs: List<String> = listOf(consoleHeader(FirmwareProfile.UNKNOWN)),
+    val logs: List<String> = listOf(consoleHeader(FirmwareProfile.XIBALBA)),
     val inputText: String = "",
     val showSuggestions: Boolean = false,
     val commandHistory: List<String> = emptyList(),

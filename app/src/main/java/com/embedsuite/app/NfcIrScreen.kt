@@ -120,6 +120,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 parsedMifare = uiState.parsedMifare,
                 isConnected = isConnected,
                 controlsEnabled = isConnected && (nfcDeviceEnabled || !isXibalba),
+                waitingHint = if (isXibalba) stringResource(R.string.nfc_waiting_teh_link) else stringResource(R.string.nfc_waiting_bruce_legacy),
                 onRead = { viewModel.readNfc() },
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
@@ -164,7 +165,18 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
             text = {
                 Column {
                     OutlinedTextField(value = newIrName, onValueChange = { newIrName = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = newIrCommand, onValueChange = { newIrCommand = it }, label = { Text("Comando Bruce") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        value = newIrCommand,
+                        onValueChange = { newIrCommand = it },
+                        label = {
+                            Text(
+                                if (isXibalba) stringResource(R.string.nfc_ir_command_teh_link)
+                                else stringResource(R.string.nfc_ir_command_bruce_legacy),
+                                fontFamily = FontFamily.Monospace
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
@@ -188,6 +200,7 @@ private fun NfcPanel(
     parsedMifare: String,
     isConnected: Boolean,
     controlsEnabled: Boolean = isConnected,
+    waitingHint: String = "",
     onRead: () -> Unit,
     onEmulate: () -> Unit,
     onClearDump: () -> Unit,
@@ -231,7 +244,7 @@ private fun NfcPanel(
             if (parsedMifare.isNotBlank()) {
                 Text(parsedMifare, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange, modifier = Modifier.padding(bottom = 4.dp))
             }
-            Text(nfcDump.ifBlank { "Esperando respuesta de Bruce..." }, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen,
+            Text(nfcDump.ifBlank { waitingHint }, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen,
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()))
         }
     }

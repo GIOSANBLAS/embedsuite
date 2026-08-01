@@ -399,15 +399,16 @@ class DeviceConnectionManager(
     }
 
     private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareProfile {
-        val pref = appPreferences?.firmwareProfile?.value ?: FirmwareProfile.AUTO
+        val pref = appPreferences?.firmwareProfile?.value ?: FirmwareProfile.XIBALBA
         if (pref == FirmwareProfile.BRUCE) return FirmwareProfile.BRUCE
         val pingOk = tehLinkClient.ping(transport).getOrElse { false }
         return when {
             pref == FirmwareProfile.XIBALBA && pingOk -> FirmwareProfile.XIBALBA
             pref == FirmwareProfile.XIBALBA && !pingOk -> FirmwareProfile.UNKNOWN
             pref == FirmwareProfile.AUTO && pingOk -> FirmwareProfile.XIBALBA
-            pref == FirmwareProfile.AUTO && !pingOk -> FirmwareProfile.BRUCE
-            else -> if (pingOk) FirmwareProfile.XIBALBA else FirmwareProfile.BRUCE
+            pref == FirmwareProfile.AUTO && !pingOk -> FirmwareProfile.UNKNOWN
+            pingOk -> FirmwareProfile.XIBALBA
+            else -> FirmwareProfile.UNKNOWN
         }
     }
 

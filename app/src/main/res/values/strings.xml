@@ -37,7 +37,7 @@
 
     <!-- Onboarding legal -->
     <string name="onboard_connect_title">CONECTAR T-EMBED</string>
-    <string name="onboard_connect_body">Conecta el CC1101 Plus por USB OTG.\nLa app detectará el dispositivo automáticamente.\nTambién puedes usar WiFi (BruceNet) o BLE.\n\nTEH-Link (Xibalba): long-press en el botón lateral antes del primer pairing.</string>
+    <string name="onboard_connect_body">Conecta el T-Embed CC1101 Plus por USB OTG.\nLa app usa TEH-Link (firmware Xibalba) para control total del device.\nLong-press en el botón lateral (GPIO6) antes del primer pairing.\n\nWiFi/BLE: funciones del teléfono; OTA Xibalba siempre por USB.</string>
     <string name="onboard_capture_title">CAPTURAR SEÑAL</string>
     <string name="onboard_capture_body">Ve a RF → CAPTURAR RAW.\nEl CC1101 escuchará 433.92 MHz.\nLas señales se guardan con GPS si activas ubicación.</string>
     <string name="onboard_library_title">BIBLIOTECA &amp; REPLAY</string>
@@ -79,7 +79,8 @@
     <string name="settings_auto_reconnect">Auto-reconexión</string>
     <string name="settings_default_transport">Transporte por defecto</string>
     <string name="settings_firmware_profile">Firmware del dispositivo</string>
-    <string name="settings_firmware_profile_sub">Auto detecta TEH-Link (Xibalba) vs Bruce</string>
+    <string name="settings_firmware_profile_sub">Xibalba + TEH-Link es el modo oficial para T-Embed CC1101 Plus</string>
+    <string name="settings_firmware_profile_xibalba_recommended">Recomendado para T-Embed CC1101 Plus con firmware Xibalba</string>
     <string name="settings_system">SISTEMA</string>
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_sub">Versión, changelog, equipo y legal</string>
@@ -97,9 +98,9 @@
 
     <!-- Hardware bring-up (Xibalba Day 1) -->
     <string name="hardware_bringup_title">GUÍA DÍA 1 · HARDWARE</string>
-    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.16.1</string>
+    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.16.2</string>
     <string name="hardware_bringup_flash_header">1 · FLASHEAR FIRMWARE</string>
-    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.16.1 Beacon\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
+    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.16.2 Glow\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
     <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
     <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
     <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
@@ -107,19 +108,19 @@
     <string name="hardware_bringup_test_log">ABRIR HARDWARE_TEST_LOG.md</string>
     <string name="hardware_bringup_test_log_sub">Registro de pruebas en GitHub (te-embed-xibalba)</string>
     <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>
-    <string name="settings_hardware_bringup_sub">Flash v0.16.1, pairing GPIO6, checklist de pruebas</string>
+    <string name="settings_hardware_bringup_sub">Flash v0.16.2, pairing GPIO6, checklist de pruebas</string>
     <string name="dash_hardware_bringup">Guía hardware Día 1 →</string>
 
     <!-- Dashboard -->
     <string name="dash_command_center">CENTRO DE MANDO</string>
-    <string name="dash_ota_title">ACTUALIZACIÓN BRUCE DISPONIBLE</string>
+    <string name="dash_ota_title">ACTUALIZACIÓN BRUCE (LEGACY) DISPONIBLE</string>
     <string name="dash_ota_title_xibalba">ACTUALIZACIÓN XIBALBA DISPONIBLE</string>
     <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
     <string name="dash_ota_action">Ir a Tools → Flash</string>
-    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.16.1 (perfil CC1101 Plus real).</string>
-    <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall en vivo requieren firmware Bruce. Usa «Captura TEH-Link» o el menú Sub-GHz del T-Embed.</string>
+    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.16.2 (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall en vivo no disponibles vía TEH-Link. Usa «Captura TEH-Link» o el menú Sub-GHz del T-Embed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
-    <string name="plus_compat_subghz_header_bruce">BRUCE T-EMBED COMPANION</string>
+    <string name="plus_compat_subghz_header_bruce">BRUCE (LEGACY) · T-EMBED</string>
     <string name="plus_compat_nfc_unavailable">NFC del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware PN532).</string>
     <string name="plus_compat_ir_unavailable">IR del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware IR).</string>
     <string name="plus_compat_capture_tehlink">CAPTURA TEH-LINK (15s)</string>
@@ -173,7 +174,7 @@
     <string name="about_licenses_btn">Licencias OSS</string>
     <string name="about_manual_section">MANUAL DE USUARIO</string>
     <string name="about_manual_title">MANUAL INTERACTIVO</string>
-    <string name="about_manual_sub">Botones, hardware T-Embed y comandos Bruce</string>
+    <string name="about_manual_sub">Botones, hardware T-Embed y TEH-Link / Xibalba</string>
     <string name="about_manual_desc">Guía completa vinculando cada control de la app al CC1101, PN532, IR y ESP32-S3. Búsqueda y filtros por pantalla.</string>
     <string name="about_manual_btn">Abrir manual interactivo</string>
 
@@ -197,11 +198,11 @@
     <string name="widget_tx_offline">Conecta T-Embed (USB para RAW)</string>
 
     <!-- Tools v3.4 -->
-    <string name="tools_debug_title">BRUCE DEBUG (%1$d/200)</string>
-    <string name="tools_debug_empty">Sin líneas Bruce aún. Conecta T-Embed y opera.</string>
+    <string name="tools_debug_title">LINK DEBUG (%1$d/200)</string>
+    <string name="tools_debug_empty">Sin líneas de enlace aún. Conecta T-Embed y opera.</string>
     <string name="tools_debug_copied">Log copiado (%1$d líneas)</string>
     <string name="tools_sd_sync">SYNC SD T-EMBED</string>
-    <string name="tools_sd_hint">Lista señales en SD del T-Embed (Bruce).</string>
+    <string name="tools_sd_hint">Lista señales en SD del T-Embed (solo firmware Bruce legacy).</string>
     <string name="tools_connect_first">Conecta T-Embed primero.</string>
     <string name="tools_listing">Listando storage…</string>
     <string name="tools_rf_highlight">Señal RF #%1$d en biblioteca</string>
@@ -213,27 +214,27 @@
 
     <!-- Firmware flash -->
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
-    <string name="firmware_flash_sub">Bruce oficial, Xibalba oficial o custom .bin bajo su responsabilidad</string>
+    <string name="firmware_flash_sub">Xibalba oficial, Bruce legacy u custom .bin bajo su responsabilidad</string>
     <string name="firmware_recommended">RECOMENDADO</string>
-    <string name="firmware_recommended_reason">Bruce estable más reciente para T-Embed CC1101 Plus — máxima compatibilidad con EMBED SUITE.</string>
+    <string name="firmware_recommended_reason">Bruce estable más reciente (legacy) — solo si usas firmware Bruce en el T-Embed.</string>
     <string name="firmware_recommended_reason_xibalba">Xibalba más reciente para T-Embed CC1101 Plus — TEH-Link, plugins y EMBED SUITE nativo.</string>
-    <string name="firmware_fetch_bruce">BUSCAR FIRMWARES BRUCE</string>
-    <string name="firmware_fetch_all">BUSCAR FIRMWARES (BRUCE + XIBALBA)</string>
+    <string name="firmware_fetch_bruce">BUSCAR FIRMWARES BRUCE (LEGACY — NO RECOMENDADO)</string>
+    <string name="firmware_fetch_all">BUSCAR FIRMWARES (XIBALBA + BRUCE LEGACY)</string>
     <string name="firmware_available">Disponibles</string>
     <string name="firmware_pick_custom">CUSTOM .bin</string>
     <string name="firmware_clear_custom">Quitar custom</string>
     <string name="firmware_ota_wifi">OTA WiFi</string>
     <string name="firmware_usb_flash">USB Flash</string>
-    <string name="firmware_custom_ota_hint">OTA solo para Bruce oficial. Custom: use USB Flash (bootloader).</string>
+    <string name="firmware_custom_ota_hint">OTA WiFi solo para Bruce legacy. Xibalba: OTA por USB (TEH-Link). Custom: USB Flash (bootloader).</string>
     <string name="firmware_disclaimer_title">⚠ FIRMWARE NO OFICIAL</string>
     <string name="firmware_disclaimer_body">Flashear firmware custom u otros binarios puede dejar el T-Embed inutilizable (brick), anular garantía y hacer que EMBED SUITE deje de funcionar. Usted asume todo riesgo. Asegúrese de saber recuperar el dispositivo vía USB bootloader (Encoder + RST). EMBED SUITE y sus autores no se responsabilizan por daños al hardware.</string>
     <string name="firmware_disclaimer_accept">Acepto la responsabilidad y deseo continuar</string>
     <string name="firmware_disclaimer_continue">Flashear</string>
-    <string name="firmware_official_desc">Bruce oficial · T-Embed CC1101 Plus</string>
+    <string name="firmware_official_desc">Bruce legacy · T-Embed CC1101 Plus</string>
     <string name="firmware_xibalba_desc">Xibalba oficial · T-Embed CC1101 Plus (TEH-Link)</string>
     <string name="firmware_custom_desc">Firmware personalizado — uso bajo su responsabilidad</string>
     <string name="firmware_status_ready">Listo para flashear firmware.</string>
-    <string name="firmware_status_fetching">Consultando releases Bruce y Xibalba…</string>
+    <string name="firmware_status_fetching">Consultando releases Xibalba y Bruce…</string>
     <string name="firmware_status_using_local">Usando %1$s…</string>
     <string name="firmware_status_downloading">Descargando %1$s…</string>
     <string name="firmware_status_preparing_usb">Preparando %1$s para USB…</string>
@@ -309,7 +310,21 @@
     <string name="perm_start">COMENZAR</string>
     <string name="perm_scan_gate">CONCEDER PERMISOS GPS/BLE/WiFi</string>
 
-    <!-- Bruce WiFi AP (documentado por firmware Bruce) -->
+    <!-- Console TEH-Link / Bruce legacy -->
+    <string name="console_title_teh_link">TEH-Link Console: %1$s</string>
+    <string name="console_title_bruce_legacy">Bruce CLI (legacy): %1$s</string>
+    <string name="console_placeholder_teh_link">JSON TEH-Link, ej. {\"cmd\":\"ping\"} (↑↓ historial)</string>
+    <string name="console_placeholder_bruce">Comando Bruce legacy (↑↓ historial)</string>
+    <string name="console_import_bruce">Importar script .bruce (legacy)</string>
+    <string name="console_bruce_scripts">Scripts .bruce (legacy):</string>
+
+    <!-- NFC/IR -->
+    <string name="nfc_ir_command_teh_link">Comando IR (TEH-Link)</string>
+    <string name="nfc_ir_command_bruce_legacy">Comando Bruce (legacy)</string>
+    <string name="nfc_waiting_teh_link">Esperando respuesta TEH-Link…</string>
+    <string name="nfc_waiting_bruce_legacy">Esperando respuesta Bruce (legacy)…</string>
+
+    <!-- Bruce WiFi AP (documentado por firmware Bruce legacy) -->
     <string name="bruce_net_host">192.168.4.1</string>
     <string name="bruce_net_ssid">BruceNet</string>
     <string name="bruce_net_password">bruce32</string>

@@ -118,7 +118,7 @@ class AppPreferences(context: Context) {
     }
 
     private val _firmwareProfile = MutableStateFlow(
-        FirmwareProfile.fromPref(prefs.getString(KEY_FIRMWARE_PROFILE, FirmwareProfile.AUTO.name))
+        FirmwareProfile.fromPref(prefs.getString(KEY_FIRMWARE_PROFILE, FirmwareProfile.XIBALBA.name))
     )
     val firmwareProfile: StateFlow<FirmwareProfile> = _firmwareProfile.asStateFlow()
 

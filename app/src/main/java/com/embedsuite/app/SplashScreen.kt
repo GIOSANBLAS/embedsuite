@@ -21,17 +21,17 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
     var progress by remember { mutableFloatStateOf(0f) }
-    var status by remember { mutableStateOf("BOOTING LILYGO BRIDGE...") }
+    var status by remember { mutableStateOf("BOOTING XIBALBA LINK...") }
 
     LaunchedEffect(Unit) {
         val steps = listOf(
-            0.12f to "INIT CC1101 @ 300-928 MHz...",
-            0.28f to "MOUNT USB OTG / WiFi STACK...",
-            0.44f to "LOAD TEH-LINK / XIBALBA PROTO...",
-            0.60f to "ARM SUB-GHz TX/RX...",
-            0.78f to "SYNC EMBED SUITE CORE...",
-            0.92f to "LINK READY — BRUTAL MODE",
-            1.0f to "EMBED SUITE ONLINE."
+            0.12f to "INIT TEH-LINK PROTOCOL...",
+            0.28f to "ARM CC1101 @ 300-928 MHz...",
+            0.44f to "MOUNT USB OTG / WiFi STACK...",
+            0.60f to "PAIRING READY — GPIO6 LONG-PRESS",
+            0.78f to "SYNC XIBALBA SYMBIOSIS CORE...",
+            0.92f to "TEH-LINK ONLINE — RF/NFC/IR",
+            1.0f to "EMBED SUITE v3.9 ONLINE."
         )
         for ((pct, msg) in steps) {
             delay(320)
@@ -67,7 +67,7 @@ fun SplashScreen(onFinished: () -> Unit) {
                 letterSpacing = 3.sp
             )
             Text(
-                "COMPANION // T-EMBED CC1101 PLUS",
+                "XIBALBA SYMBIOSIS // T-EMBED CC1101 PLUS",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp,
                 color = KaliBlue

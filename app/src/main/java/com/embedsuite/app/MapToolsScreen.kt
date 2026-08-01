@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.BruceNetConfig
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
@@ -69,6 +70,7 @@ fun MapToolsScreen(
     nfcDumpRepository: com.embedsuite.app.data.NfcDumpRepository
 ) {
     val connectionState by viewModel.connectionState.collectAsState()
+    val detectedProfile by connectionManager.detectedProfile.collectAsState()
     val systemInfo by viewModel.systemInfo.collectAsState()
     val location by viewModel.location.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -217,15 +219,17 @@ fun MapToolsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        BruceSdSyncCard(
-            storageSync = bruceStorageSync,
-            connectionManager = connectionManager,
-            signalRepository = signalRepository,
-            irRepository = irRepository,
-            nfcDumpRepository = nfcDumpRepository
-        )
+        if (detectedProfile == FirmwareProfile.BRUCE) {
+            BruceSdSyncCard(
+                storageSync = bruceStorageSync,
+                connectionManager = connectionManager,
+                signalRepository = signalRepository,
+                irRepository = irRepository,
+                nfcDumpRepository = nfcDumpRepository
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),

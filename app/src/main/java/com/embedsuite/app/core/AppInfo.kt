@@ -20,7 +20,7 @@ data class OpenSourceLicense(
 
 object AppInfo {
 
-    val tagline = "Companion oficial para LilyGO T-Embed CC1101 Plus · Firmware Bruce"
+    val tagline = "Companion oficial · T-Embed CC1101 Plus · Firmware Xibalba"
 
     val team = listOf(
         TeamMember(
@@ -31,11 +31,22 @@ object AppInfo {
         TeamMember(
             name = "Cursor",
             role = "IDE con IA · Socio de ingeniería",
-            detail = "cursor.com — Agente AI que co-desarrolló EMBED SUITE: arquitectura Kotlin/Compose, integración Bruce, RF/USB/BLE y releases"
+            detail = "cursor.com — Agente AI que co-desarrolló EMBED SUITE: arquitectura Kotlin/Compose, integración TEH-Link/Xibalba, RF/USB/BLE y releases"
         )
     )
 
     val changelog = listOf(
+        ChangelogEntry(
+            version = "3.9.0",
+            date = "Jul 2026",
+            highlights = listOf(
+                "Xibalba Symbiosis: perfil Xibalba por defecto en instalaciones nuevas",
+                "TEH-Link primario en RF/NFC/IR/wardriving/OTA; Bruce relegado a legacy/avanzado",
+                "Splash, ajustes y copy orientados a T-Embed CC1101 Plus + te-embed-xibalba",
+                "Consola TEH-Link JSON; BruceSdSync solo con perfil Bruce detectado",
+                "OTA Xibalba v0.16.2 catalog preservado; versión 3.9.0 build 19"
+            )
+        ),
         ChangelogEntry(
             version = "3.8.1",
             date = "Jul 2026",
@@ -225,7 +236,7 @@ EMBED SUITE es una aplicación companion de uso personal desarrollada por GIOSÁ
 • Datos locales: señales RF, dispositivos WiFi/BLE, dumps NFC, macros, historial TX e IR — almacenados en el dispositivo Android (Room/SQLite).
 • Ubicación (GPS): opcional, para war-driving, heatmap y georreferenciar capturas. Solo se usa si otorgas el permiso.
 • Bluetooth / WiFi: escaneo de entorno inalámbrico en el teléfono; no se envían a servidores externos.
-• USB: comunicación directa con el T-Embed CC1101 Plus vía OTG.
+• USB: comunicación directa con el T-Embed CC1101 Plus vía OTG (TEH-Link / protocolo Xibalba).
 • API key Gemini (opcional): si la configuras, se guarda cifrada en el dispositivo (EncryptedSharedPreferences). Solo se envía a Google Gemini cuando usas el modo AI cloud.
 • Ollama (opcional): si configuras host/modelo en modo OLLAMA, las consultas se envían a tu servidor Ollama en la red local (LAN). No hay servidor propio de EMBED SUITE.
 
@@ -235,7 +246,7 @@ EMBED SUITE es una aplicación companion de uso personal desarrollada por GIOSÁ
 • No hay cuenta de usuario ni login en servidores propios.
 
 4. PERMISOS ANDROID
-La app solicita permisos según la función: INTERNET (WiFi Bruce/OTA/Gemini/Ollama), ubicación, Bluetooth, notificaciones, USB host, micrófono (comandos por voz opcionales). Puedes denegarlos; algunas funciones quedarán limitadas.
+La app solicita permisos según la función: INTERNET (WiFi TEH-Link/OTA/Gemini/Ollama), ubicación, Bluetooth, notificaciones, USB host, micrófono (comandos por voz opcionales). Puedes denegarlos; algunas funciones quedarán limitadas. El modo legacy Bruce (CLI serial) es opcional y no es la experiencia principal.
 
 5. BACKUP
 Android Auto Backup / transferencia de dispositivo EXCLUYE: SecureStore (API Gemini), preferencias de app/AI, estado del widget y la base Room `embed_suite.db` (señales RF, dumps, GPS). Los exports que tú generes (JSON/HTML/.sub) sí pueden salir del teléfono si los compartes.
@@ -247,7 +258,7 @@ Claves Gemini en EncryptedSharedPreferences (SecureStore). Comandos peligrosos b
 Esta política puede actualizarse en futuras versiones. La versión vigente aparece en Acerca de.
 
 8. CONTACTO
-Desarrollador: GIOSÁNBLAS — proyecto EMBED SUITE (companion T-Embed CC1101 Plus / Bruce).
+Desarrollador: GIOSÁNBLAS — proyecto EMBED SUITE (companion T-Embed CC1101 Plus / firmware Xibalba · TEH-Link).
 
 9. WARDRIVING / RF / ESP
 El escaneo WiFi/BLE, captura Sub-GHz con GPS y retransmisión RF pueden estar regulados en tu país. Solo usa la app en entornos autorizados (tu red, laboratorio, pentest con contrato). Las señales capturadas (p. ej. aperturas de garaje) son información sensible: protégelas y no las compartas.

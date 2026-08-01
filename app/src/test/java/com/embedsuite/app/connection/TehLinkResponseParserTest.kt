@@ -71,4 +71,97 @@ class TehLinkResponseParserTest {
         assertTrue(TehLinkResponseParser.validateRawRequest("""{"cmd":"ping"}""").isFailure)
         assertTrue(TehLinkResponseParser.validateRawRequest("""{"cmd":"","id":1}""").isFailure)
     }
+
+    @Test
+    fun parseActionList_readsActions() {
+        val data = JSONObject(
+            """
+            {
+              "actions": [
+                {"plugin_id": "badusb", "action": "run_script", "params": ["path"]},
+                {"plugin_id": "badusb", "action": "stop"},
+                {"plugin_id": "subghz_analyzer", "action": "capture_start", "params": ["seconds"]}
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val actions = TehLinkResponseParser.parseActionList(data)
+        assertEquals(3, actions.size)
+        assertEquals("badusb", actions[0].pluginId)
+        assertEquals("run_script", actions[0].action)
+        assertEquals(listOf("path"), actions[0].params)
+        assertEquals("subghz_analyzer", actions[2].pluginId)
+        assertEquals("capture_start", actions[2].action)
+        assertEquals(listOf("seconds"), actions[2].params)
+    }
+
+    @Test
+    fun parseActionState_readsBadusbStatus() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "badusb",
+              "action": "status",
+              "state": "running",
+              "progress": 42,
+              "message": "HID SIM: typing",
+              "loaded_path": "/sdcard/plugins/badusb/demo.txt",
+              "running": true
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("badusb", state.pluginId)
+        assertEquals("running", state.state)
+        assertEquals(42, state.progress)
+        assertTrue(state.running)
+        assertEquals("/sdcard/plugins/badusb/demo.txt", state.loadedPath)
+    }
+
+    @Test
+    fun parseActionState_readsSubghzCapture() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "subghz_analyzer",
+              "action": "status",
+              "state": "capturing",
+              "capturing": true,
+              "packets": 12,
+              "seconds_remaining": 8,
+              "message": "RX 15s @ 433.92 MHz"
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("subghz_analyzer", state.pluginId)
+        assertTrue(state.capturing)
+        assertEquals(12, state.packets)
+        assertEquals(8, state.secondsRemaining)
+    }
+
+    @Test
+    fun parseActionResult_wrapsState() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "badusb",
+              "action": "run_script",
+              "state": "started",
+              "progress": 0,
+              "running": true,
+              "loaded_path": "/sdcard/plugins/badusb/demo.txt"
+            }
+            """.trimIndent()
+        )
+
+        val result = TehLinkResponseParser.parseActionResult(data)
+        assertEquals("badusb", result.pluginId)
+        assertEquals("run_script", result.action)
+        assertEquals("started", result.state.state)
+        assertTrue(result.state.running)
+    }
 }

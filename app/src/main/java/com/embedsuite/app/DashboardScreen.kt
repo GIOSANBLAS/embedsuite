@@ -141,6 +141,56 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HackerSectionHeader("ACTIONS", accent = NeonCyan)
+            GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    NeonButton(
+                        text = "Capture 15s",
+                        onClick = { viewModel.runSubGhzCapture(15) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    NeonOutlinedButton(
+                        text = "Run demo script",
+                        onClick = { viewModel.runBadUsbDemoScript() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                val actionState = uiState.lastActionState
+                if (actionState != null) {
+                    val label = actionState.pluginId.ifBlank { "action" }
+                    val value = buildString {
+                        if (actionState.state.isNotBlank()) append(actionState.state)
+                        if (actionState.running || actionState.capturing) {
+                            if (isNotEmpty()) append(" · ")
+                            if (actionState.progress > 0) append("${actionState.progress}%")
+                            if (actionState.secondsRemaining > 0) {
+                                if (actionState.progress > 0) append(", ")
+                                append("${actionState.secondsRemaining}s left")
+                            }
+                        }
+                        if (actionState.packets > 0) {
+                            if (isNotEmpty()) append(" · ")
+                            append("${actionState.packets} pkts")
+                        }
+                        if (actionState.message.isNotBlank()) {
+                            if (isNotEmpty()) append(" — ")
+                            append(actionState.message)
+                        }
+                        if (isEmpty()) append("—")
+                    }
+                    StatRow(label, value)
+                } else {
+                    StatRow("action", "—")
+                }
+                TextButton(onClick = { viewModel.refreshActionState("subghz_analyzer") }) {
+                    Text("Refresh state", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+            }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

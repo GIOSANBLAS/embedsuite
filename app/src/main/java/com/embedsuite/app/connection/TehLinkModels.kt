@@ -31,6 +31,31 @@ data class TehLinkDeviceStatus(
     val sim: Map<String, Boolean>
 )
 
+data class TehLinkActionInfo(
+    val pluginId: String,
+    val action: String,
+    val params: List<String> = emptyList()
+)
+
+data class TehLinkActionState(
+    val pluginId: String,
+    val action: String = "",
+    val state: String = "",
+    val progress: Int = 0,
+    val message: String = "",
+    val loadedPath: String = "",
+    val running: Boolean = false,
+    val capturing: Boolean = false,
+    val packets: Int = 0,
+    val secondsRemaining: Int = 0
+)
+
+data class TehLinkActionResult(
+    val pluginId: String,
+    val action: String,
+    val state: TehLinkActionState
+)
+
 /** Chips rápidos TEH-Link para consola Xibalba. */
 object TehLinkConsoleChips {
     data class Chip(val label: String, val json: String)
@@ -39,6 +64,7 @@ object TehLinkConsoleChips {
         Chip("ping", """{"cmd":"ping","id":1}"""),
         Chip("get_info", """{"cmd":"get_info","id":2}"""),
         Chip("get_status", """{"cmd":"get_status","id":3}"""),
-        Chip("back_to_menu", """{"cmd":"back_to_menu","id":4}""")
+        Chip("back_to_menu", """{"cmd":"back_to_menu","id":4}"""),
+        Chip("list_actions", """{"cmd":"list_actions","id":5}""")
     )
 }

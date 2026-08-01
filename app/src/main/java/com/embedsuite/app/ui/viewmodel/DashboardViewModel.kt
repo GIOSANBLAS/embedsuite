@@ -7,6 +7,7 @@ import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareRepository
 import com.embedsuite.app.connection.OtaUpdateChecker
 import com.embedsuite.app.connection.OtaUpdateStatus
+import com.embedsuite.app.connection.TehLinkActionState
 import com.embedsuite.app.core.SessionStatsTracker
 import com.embedsuite.app.data.CapturedSignalEntity
 import com.embedsuite.app.data.SignalRepository
@@ -14,6 +15,7 @@ import com.embedsuite.app.data.TxHistoryEntity
 import com.embedsuite.app.data.TxHistoryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 data class DashboardUiState(
     val connectionState: ConnectionState = ConnectionState.Disconnected,
@@ -24,7 +26,8 @@ data class DashboardUiState(
     val macrosToday: Int = 0,
     val txHistory: List<TxHistoryEntity> = emptyList(),
     val favoriteRf: List<CapturedSignalEntity> = emptyList(),
-    val otaStatus: OtaUpdateStatus = OtaUpdateStatus.Unknown
+    val otaStatus: OtaUpdateStatus = OtaUpdateStatus.Unknown,
+    val lastActionState: TehLinkActionState? = null
 )
 
 class DashboardViewModel(
@@ -89,6 +92,42 @@ class DashboardViewModel(
         viewModelScope.launch {
             connectionManager.tehLinkBackToMenu().onSuccess {
                 refreshSystemInfo()
+            }
+        }
+    }
+
+    fun runSubGhzCapture(seconds: Int = 15) {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunAction(
+                pluginId = "subghz_analyzer",
+                action = "capture_start",
+                params = JSONObject().put("seconds", seconds)
+            ).onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("subghz_analyzer")
+            }
+        }
+    }
+
+    fun runBadUsbDemoScript() {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunAction(
+                pluginId = "badusb",
+                action = "run_script",
+                params = JSONObject().put("path", "/sdcard/plugins/badusb/demo.txt")
+            ).onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("badusb")
+            }
+        }
+    }
+
+    fun refreshActionState(pluginId: String, action: String? = null) {
+        viewModelScope.launch {
+            connectionManager.tehLinkGetActionState(pluginId, action).onSuccess { state ->
+                _uiState.update { it.copy(lastActionState = state) }
             }
         }
     }

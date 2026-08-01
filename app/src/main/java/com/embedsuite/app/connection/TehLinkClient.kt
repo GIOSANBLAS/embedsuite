@@ -43,6 +43,35 @@ class TehLinkClient(
         return execute(transport, "back_to_menu").map(TehLinkResponseParser::parseScreenInfo)
     }
 
+    suspend fun listActions(transport: TEmbedTransport): Result<List<TehLinkActionInfo>> {
+        return execute(transport, "list_actions").map(TehLinkResponseParser::parseActionList)
+    }
+
+    suspend fun runAction(
+        transport: TEmbedTransport,
+        pluginId: String,
+        action: String,
+        params: JSONObject = JSONObject()
+    ): Result<TehLinkActionResult> {
+        val args = JSONObject()
+            .put("plugin_id", pluginId)
+            .put("action", action)
+            .put("params", params)
+        return execute(transport, "run_action", args).map(TehLinkResponseParser::parseActionResult)
+    }
+
+    suspend fun getActionState(
+        transport: TEmbedTransport,
+        pluginId: String,
+        action: String? = null
+    ): Result<TehLinkActionState> {
+        val args = JSONObject().put("plugin_id", pluginId)
+        if (!action.isNullOrBlank()) {
+            args.put("action", action)
+        }
+        return execute(transport, "get_action_state", args).map(TehLinkResponseParser::parseActionState)
+    }
+
     /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
     suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> {
         val trimmed = json.trim()

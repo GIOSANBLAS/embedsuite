@@ -35,6 +35,7 @@ import kotlinx.coroutines.CancellationException
 import java.io.File
 import java.io.IOException
 import com.embedsuite.app.BuildConfig
+import org.json.JSONObject
 
 class DeviceConnectionManager(
     usbSerialManager: UsbSerialManager,
@@ -385,6 +386,45 @@ class DeviceConnectionManager(
             _systemInfo.value = _systemInfo.value.copy(uiScreen = screen.uiScreen)
             _events.tryEmit(BruceEvent.RawLine("[TEH-Link] back_to_menu → ${screen.uiScreen}"))
         }
+    }
+
+    suspend fun tehLinkListActions(): Result<List<TehLinkActionInfo>> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.listActions(transport).onSuccess { actions ->
+            _events.tryEmit(BruceEvent.RawLine("[TEH-Link] list_actions: ${actions.size} acciones"))
+        }
+    }
+
+    suspend fun tehLinkRunAction(
+        pluginId: String,
+        action: String,
+        params: JSONObject = JSONObject()
+    ): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runAction(transport, pluginId, action, params).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] run_action $pluginId/$action → ${result.state.state.ifBlank { result.state.message }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkGetActionState(
+        pluginId: String,
+        action: String? = null
+    ): Result<TehLinkActionState> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.getActionState(transport, pluginId, action)
     }
 
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {

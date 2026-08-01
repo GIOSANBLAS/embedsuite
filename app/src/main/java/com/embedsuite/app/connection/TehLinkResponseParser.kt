@@ -38,6 +38,51 @@ object TehLinkResponseParser {
         )
     }
 
+    fun parseActionList(data: JSONObject): List<TehLinkActionInfo> {
+        val actions = mutableListOf<TehLinkActionInfo>()
+        val arr: JSONArray? = data.optJSONArray("actions")
+        if (arr != null) {
+            for (i in 0 until arr.length()) {
+                val item = arr.optJSONObject(i) ?: continue
+                val params = mutableListOf<String>()
+                item.optJSONArray("params")?.let { paramArr ->
+                    for (j in 0 until paramArr.length()) {
+                        paramArr.optString(j).takeIf { it.isNotBlank() }?.let { params += it }
+                    }
+                }
+                actions += TehLinkActionInfo(
+                    pluginId = item.optString("plugin_id"),
+                    action = item.optString("action"),
+                    params = params
+                )
+            }
+        }
+        return actions
+    }
+
+    fun parseActionState(data: JSONObject): TehLinkActionState {
+        return TehLinkActionState(
+            pluginId = data.optString("plugin_id"),
+            action = data.optString("action"),
+            state = data.optString("state"),
+            progress = data.optInt("progress"),
+            message = data.optString("message"),
+            loadedPath = data.optString("loaded_path"),
+            running = data.optBoolean("running"),
+            capturing = data.optBoolean("capturing"),
+            packets = data.optInt("packets"),
+            secondsRemaining = data.optInt("seconds_remaining")
+        )
+    }
+
+    fun parseActionResult(data: JSONObject): TehLinkActionResult {
+        return TehLinkActionResult(
+            pluginId = data.optString("plugin_id"),
+            action = data.optString("action"),
+            state = parseActionState(data)
+        )
+    }
+
     fun parseDeviceStatus(data: JSONObject): TehLinkDeviceStatus {
         val sim = mutableMapOf<String, Boolean>()
         data.optJSONObject("sim")?.let { obj ->

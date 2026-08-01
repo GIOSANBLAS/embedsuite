@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.osmdroid)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,6 +1,5 @@
-package com.embedsuite.app.connection
+﻿package com.embedsuite.app.connection
 
-import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -10,20 +9,26 @@ class TehLinkResponseParserTest {
 
     @Test
     fun parseDeviceInfo_readsPlugins() {
-        val data = JSONObject()
-            .put("product", "T-Embed Xibalba")
-            .put("version", "0.12")
-            .put("codename", "Mimic")
-            .put("channel", "release")
-            .put("proto", "teh-link")
-            .put("proto_ver", 1)
-            .put("plugins", JSONArray().put(
-                JSONObject()
-                    .put("id", "badusb")
-                    .put("name", "BadUSB")
-                    .put("version", "1.0.0")
-                    .put("author", "Xibalba")
-            ))
+        val data = JSONObject(
+            """
+            {
+              "product": "T-Embed Xibalba",
+              "version": "0.12",
+              "codename": "Mimic",
+              "channel": "release",
+              "proto": "teh-link",
+              "proto_ver": 1,
+              "plugins": [
+                {
+                  "id": "badusb",
+                  "name": "BadUSB",
+                  "version": "1.0.0",
+                  "author": "Xibalba"
+                }
+              ]
+            }
+            """.trimIndent()
+        )
 
         val info = TehLinkResponseParser.parseDeviceInfo(data)
         assertEquals("Mimic", info.codename)
@@ -33,10 +38,15 @@ class TehLinkResponseParserTest {
 
     @Test
     fun parseScreenInfo_readsActivePlugin() {
-        val data = JSONObject()
-            .put("ui_screen", "BadUSB")
-            .put("active_plugin", "badusb")
-            .put("plugin_id", "badusb")
+        val data = JSONObject(
+            """
+            {
+              "ui_screen": "BadUSB",
+              "active_plugin": "badusb",
+              "plugin_id": "badusb"
+            }
+            """.trimIndent()
+        )
 
         val screen = TehLinkResponseParser.parseScreenInfo(data)
         assertEquals("BadUSB", screen.uiScreen)

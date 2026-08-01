@@ -23,7 +23,7 @@ class FirmwareRepositoryTest {
             source = FirmwareSource.OFFICIAL_BRUCE
         )
         val xibalba = FirmwareRelease(
-            tagName = "v0.14.1",
+            tagName = "v0.15.0",
             name = "Ward",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",

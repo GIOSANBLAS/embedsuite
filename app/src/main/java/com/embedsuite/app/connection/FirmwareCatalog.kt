@@ -52,23 +52,26 @@ object FirmwareCatalog {
     /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.14.1 Ward — audit patch). */
-    val XIBALBA_FALLBACK_V0141: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.14.1",
-        name = "v0.14.1 Ward",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.14.1/te-embed-xibalba.bin",
+    /** Fallback embebido si GitHub API no responde (v0.15.0 Pulse — NFC/IR + phone GPS wardriving). */
+    val XIBALBA_FALLBACK_V015: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.15.0",
+        name = "v0.15.0 Pulse",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.15.0/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.14.1 Ward (audit security patch)",
-        sha256Hex = "961218a6db777047fb36d1df52ce24aac92849762ee6309184b780c19b33d383"
+        description = "T-Embed Xibalba v0.15 Pulse (PN532, IR, TEH-Link gps_update)",
+        sha256Hex = "8862e9abd3e5a913f4a7f7056ea5e871e9bafef514506d82b1ee0f17f35ab988"
     )
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V0141] */
-    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0141
+    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
+    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V015
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V0141] */
-    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0141
+    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
+    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V015
+
+    /** @deprecated Use [XIBALBA_FALLBACK_V015] */
+    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V015
 
     fun markRecommended(
         releases: List<FirmwareRelease>,

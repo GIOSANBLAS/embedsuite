@@ -255,15 +255,33 @@ class DeviceConnectionManager(
 
         return try {
             withTimeout(320_000L) {
-                tehLinkClient.sendRawJson(transport, json).onSuccess { response ->
-                    BruceDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
-                    val safe = TehLinkResponseParser.redactSensitiveResponse(response)
-                    _events.tryEmit(BruceEvent.RawLine(safe))
-                }
+                ensureTehLinkAuth(transport)
+                sendTehLinkRawOnce(transport, json)
             }
         } catch (_: TimeoutCancellationException) {
             Result.failure(Exception("Timeout TEH-Link: sin respuesta."))
         }
+    }
+
+    private suspend fun sendTehLinkRawOnce(transport: TEmbedTransport, json: String): Result<String> {
+        val first = tehLinkClient.sendRawJson(transport, json)
+        if (first.isSuccess) {
+            return first.onSuccess { response ->
+                BruceDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
+                val safe = TehLinkResponseParser.redactSensitiveResponse(response)
+                _events.tryEmit(BruceEvent.RawLine(safe))
+            }
+        }
+        if (isAuthError(first.exceptionOrNull()?.message)) {
+            clearTehLinkAuth()
+            ensureTehLinkAuth(transport)
+            return tehLinkClient.sendRawJson(transport, json).onSuccess { response ->
+                BruceDebugLog.appendOutgoing(TehLinkResponseParser.redactSensitiveRequest(json.trim()))
+                val safe = TehLinkResponseParser.redactSensitiveResponse(response)
+                _events.tryEmit(BruceEvent.RawLine(safe))
+            }
+        }
+        return first
     }
 
     suspend fun sendCommand(command: String): Result<String> {
@@ -296,18 +314,19 @@ class DeviceConnectionManager(
         val transport = activeTransport
             ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
 
+        val wait = waitMs.coerceIn(100L, 30_000L)
         val collected = mutableListOf<String>()
         var collectorJob: Job? = null
         return try {
             collectorJob = scope.launch {
-                _incomingRaw.collect { collected.add(it) }
+                transport.incomingLines().collect { collected.add(it) }
             }
             delay(100)
             collected.clear()
             BruceDebugLog.appendOutgoing(validated)
             val sent = transport.sendCommand(validated)
             if (sent.isFailure) return sent.map { emptyList() }
-            delay(waitMs)
+            delay(wait)
             Result.success(collected.toList())
         } catch (_: TimeoutCancellationException) {
             Result.failure(Exception("Timeout esperando respuesta Bruce."))
@@ -577,12 +596,43 @@ class DeviceConnectionManager(
         val stored = secureStore?.getTehLinkAuthToken().orEmpty()
         if (stored.isNotBlank()) {
             tehLinkClient.authToken = stored
-            return
+            if (tehLinkClient.ping(transport).getOrDefault(false)) return
+            clearTehLinkAuth()
         }
-        tehLinkClient.pair(transport).onSuccess { token ->
-            tehLinkClient.authToken = token
-            secureStore?.setTehLinkAuthToken(token)
-        }
+        pairTehLink(transport)
+    }
+
+    private suspend fun pairTehLink(transport: TEmbedTransport) {
+        _events.tryEmit(BruceEvent.TehLinkNotice(TEH_LINK_PAIR_HINT))
+        tehLinkClient.pair(transport).fold(
+            onSuccess = { token ->
+                tehLinkClient.authToken = token
+                secureStore?.setTehLinkAuthToken(token)
+                _events.tryEmit(BruceEvent.TehLinkNotice("TEH-Link emparejado correctamente."))
+            },
+            onFailure = { err ->
+                val msg = when {
+                    err.message?.contains("pair_window", ignoreCase = true) == true ->
+                        "Ventana de pairing cerrada. Mantén pulsado el botón lateral ~2 s e intenta reconectar."
+                    err.message?.contains("pair_sin_token", ignoreCase = true) == true ->
+                        "Pairing sin token. Long-press en el botón lateral del T-Embed e intenta de nuevo."
+                    else -> "Pairing TEH-Link falló: ${err.message ?: "error desconocido"}"
+                }
+                _events.tryEmit(BruceEvent.TehLinkNotice(msg))
+            }
+        )
+    }
+
+    private fun clearTehLinkAuth() {
+        tehLinkClient.authToken = ""
+        secureStore?.setTehLinkAuthToken("")
+    }
+
+    private fun isAuthError(message: String?): Boolean {
+        if (message.isNullOrBlank()) return false
+        return message.contains("auth_required", ignoreCase = true) ||
+            message.contains("auth_invalid", ignoreCase = true) ||
+            message.contains("unauthorized", ignoreCase = true)
     }
 
     private fun handleIncomingLine(line: String) {
@@ -656,5 +706,7 @@ class DeviceConnectionManager(
 
     companion object {
         private const val SIGNAL_LOG_MAX = 500
+        private const val TEH_LINK_PAIR_HINT =
+            "Para emparejar TEH-Link: mantén pulsado el botón lateral del T-Embed ~2 s (ventana 120 s), luego reconecta USB."
     }
 }

@@ -89,6 +89,9 @@ class BackupManager(
     }
 
     suspend fun importFullBackup(jsonContent: String): Result<BackupImportResult> = runCatching {
+        if (jsonContent.length > MAX_BACKUP_BYTES) {
+            throw IllegalArgumentException("Backup demasiado grande (máx ${MAX_BACKUP_BYTES / (1024 * 1024)} MB)")
+        }
         val root = JSONObject(jsonContent)
         val version = root.optInt("version", 1)
         if (version > BACKUP_VERSION) {
@@ -103,6 +106,7 @@ class BackupManager(
         var nfc = 0
         var ble = 0
         var rfRules = 0
+        var txHistoryCount = 0
 
         root.optJSONArray("signals")?.let { arr ->
             for (i in 0 until arr.length()) {
@@ -173,6 +177,22 @@ class BackupManager(
                     profiles++
                 }
             }
+            root.optJSONArray("txHistory")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    database.txHistoryDao().insert(
+                        TxHistoryEntity(
+                            signalId = o.optLong("signalId"),
+                            label = o.optString("label"),
+                            protocol = o.optString("protocol"),
+                            command = o.optString("command"),
+                            success = o.optBoolean("success", true),
+                            timestamp = o.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                    txHistoryCount++
+                }
+            }
             root.optJSONArray("nfcDumps")?.let { arr ->
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
@@ -210,7 +230,7 @@ class BackupManager(
             }
         }
 
-        BackupImportResult(signals, ir, macros, profiles, nfc, ble, rfRules)
+        BackupImportResult(signals, ir, macros, profiles, nfc, ble, rfRules, txHistoryCount)
     }
 
     data class BackupImportResult(
@@ -220,13 +240,15 @@ class BackupManager(
         val profiles: Int,
         val nfcDumps: Int,
         val bleProfiles: Int,
-        val rfAutomationRules: Int = 0
+        val rfAutomationRules: Int = 0,
+        val txHistory: Int = 0
     ) {
-        val total: Int get() = signals + irButtons + macros + profiles + nfcDumps + bleProfiles + rfAutomationRules
+        val total: Int get() = signals + irButtons + macros + profiles + nfcDumps + bleProfiles + rfAutomationRules + txHistory
     }
 
     companion object {
         const val BACKUP_VERSION = 2
+        private const val MAX_BACKUP_BYTES = 20 * 1024 * 1024L
     }
 
     private inline fun <T> List<T>.toJsonArray(mapper: (T) -> JSONObject): JSONArray {

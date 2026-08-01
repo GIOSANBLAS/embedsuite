@@ -14,6 +14,17 @@ import java.util.concurrent.TimeUnit
 class FirmwareRepository {
 
     companion object {
+        private const val MAX_FIRMWARE_BYTES = 16 * 1024 * 1024L
+
+        fun validateDownloadUrl(url: String): Result<String> {
+            val uri = android.net.Uri.parse(url)
+            val host = uri.host.orEmpty()
+            return if (uri.scheme == "https" && (host == "github.com" || host.endsWith(".githubusercontent.com"))) {
+                Result.success(url)
+            } else {
+                Result.failure(IllegalArgumentException("URL de firmware no permitida"))
+            }
+        }
         fun extractVersion(text: String): String {
             val cleaned = text.trim()
             Regex("""v?(\d+\.\d+(?:\.\d+)?(?:[-\w.]*)?)""", RegexOption.IGNORE_CASE)
@@ -152,7 +163,20 @@ class FirmwareRepository {
                 val target = File(cacheDir, "custom_${System.currentTimeMillis()}_$safeName")
                 ensureInsideDir(cacheDir, target).getOrThrow()
                 context.contentResolver.openInputStream(uri)?.use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
+                    target.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var total = 0L
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read <= 0) break
+                            total += read
+                            if (total > MAX_FIRMWARE_BYTES) {
+                                target.delete()
+                                throw IllegalArgumentException("Firmware demasiado grande (máx 16 MB)")
+                            }
+                            output.write(buffer, 0, read)
+                        }
+                    }
                 } ?: throw IllegalStateException("No se pudo leer el archivo .bin")
 
                 if (target.length() < 1024) {
@@ -185,6 +209,8 @@ class FirmwareRepository {
                 val safeName = Companion.sanitizeFirmwareFileName(release.fileName)
                 val targetFile = File(targetDir, safeName)
                 ensureInsideDir(targetDir, targetFile).getOrThrow()
+
+                validateDownloadUrl(release.downloadUrl).getOrThrow()
 
                 val request = Request.Builder()
                     .url(release.downloadUrl)

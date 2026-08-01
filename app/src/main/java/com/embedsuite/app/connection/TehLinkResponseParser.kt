@@ -203,18 +203,28 @@ object TehLinkResponseParser {
     }
 
     private fun redactSensitiveFields(obj: JSONObject) {
-        val sensitiveKeys = listOf(
-            "result", "password", "passphrase", "digest", "last_result", "input", "data"
-        )
-        sensitiveKeys.forEach { key ->
-            if (obj.has(key) && obj.optString(key).isNotBlank()) {
-                obj.put(key, "[REDACTED]")
+        val keys = obj.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            when (val value = obj.opt(key)) {
+                is JSONObject -> redactSensitiveFields(value)
+                is org.json.JSONArray -> {
+                    for (i in 0 until value.length()) {
+                        (value.opt(i) as? JSONObject)?.let { redactSensitiveFields(it) }
+                    }
+                }
+                else -> {
+                    if (key in SENSITIVE_KEYS && obj.optString(key).isNotBlank()) {
+                        obj.put(key, "[REDACTED]")
+                    }
+                }
             }
         }
-        if (obj.optString("action") in setOf("gen_password", "gen_passphrase", "hash", "base64_encode", "base64_decode")) {
-            obj.optJSONObject("params")?.let { redactSensitiveFields(it) }
-        }
     }
+
+    private val SENSITIVE_KEYS = setOf(
+        "result", "password", "passphrase", "digest", "last_result", "input", "data", "token", "auth"
+    )
 
     /** Valida petición TEH-Link cruda (cmd + id obligatorios). */
     fun validateRawRequest(json: String): Result<Int> {

@@ -88,11 +88,12 @@ class TehLinkClient(
     }
 
     suspend fun runWifiScan(transport: TEmbedTransport, seconds: Int): Result<TehLinkActionResult> {
+        val sec = seconds.coerceIn(1, 120)
         return runAction(
             transport,
             pluginId = "wifi_toolkit",
             action = "scan_start",
-            params = JSONObject().put("seconds", seconds)
+            params = JSONObject().put("seconds", sec)
         )
     }
 
@@ -101,11 +102,12 @@ class TehLinkClient(
     }
 
     suspend fun runBleScan(transport: TEmbedTransport, seconds: Int): Result<TehLinkActionResult> {
+        val sec = seconds.coerceIn(1, 120)
         return runAction(
             transport,
             pluginId = "ble_toolkit",
             action = "scan_start",
-            params = JSONObject().put("seconds", seconds)
+            params = JSONObject().put("seconds", sec)
         )
     }
 
@@ -157,6 +159,7 @@ class TehLinkClient(
         val id = TehLinkResponseParser.validateRawRequest(trimmed).getOrElse {
             return@withLock Result.failure(it)
         }
+        val payload = injectAuthIfNeeded(trimmed)
 
         val buffer = mutableListOf<String>()
         val job = scope.launch {
@@ -171,7 +174,7 @@ class TehLinkClient(
             withTimeout(timeoutMs) {
                 delay(80)
                 buffer.clear()
-                transport.sendCommand(trimmed).getOrElse {
+                transport.sendCommand(payload).getOrElse {
                     return@withTimeout Result.failure(it)
                 }
 
@@ -224,10 +227,21 @@ class TehLinkClient(
 
     private fun timeoutForAction(action: String, params: JSONObject?): Long {
         if (action == "scan_start" || action == "capture_start") {
-            val seconds = params?.optInt("seconds", 10) ?: 10
+            val seconds = (params?.optInt("seconds", 10) ?: 10).coerceIn(1, 120)
             return ((seconds + 15).coerceAtMost(320).coerceAtLeast(15)) * 1000L
         }
         return 5_000L
+    }
+
+    private fun injectAuthIfNeeded(json: String): String {
+        return runCatching {
+            val obj = JSONObject(json.trim())
+            val cmd = obj.optString("cmd")
+            if (authToken.isNotBlank() && cmd !in PUBLIC_CMDS && !obj.has("auth")) {
+                obj.put("auth", authToken)
+            }
+            obj.toString()
+        }.getOrDefault(json)
     }
 
     companion object {

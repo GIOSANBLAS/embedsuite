@@ -53,7 +53,7 @@ class WifiTransport(
                     .get()
                     .build()
                 client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful || response.code in 300..499) {
+                    if (response.isSuccessful) {
                         host = candidate
                         connected = true
                         _incoming.tryEmit("[WIFI] Conectado a Bruce WebUI en $candidate")
@@ -76,9 +76,13 @@ class WifiTransport(
             return@withContext Result.failure(Exception("WiFi no conectado."))
         }
 
+        val validated = BruceCommandValidator.validate(command).getOrElse {
+            return@withContext Result.failure(it)
+        }
+
         try {
             val body = FormBody.Builder()
-                .add("cmnd", command.trim())
+                .add("cmnd", validated)
                 .build()
 
             val request = Request.Builder()
@@ -110,18 +114,20 @@ class WifiTransport(
 
             try {
                 onProgress(10)
-                val fileBody = binFile.asRequestBody("application/octet-stream".toMediaType())
-                val multipart = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("update", binFile.name, fileBody)
-                    .build()
-
                 val endpoints = listOf("/update", "/ota", "/upload")
                 var lastError = "Sin respuesta del servidor OTA."
 
                 for (endpoint in endpoints) {
                     try {
                         onProgress(30)
+                        val multipart = MultipartBody.Builder()
+                            .setType(MultipartBody.FORM)
+                            .addFormDataPart(
+                                "update",
+                                binFile.name,
+                                binFile.asRequestBody("application/octet-stream".toMediaType())
+                            )
+                            .build()
                         val request = Request.Builder()
                             .url("http://$host$endpoint")
                             .post(multipart)

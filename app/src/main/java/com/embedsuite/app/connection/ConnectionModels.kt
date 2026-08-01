@@ -41,4 +41,6 @@ sealed class BruceEvent {
     data class SubGhzSignalSaved(val entry: SignalEntry, val signalId: Long) : BruceEvent()
     data class WaveformSample(val level: Float, val durationUs: Long) : BruceEvent()
     data class SystemInfoUpdate(val info: SystemInfo) : BruceEvent()
+    /** Avisos TEH-Link (pairing, auth). */
+    data class TehLinkNotice(val message: String) : BruceEvent()
 }

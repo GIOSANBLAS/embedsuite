@@ -27,7 +27,8 @@ data class DashboardUiState(
     val txHistory: List<TxHistoryEntity> = emptyList(),
     val favoriteRf: List<CapturedSignalEntity> = emptyList(),
     val otaStatus: OtaUpdateStatus = OtaUpdateStatus.Unknown,
-    val lastActionState: TehLinkActionState? = null
+    val lastActionState: TehLinkActionState? = null,
+    val tehLinkNotice: String? = null
 )
 
 class DashboardViewModel(
@@ -60,6 +61,17 @@ class DashboardViewModel(
             }
         }
         refreshStats()
+        viewModelScope.launch {
+            connectionManager.events.collect { event ->
+                if (event is com.embedsuite.app.connection.BruceEvent.TehLinkNotice) {
+                    _uiState.update { it.copy(tehLinkNotice = event.message) }
+                }
+            }
+        }
+    }
+
+    fun clearTehLinkNotice() {
+        _uiState.update { it.copy(tehLinkNotice = null) }
     }
 
     fun refreshStats() {

@@ -94,6 +94,19 @@ fun DashboardScreen(
             if (uiState.connectionState is ConnectionState.Error) {
                 Text(stringResource(R.string.conn_check_usb), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange)
             }
+            uiState.tehLinkNotice?.let { notice ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    notice,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = NeonOrange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextButton(onClick = { viewModel.clearTehLinkNotice() }) {
+                    Text("OK", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
+                }
+            }
         }
 
         GlassCard(accent = KaliBlue, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {

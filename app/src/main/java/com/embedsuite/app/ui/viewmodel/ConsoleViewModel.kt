@@ -3,6 +3,7 @@ package com.embedsuite.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.embedsuite.app.connection.BruceCommandValidator
+import com.embedsuite.app.connection.TehLinkResponseParser
 import com.embedsuite.app.connection.BruceDebugLog
 import com.embedsuite.app.connection.BruceEvent
 import com.embedsuite.app.connection.ConnectionState
@@ -65,6 +66,7 @@ class ConsoleViewModel(
                     is BruceEvent.SubGhzSignal -> appendLog("[RF] ${event.entry.protocol} @ ${event.entry.frequency}")
                     is BruceEvent.SubGhzSignalSaved -> appendLog("[RF] saved #${event.signalId} ${event.entry.protocol}")
                     is BruceEvent.SystemInfoUpdate -> appendLog("[SYS] uptime=${event.info.uptime} heap=${event.info.freeHeap}")
+                    is BruceEvent.TehLinkNotice -> appendLog("[TEH-LINK] ${event.message}")
                     is BruceEvent.WaveformSample -> Unit
                 }
             }
@@ -93,11 +95,16 @@ class ConsoleViewModel(
 
     fun sendCommand(cmd: String) {
         if (cmd.isBlank()) return
-        appendLog("> $cmd")
+        val trimmed = cmd.trim()
+        val display = if (trimmed.startsWith("{")) {
+            TehLinkResponseParser.redactSensitiveRequest(trimmed)
+        } else {
+            trimmed
+        }
+        appendLog("> $display")
         val history = _uiState.value.commandHistory + cmd
         _uiState.update { it.copy(commandHistory = history, historyIndex = history.size, inputText = "", showSuggestions = false) }
         viewModelScope.launch {
-            val trimmed = cmd.trim()
             val result = if (trimmed.startsWith("{")) {
                 connectionManager.sendTehLinkRaw(trimmed)
             } else {

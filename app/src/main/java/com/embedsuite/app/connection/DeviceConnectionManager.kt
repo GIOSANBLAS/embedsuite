@@ -140,7 +140,7 @@ class DeviceConnectionManager(
         }
     }
 
-    fun wifiHost(): String = WifiTransport.DEFAULT_HOST
+    fun wifiHost(): String = BruceNetConfig.defaultHost(appContext)
 
     fun setWifiHost(host: String) {
         wifiTransport.updateHost(host)

@@ -160,7 +160,12 @@ fun FirmwareFlashCard(
                             color = NeonCyan
                         )
                         Text(
-                            stringResource(R.string.firmware_recommended_reason),
+                            when (rec.source) {
+                                FirmwareSource.OFFICIAL_XIBALBA ->
+                                    stringResource(R.string.firmware_recommended_reason_xibalba)
+                                else ->
+                                    stringResource(R.string.firmware_recommended_reason)
+                            },
                             fontFamily = FontFamily.Monospace,
                             fontSize = 8.sp,
                             color = TextGray,
@@ -189,7 +194,7 @@ fun FirmwareFlashCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    stringResource(R.string.firmware_fetch_bruce),
+                    stringResource(R.string.firmware_fetch_all),
                     fontFamily = FontFamily.Monospace,
                     color = BlackAMOLED,
                     fontSize = 11.sp
@@ -225,6 +230,7 @@ fun FirmwareFlashCard(
                                     when {
                                         release.isRecommended -> append(" ★")
                                         release.isPrerelease -> append(" [BETA]")
+                                        release.source == FirmwareSource.OFFICIAL_XIBALBA -> append(" [XIBALBA]")
                                         release.source == FirmwareSource.OFFICIAL_BRUCE -> append(" [STABLE]")
                                         release.source == FirmwareSource.CUSTOM_LOCAL -> append(" [CUSTOM]")
                                     }
@@ -242,6 +248,8 @@ fun FirmwareFlashCard(
                         val desc = when {
                             release.source == FirmwareSource.CUSTOM_LOCAL ->
                                 stringResource(R.string.firmware_custom_desc)
+                            release.source == FirmwareSource.OFFICIAL_XIBALBA ->
+                                stringResource(R.string.firmware_xibalba_desc)
                             release.source == FirmwareSource.OFFICIAL_BRUCE ->
                                 stringResource(R.string.firmware_official_desc)
                             else -> release.description
@@ -284,7 +292,8 @@ fun FirmwareFlashCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { requestFlash(release, FlashMethod.OTA) },
-                        enabled = release.source == FirmwareSource.OFFICIAL_BRUCE && !isFlashing,
+                        enabled = (release.source == FirmwareSource.OFFICIAL_BRUCE ||
+                            release.source == FirmwareSource.OFFICIAL_XIBALBA) && !isFlashing,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MatrixGreen,
                             disabledContainerColor = DarkSurfaceElevated

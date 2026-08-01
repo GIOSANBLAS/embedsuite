@@ -154,6 +154,79 @@ class FirmwareRepository {
         }
     }
 
+    suspend fun fetchXibalbaReleases(): Result<List<FirmwareRelease>> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("https://api.github.com/repos/GIOSANBLAS/te-embed-xibalba/releases?per_page=10")
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "EMBED-SUITE-Android")
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V013))
+                }
+
+                val body = response.body?.string().orEmpty()
+                val releases = JSONArray(body)
+                val results = mutableListOf<FirmwareRelease>()
+
+                for (i in 0 until releases.length()) {
+                    val release = releases.getJSONObject(i)
+                    val assets = release.optJSONArray("assets") ?: continue
+                    val tag = release.optString("tag_name", "unknown")
+                    val name = release.optString("name", tag)
+                    val prerelease = release.optBoolean("prerelease", false)
+
+                    for (j in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(j)
+                        val fileName = asset.optString("name", "")
+                        if (fileName.endsWith(".bin", ignoreCase = true) &&
+                            (fileName.contains("xibalba", ignoreCase = true) ||
+                                fileName.contains("te-embed", ignoreCase = true))
+                        ) {
+                            val sha256 = release.optString("body", "")
+                                .let { bodyText ->
+                                    Regex("""SHA256:\s*([0-9a-fA-F]{64})""").find(bodyText)?.groupValues?.get(1)
+                                }
+                            results.add(
+                                FirmwareRelease(
+                                    tagName = tag,
+                                    name = name,
+                                    downloadUrl = asset.optString("browser_download_url"),
+                                    fileName = fileName,
+                                    isPrerelease = prerelease,
+                                    source = FirmwareSource.OFFICIAL_XIBALBA,
+                                    sha256Hex = sha256?.lowercase()
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if (results.isEmpty()) {
+                    Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V013))
+                } else {
+                    Result.success(results)
+                }
+            }
+        } catch (_: Exception) {
+            Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V013))
+        }
+    }
+
+    suspend fun fetchAllReleases(profile: FirmwareProfile = FirmwareProfile.AUTO): Result<List<FirmwareRelease>> =
+        withContext(Dispatchers.IO) {
+            val bruce = fetchTEmbedReleases().getOrElse { emptyList() }
+            val xibalba = fetchXibalbaReleases().getOrElse { emptyList() }
+            val merged = bruce + xibalba
+            if (merged.isEmpty()) {
+                Result.failure(Exception("No se encontraron releases de firmware"))
+            } else {
+                Result.success(FirmwareCatalog.markRecommended(merged, profile))
+            }
+        }
+
     suspend fun importLocalBin(context: Context, uri: Uri, cacheDir: File): Result<FirmwareRelease> =
         withContext(Dispatchers.IO) {
             runCatching {

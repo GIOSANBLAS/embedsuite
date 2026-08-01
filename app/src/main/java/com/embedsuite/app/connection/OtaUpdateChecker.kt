@@ -4,7 +4,12 @@ sealed class OtaUpdateStatus {
     data object Unknown : OtaUpdateStatus()
     data object UpToDate : OtaUpdateStatus()
     data object Checking : OtaUpdateStatus()
-    data class UpdateAvailable(val deviceVersion: String, val latestVersion: String, val release: FirmwareRelease) : OtaUpdateStatus()
+    data class UpdateAvailable(
+        val deviceVersion: String,
+        val latestVersion: String,
+        val release: FirmwareRelease,
+        val sourceLabel: String = "Bruce"
+    ) : OtaUpdateStatus()
     data class Error(val message: String) : OtaUpdateStatus()
 }
 
@@ -21,15 +26,24 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
         val deviceVer = FirmwareRepository.extractVersion(deviceFirmware)
         if (deviceVer.isBlank()) return OtaUpdateStatus.Unknown
 
-        return firmwareRepository.fetchTEmbedReleases().fold(
+        val isXibalba = deviceFirmware.contains("xibalba", ignoreCase = true)
+        val fetchResult = if (isXibalba) {
+            firmwareRepository.fetchXibalbaReleases()
+        } else {
+            firmwareRepository.fetchTEmbedReleases()
+        }
+
+        return fetchResult.fold(
             onSuccess = { releases ->
-                val latest = releases.firstOrNull { !it.isPrerelease } ?: releases.firstOrNull()
+                val latest = releases.firstOrNull { !it.isPrerelease }
+                    ?: releases.firstOrNull()
                 if (latest == null) {
                     cachedStatus = OtaUpdateStatus.UpToDate
                 } else {
                     val latestVer = FirmwareRepository.extractVersion(latest.tagName)
+                    val sourceLabel = if (isXibalba) "Xibalba" else "Bruce"
                     cachedStatus = if (FirmwareRepository.isNewer(latestVer, deviceVer)) {
-                        OtaUpdateStatus.UpdateAvailable(deviceVer, latestVer, latest)
+                        OtaUpdateStatus.UpdateAvailable(deviceVer, latestVer, latest, sourceLabel)
                     } else {
                         OtaUpdateStatus.UpToDate
                     }

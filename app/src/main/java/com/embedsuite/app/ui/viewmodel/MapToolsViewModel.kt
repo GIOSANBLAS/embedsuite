@@ -8,6 +8,7 @@ import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareCatalog
 import com.embedsuite.app.connection.FirmwareRelease
 import com.embedsuite.app.connection.FirmwareRepository
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.OtaUpdateChecker
 import com.embedsuite.app.connection.OtaUpdateStatus
 import com.embedsuite.app.data.*
@@ -58,6 +59,7 @@ class MapToolsViewModel(
 
     val connectionState = connectionManager.connectionState
     val systemInfo = connectionManager.systemInfo
+    val detectedProfile = connectionManager.detectedProfile
     val location = locationTracker.location
 
     init {
@@ -97,9 +99,10 @@ class MapToolsViewModel(
     fun loadReleases() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingReleases = true) }
-            firmwareRepository.fetchTEmbedReleases().fold(
+            val profile = detectedProfile.value
+            firmwareRepository.fetchAllReleases(profile).fold(
                 onSuccess = { list ->
-                    val recommended = FirmwareCatalog.pickRecommended(list)
+                    val recommended = FirmwareCatalog.pickRecommended(list, profile)
                     _uiState.update { state ->
                         val keepSelection = state.customRelease != null &&
                             state.selectedRelease?.source == com.embedsuite.app.connection.FirmwareSource.CUSTOM_LOCAL

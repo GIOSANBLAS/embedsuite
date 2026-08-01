@@ -189,10 +189,12 @@
 
     <!-- Firmware flash -->
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
-    <string name="firmware_flash_sub">Bruce oficial, custom .bin bajo su responsabilidad</string>
+    <string name="firmware_flash_sub">Bruce oficial, Xibalba oficial o custom .bin bajo su responsabilidad</string>
     <string name="firmware_recommended">RECOMENDADO</string>
     <string name="firmware_recommended_reason">Bruce estable más reciente para T-Embed CC1101 Plus — máxima compatibilidad con EMBED SUITE.</string>
+    <string name="firmware_recommended_reason_xibalba">Xibalba más reciente para T-Embed CC1101 Plus — TEH-Link, plugins y EMBED SUITE nativo.</string>
     <string name="firmware_fetch_bruce">BUSCAR FIRMWARES BRUCE</string>
+    <string name="firmware_fetch_all">BUSCAR FIRMWARES (BRUCE + XIBALBA)</string>
     <string name="firmware_available">Disponibles</string>
     <string name="firmware_pick_custom">CUSTOM .bin</string>
     <string name="firmware_clear_custom">Quitar custom</string>
@@ -204,9 +206,10 @@
     <string name="firmware_disclaimer_accept">Acepto la responsabilidad y deseo continuar</string>
     <string name="firmware_disclaimer_continue">Flashear</string>
     <string name="firmware_official_desc">Bruce oficial · T-Embed CC1101 Plus</string>
+    <string name="firmware_xibalba_desc">Xibalba oficial · T-Embed CC1101 Plus (TEH-Link)</string>
     <string name="firmware_custom_desc">Firmware personalizado — uso bajo su responsabilidad</string>
     <string name="firmware_status_ready">Listo para flashear firmware.</string>
-    <string name="firmware_status_fetching">Consultando releases Bruce…</string>
+    <string name="firmware_status_fetching">Consultando releases Bruce y Xibalba…</string>
     <string name="firmware_status_using_local">Usando %1$s…</string>
     <string name="firmware_status_downloading">Descargando %1$s…</string>
     <string name="firmware_status_preparing_usb">Preparando %1$s para USB…</string>

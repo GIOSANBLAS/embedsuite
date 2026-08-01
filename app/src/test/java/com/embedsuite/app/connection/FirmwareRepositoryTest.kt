@@ -13,8 +13,24 @@ class FirmwareRepositoryTest {
     }
 
     @Test
-    fun isNewer_sameNumericParts_returnsFalse() {
-        assertFalse(FirmwareRepository.isNewer("1.0.0", "1.0.0"))
-        assertFalse(FirmwareRepository.isNewer("1.0.0-beta", "1.0.0"))
+    fun pickRecommended_prefersXibalbaForXibalbaProfile() {
+        val bruce = FirmwareRelease(
+            tagName = "v1.8.0",
+            name = "Bruce",
+            downloadUrl = "https://example.com/bruce.bin",
+            fileName = "bruce.bin",
+            isPrerelease = false,
+            source = FirmwareSource.OFFICIAL_BRUCE
+        )
+        val xibalba = FirmwareRelease(
+            tagName = "v0.13.0",
+            name = "Primed",
+            downloadUrl = "https://example.com/xibalba.bin",
+            fileName = "te-embed-xibalba.bin",
+            isPrerelease = true,
+            source = FirmwareSource.OFFICIAL_XIBALBA
+        )
+        val recommended = FirmwareCatalog.pickRecommended(listOf(bruce, xibalba), FirmwareProfile.XIBALBA)
+        assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
     }
 }

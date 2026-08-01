@@ -25,12 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.embedsuite.app.connection.BruceNetConfig
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareRelease
 import com.embedsuite.app.connection.OtaUpdateStatus
 import com.embedsuite.app.connection.TransportType
-import com.embedsuite.app.connection.WifiTransport
 import com.embedsuite.app.data.MacroEntity
 import com.embedsuite.app.data.MacroRepository
 import com.embedsuite.app.data.ProfileRepository
@@ -75,7 +75,7 @@ fun MapToolsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var wifiHost by remember { mutableStateOf(WifiTransport.DEFAULT_HOST) }
+    var wifiHost by remember { mutableStateOf(BruceNetConfig.defaultHost(context)) }
     var selectedTransport by remember { mutableStateOf(TransportType.USB) }
     val otaProgress by flashCoordinator.otaProgress.collectAsState()
     val isFlashing by flashCoordinator.isFlashing.collectAsState()
@@ -144,7 +144,7 @@ fun MapToolsScreen(
             is OtaUpdateStatus.UpdateAvailable -> {
                 Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("OTA: Bruce ${ota.latestVersion} disponible (actual: ${ota.deviceVersion})", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange)
+                        Text("OTA: ${ota.sourceLabel} ${ota.latestVersion} disponible (actual: ${ota.deviceVersion})", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange)
                     }
                 }
             }

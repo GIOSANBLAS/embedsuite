@@ -1,9 +1,9 @@
 package com.embedsuite.app.connection
 
 enum class FirmwareSource {
-    /** GIOSANBLAS/te-embed-xibalba — T-Embed Xibalba */
+    /** GIOSANBLAS/te-embed-xibalba â€” T-Embed Xibalba */
     OFFICIAL_XIBALBA,
-    /** BruceDevices/firmware — T-Embed CC1101 Plus */
+    /** BruceDevices/firmware â€” T-Embed CC1101 Plus */
     OFFICIAL_BRUCE,
     /** Binario local elegido por el usuario */
     CUSTOM_LOCAL
@@ -12,7 +12,7 @@ enum class FirmwareSource {
 enum class FirmwareRiskLevel {
     /** Firmware oficial (Bruce o Xibalba) */
     OFFICIAL,
-    /** Custom — responsabilidad del usuario */
+    /** Custom â€” responsabilidad del usuario */
     CUSTOM
 }
 
@@ -26,7 +26,7 @@ data class FirmwareRelease(
     val localFilePath: String? = null,
     val isRecommended: Boolean = false,
     val description: String = "",
-    /** SHA256 hex opcional para verificación post-descarga (64 chars). */
+    /** SHA256 hex opcional para verificaciÃ³n post-descarga (64 chars). */
     val sha256Hex: String? = null
 ) {
     val riskLevel: FirmwareRiskLevel = when (source) {
@@ -52,20 +52,20 @@ object FirmwareCatalog {
     /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.16.0 Beacon — full pre-hardware stack). */
-    val XIBALBA_FALLBACK_V016: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.16.0",
-        name = "v0.16.0 Beacon",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.0/te-embed-xibalba.bin",
+    /** Fallback embebido si GitHub API no responde (v0.16.1 Beacon — boot splash UX). */
+    val XIBALBA_FALLBACK_V0161: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.16.1",
+        name = "v0.16.1 Beacon",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.1/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.16 Beacon (CC1101 TX, IR RX, battery, nRF24 STATUS)",
-        sha256Hex = "6c832dc1daa3c5f6f242e0c538bce9bb32873deaa6b2e822f57fecf623f88394"
+        description = "T-Embed Xibalba v0.16.1 Beacon (boot splash LVGL + WS2812 chase)",
+        sha256Hex = "5b24cd124073210dfcb5cb0c280ed738f9bb196530892fd116aff53679408555"
     )
 
-    /** @deprecated Use [XIBALBA_FALLBACK_V016] */
-    val XIBALBA_FALLBACK_V015: FirmwareRelease = XIBALBA_FALLBACK_V016
+    /** @deprecated Use [XIBALBA_FALLBACK_V0161] */
+    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0161
 
     /** @deprecated Use [XIBALBA_FALLBACK_V015] */
     val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V015

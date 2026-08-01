@@ -195,6 +195,21 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    NeonButton(
+                        text = "Hash test",
+                        onClick = { viewModel.runCryptoHashTest() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    NeonOutlinedButton(
+                        text = "Gen password",
+                        onClick = { viewModel.runGenPassword() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 val actionState = uiState.lastActionState
                 if (actionState != null) {
                     val label = actionState.pluginId.ifBlank { "action" }
@@ -224,6 +239,15 @@ fun DashboardScreen(
                         if (actionState.devices.isNotEmpty()) {
                             if (isNotEmpty()) append(" · ")
                             append("${actionState.devices.size} BLE")
+                        }
+                        actionState.crypto?.let { crypto ->
+                            val cryptoOut = crypto.digest.ifBlank { crypto.result }
+                            if (cryptoOut.isNotBlank()) {
+                                if (isNotEmpty()) append(" · ")
+                                if (crypto.algo.isNotBlank()) append("${crypto.algo}: ")
+                                append(cryptoOut.take(48))
+                                if (cryptoOut.length > 48) append("…")
+                            }
                         }
                         if (actionState.message.isNotBlank()) {
                             if (isNotEmpty()) append(" — ")

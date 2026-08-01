@@ -483,6 +483,50 @@ class DeviceConnectionManager(
         }
     }
 
+    suspend fun tehLinkRunCryptoHash(
+        input: String,
+        algo: String = "sha256"
+    ): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runCryptoHash(transport, input, algo).onSuccess { result ->
+            val out = result.state.crypto?.digest?.ifBlank { null }
+                ?: result.state.crypto?.result
+                ?: result.state.message
+            _events.tryEmit(
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/hash → $out")
+            )
+        }
+    }
+
+    suspend fun tehLinkRunCryptoBase64Encode(input: String): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runCryptoBase64Encode(transport, input).onSuccess { result ->
+            val out = result.state.crypto?.result?.ifBlank { null } ?: result.state.message
+            _events.tryEmit(
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/base64_encode → $out")
+            )
+        }
+    }
+
+    suspend fun tehLinkRunGenPassword(length: Int = 16): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
+        }
+        return tehLinkClient.runGenPassword(transport, length).onSuccess { result ->
+            val out = result.state.crypto?.result?.ifBlank { null } ?: result.state.message
+            _events.tryEmit(
+                BruceEvent.RawLine("[TEH-Link] crypto_toolkit/gen_password → $out")
+            )
+        }
+    }
+
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
         setSubGhzFrequency(_subGhzFrequencyMhz.value)

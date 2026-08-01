@@ -42,6 +42,10 @@ class MockTransport(
     private var wardrivingApCount = 0
     private var wardrivingCsvPath = ""
 
+    private var cryptoLastDigest = ""
+    private var cryptoLastResult = ""
+    private var cryptoLastAlgo = "sha256"
+
     private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     override fun incomingLines(): Flow<String> = _incoming.asSharedFlow()
@@ -151,6 +155,27 @@ class MockTransport(
                     .put("params", JSONArray().put("seconds")))
                 put(JSONObject().put("plugin_id", "ble_toolkit").put("action", "scan_stop"))
                 put(JSONObject().put("plugin_id", "ble_toolkit").put("action", "status"))
+                put(JSONObject()
+                    .put("plugin_id", "crypto_toolkit")
+                    .put("action", "hash")
+                    .put("params", JSONArray().put("input").put("algo")))
+                put(JSONObject()
+                    .put("plugin_id", "crypto_toolkit")
+                    .put("action", "base64_encode")
+                    .put("params", JSONArray().put("input")))
+                put(JSONObject()
+                    .put("plugin_id", "crypto_toolkit")
+                    .put("action", "base64_decode")
+                    .put("params", JSONArray().put("input")))
+                put(JSONObject()
+                    .put("plugin_id", "crypto_toolkit")
+                    .put("action", "gen_password")
+                    .put("params", JSONArray().put("length")))
+                put(JSONObject()
+                    .put("plugin_id", "crypto_toolkit")
+                    .put("action", "gen_passphrase")
+                    .put("params", JSONArray().put("words")))
+                put(JSONObject().put("plugin_id", "crypto_toolkit").put("action", "status"))
             })
             "run_action" -> handleRunAction(root)
             "get_action_state" -> handleGetActionState(root)
@@ -316,6 +341,56 @@ class MockTransport(
             .put("message", if (wardrivingRunning) "Wardriving… $wardrivingApCount APs" else "Stopped")
     }
 
+    private fun mockSha256Hex(input: String): String {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        return md.digest(input.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+    }
+
+    private fun mockBase64Encode(input: String): String {
+        return android.util.Base64.encodeToString(
+            input.toByteArray(Charsets.UTF_8),
+            android.util.Base64.NO_WRAP
+        )
+    }
+
+    private fun mockBase64Decode(input: String): String {
+        return String(
+            android.util.Base64.decode(input, android.util.Base64.DEFAULT),
+            Charsets.UTF_8
+        )
+    }
+
+    private fun mockGenPassword(length: Int): String {
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#\$%"
+        val seed = (System.currentTimeMillis() % 1000).toInt()
+        return (1..length.coerceIn(8, 64))
+            .map { chars[(seed + it * 17) % chars.length] }
+            .joinToString("")
+    }
+
+    private var mockPassphraseCounter = 0
+
+    private fun mockGenPassphrase(words: Int): String {
+        val wordList = listOf("alpha", "bravo", "cascade", "delta", "ember", "flux", "glyph", "helix")
+        mockPassphraseCounter++
+        return (0 until words.coerceIn(3, 8))
+            .map { wordList[(mockPassphraseCounter + it) % wordList.size] }
+            .joinToString("-")
+    }
+
+    private fun cryptoStateJson(action: String = "status"): JSONObject {
+        return JSONObject()
+            .put("plugin_id", "crypto_toolkit")
+            .put("action", action)
+            .put("state", if (cryptoLastDigest.isNotBlank() || cryptoLastResult.isNotBlank()) "done" else "idle")
+            .put("message", cryptoLastResult.ifBlank { cryptoLastDigest.ifBlank { "Ready" } })
+            .put("digest", cryptoLastDigest)
+            .put("result", cryptoLastResult)
+            .put("algo", cryptoLastAlgo)
+            .put("last_result", cryptoLastResult.ifBlank { cryptoLastDigest })
+    }
+
     private fun handleRunAction(root: JSONObject): JSONObject? {
         val pluginId = root.optString("plugin_id")
         val action = root.optString("action")
@@ -398,6 +473,50 @@ class MockTransport(
                 "status" -> bleStateJson()
                 else -> null
             }
+            "crypto_toolkit" -> when (action) {
+                "hash" -> {
+                    val input = params.optString("input")
+                    cryptoLastAlgo = params.optString("algo", "sha256").ifBlank { "sha256" }
+                    cryptoLastDigest = when (cryptoLastAlgo.lowercase()) {
+                        "md5", "sha1", "sha512" -> mockSha256Hex(input).take(
+                            when (cryptoLastAlgo.lowercase()) {
+                                "md5" -> 32
+                                "sha1" -> 40
+                                else -> 128
+                            }
+                        )
+                        else -> mockSha256Hex(input)
+                    }
+                    cryptoLastResult = cryptoLastDigest
+                    cryptoStateJson(action).put("state", "done")
+                }
+                "base64_encode" -> {
+                    val input = params.optString("input")
+                    cryptoLastDigest = ""
+                    cryptoLastResult = mockBase64Encode(input)
+                    cryptoStateJson(action).put("state", "done")
+                }
+                "base64_decode" -> {
+                    val input = params.optString("input")
+                    cryptoLastDigest = ""
+                    cryptoLastResult = mockBase64Decode(input)
+                    cryptoStateJson(action).put("state", "done")
+                }
+                "gen_password" -> {
+                    val length = params.optInt("length", 16)
+                    cryptoLastDigest = ""
+                    cryptoLastResult = mockGenPassword(length)
+                    cryptoStateJson(action).put("state", "done")
+                }
+                "gen_passphrase" -> {
+                    val words = params.optInt("words", 4)
+                    cryptoLastDigest = ""
+                    cryptoLastResult = mockGenPassphrase(words)
+                    cryptoStateJson(action).put("state", "done")
+                }
+                "status" -> cryptoStateJson(action)
+                else -> null
+            }
             else -> null
         }
     }
@@ -410,6 +529,7 @@ class MockTransport(
             "wifi_toolkit" -> wifiStateJson()
             "wardriving" -> wardrivingStateJson()
             "ble_toolkit" -> bleStateJson()
+            "crypto_toolkit" -> cryptoStateJson()
             else -> null
         }
     }

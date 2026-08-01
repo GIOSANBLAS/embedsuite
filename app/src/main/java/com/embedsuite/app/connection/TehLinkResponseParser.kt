@@ -105,9 +105,22 @@ object TehLinkResponseParser {
         )
     }
 
+    fun parseCryptoResult(data: JSONObject): TehLinkCryptoResult {
+        return TehLinkCryptoResult(
+            digest = data.optString("digest"),
+            result = data.optString("result").ifBlank { data.optString("last_result") },
+            algo = data.optString("algo")
+        )
+    }
+
     fun parseActionState(data: JSONObject): TehLinkActionState {
         val wardriving = if (data.has("ap_count") || data.has("csv_path")) {
             parseWardrivingStatus(data)
+        } else {
+            null
+        }
+        val crypto = if (data.has("digest") || data.has("result") || data.has("last_result") || data.has("algo")) {
+            parseCryptoResult(data)
         } else {
             null
         }
@@ -124,7 +137,8 @@ object TehLinkResponseParser {
             secondsRemaining = data.optInt("seconds_remaining"),
             aps = parseWifiAps(data.optJSONArray("aps")),
             devices = parseBleDevices(data.optJSONArray("devices")),
-            wardriving = wardriving
+            wardriving = wardriving,
+            crypto = crypto
         )
     }
 

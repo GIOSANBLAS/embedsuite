@@ -164,6 +164,26 @@ class DashboardViewModel(
         }
     }
 
+    fun runCryptoHashTest() {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunCryptoHash("EmbedSuite", "sha256").onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("crypto_toolkit", "hash")
+            }
+        }
+    }
+
+    fun runGenPassword(length: Int = 16) {
+        viewModelScope.launch {
+            connectionManager.tehLinkRunGenPassword(length).onSuccess { result ->
+                _uiState.update { it.copy(lastActionState = result.state) }
+            }.onFailure {
+                refreshActionState("crypto_toolkit", "gen_password")
+            }
+        }
+    }
+
     fun refreshActionState(pluginId: String, action: String? = null) {
         viewModelScope.launch {
             connectionManager.tehLinkGetActionState(pluginId, action).onSuccess { state ->

@@ -58,6 +58,12 @@ data class TehLinkWardrivingStatus(
     val csvPath: String = ""
 )
 
+data class TehLinkCryptoResult(
+    val digest: String = "",
+    val result: String = "",
+    val algo: String = ""
+)
+
 data class TehLinkActionState(
     val pluginId: String,
     val action: String = "",
@@ -71,7 +77,8 @@ data class TehLinkActionState(
     val secondsRemaining: Int = 0,
     val aps: List<TehLinkWifiAp> = emptyList(),
     val devices: List<TehLinkBleDevice> = emptyList(),
-    val wardriving: TehLinkWardrivingStatus? = null
+    val wardriving: TehLinkWardrivingStatus? = null,
+    val crypto: TehLinkCryptoResult? = null
 )
 
 data class TehLinkActionResult(

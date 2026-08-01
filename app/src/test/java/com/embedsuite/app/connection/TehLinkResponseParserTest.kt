@@ -243,4 +243,71 @@ class TehLinkResponseParserTest {
         assertEquals(42, wd?.apCount)
         assertEquals("/sdcard/wardriving/session.csv", wd?.csvPath)
     }
+
+    @Test
+    fun parseCryptoResult_readsDigestAndResult() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "crypto_toolkit",
+              "action": "hash",
+              "state": "done",
+              "digest": "9d9be79f54df5b2b1e48d36c03e6be7d5ea65949015cd9a9e2b43722e3d6bce0",
+              "result": "9d9be79f54df5b2b1e48d36c03e6be7d5ea65949015cd9a9e2b43722e3d6bce0",
+              "algo": "sha256",
+              "message": "Hash OK"
+            }
+            """.trimIndent()
+        )
+
+        val crypto = TehLinkResponseParser.parseCryptoResult(data)
+        assertEquals("sha256", crypto.algo)
+        assertEquals(
+            "9d9be79f54df5b2b1e48d36c03e6be7d5ea65949015cd9a9e2b43722e3d6bce0",
+            crypto.digest
+        )
+        assertEquals(
+            "9d9be79f54df5b2b1e48d36c03e6be7d5ea65949015cd9a9e2b43722e3d6bce0",
+            crypto.result
+        )
+    }
+
+    @Test
+    fun parseActionState_readsCryptoStatus() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "crypto_toolkit",
+              "action": "gen_password",
+              "state": "done",
+              "result": "Kx9!mP2vQw7nRt4L",
+              "message": "Password generated"
+            }
+            """.trimIndent()
+        )
+
+        val state = TehLinkResponseParser.parseActionState(data)
+        assertEquals("crypto_toolkit", state.pluginId)
+        assertEquals("done", state.state)
+        val crypto = state.crypto
+        assertEquals("Kx9!mP2vQw7nRt4L", crypto?.result)
+        assertEquals("", crypto?.digest)
+    }
+
+    @Test
+    fun parseCryptoResult_fallsBackToLastResult() {
+        val data = JSONObject(
+            """
+            {
+              "plugin_id": "crypto_toolkit",
+              "action": "status",
+              "state": "idle",
+              "last_result": "alpha-bravo-cascade-delta"
+            }
+            """.trimIndent()
+        )
+
+        val crypto = TehLinkResponseParser.parseCryptoResult(data)
+        assertEquals("alpha-bravo-cascade-delta", crypto.result)
+    }
 }

@@ -94,6 +94,45 @@ class TehLinkClient(
         )
     }
 
+    suspend fun runCryptoHash(
+        transport: TEmbedTransport,
+        input: String,
+        algo: String = "sha256"
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "crypto_toolkit",
+            action = "hash",
+            params = JSONObject()
+                .put("input", input)
+                .put("algo", algo)
+        )
+    }
+
+    suspend fun runCryptoBase64Encode(
+        transport: TEmbedTransport,
+        input: String
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "crypto_toolkit",
+            action = "base64_encode",
+            params = JSONObject().put("input", input)
+        )
+    }
+
+    suspend fun runGenPassword(
+        transport: TEmbedTransport,
+        length: Int = 16
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "crypto_toolkit",
+            action = "gen_password",
+            params = JSONObject().put("length", length)
+        )
+    }
+
     /** Envía JSON TEH-Link crudo y devuelve la línea de respuesta con id coincidente. */
     suspend fun sendRawJson(transport: TEmbedTransport, json: String): Result<String> {
         val trimmed = json.trim()

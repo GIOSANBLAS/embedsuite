@@ -324,5 +324,20 @@ class TehLinkResponseParserTest {
     fun validateConsoleRequest_blocksOta() {
         val err = TehLinkCommandPolicy.validateConsoleRequest("""{"cmd":"ota_begin","id":1,"size":1000}""")
         assertTrue(err.isFailure)
+        assertTrue(err.exceptionOrNull()?.message?.contains("no permitido") == true)
+    }
+
+    @Test
+    fun validateConsoleRequest_allowsPing() {
+        val ok = TehLinkCommandPolicy.validateConsoleRequest("""{"cmd":"ping","id":1}""")
+        assertTrue(ok.isSuccess)
+    }
+
+    @Test
+    fun validateConsoleRequest_blocksRunAction() {
+        val err = TehLinkCommandPolicy.validateConsoleRequest(
+            """{"cmd":"run_action","id":2,"plugin_id":"badusb","action":"run_script"}"""
+        )
+        assertTrue(err.isFailure)
     }
 }

@@ -273,6 +273,7 @@
     <string name="perm_scan_gate">CONCEDER PERMISOS GPS/BLE/WiFi</string>
 
     <!-- Bruce WiFi AP (documentado por firmware Bruce) -->
+    <string name="bruce_net_host">192.168.4.1</string>
     <string name="bruce_net_ssid">BruceNet</string>
     <string name="bruce_net_password">bruce32</string>
 </resources>

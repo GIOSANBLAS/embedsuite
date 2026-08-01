@@ -154,10 +154,8 @@ class WifiTransport(
         }
 
     companion object {
+        /** Host AP Bruce por defecto — ver [BruceNetConfig.defaultHost]. */
         const val DEFAULT_HOST = "192.168.4.1"
-        /** SSID/contraseña por defecto del AP Bruce — ver strings.xml `bruce_net_*`. */
-        const val BRUCE_NET_SSID = "BruceNet"
-        const val BRUCE_NET_PASSWORD = "bruce32"
 
         private val HOST_PATTERN = Regex(
             """^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*|(?:\d{1,3}\.){3}\d{1,3}|\[[0-9a-fA-F:]+\])$"""

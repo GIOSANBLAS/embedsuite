@@ -121,9 +121,19 @@ class NfcIrViewModel(
     fun clearDump() { _uiState.update { it.copy(nfcDump = "", parsedMifare = "") } }
 
     fun sendIr(cmd: String) {
-        val normalized = BruceCommands.normalizeIrCommand(cmd)
-        _uiState.update { it.copy(estadoOperacion = "TX: $normalized") }
-        viewModelScope.launch { connectionManager.sendCommand(normalized) }
+        viewModelScope.launch {
+            val normalized = BruceCommands.normalizeIrCommand(cmd)
+            connectionManager.sendCommand(normalized).fold(
+                onSuccess = {
+                    _uiState.update { state -> state.copy(estadoOperacion = "TX OK: $normalized") }
+                },
+                onFailure = { error ->
+                    _uiState.update { state ->
+                        state.copy(estadoOperacion = "ERROR IR: ${error.message ?: "comando rechazado"}")
+                    }
+                }
+            )
+        }
     }
 
     fun captureIr() {

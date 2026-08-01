@@ -2,7 +2,6 @@ package com.embedsuite.app
 
 import android.app.Application
 import android.content.Context
-import androidx.room.Room
 import com.embedsuite.app.ai.AiPreferences
 import com.embedsuite.app.ai.EmbedAiEngine
 import com.embedsuite.app.connection.DeviceConnectionManager
@@ -53,13 +52,7 @@ class AppContainer(context: Context) {
     val secureStore = SecureStore(appContext)
     val sessionStats = SessionStatsTracker(appContext)
 
-    val database: EmbedDatabase = Room.databaseBuilder(
-        appContext,
-        EmbedDatabase::class.java,
-        "embed_suite.db"
-    )
-        .addMigrations(*DatabaseMigrations.ALL)
-        .build()
+    val database: EmbedDatabase = EmbedDatabaseFactory.create(appContext, secureStore)
 
     val signalRepository = SignalRepository(database.capturedSignalDao())
     val irRepository = IrRepository(database.irButtonDao())

@@ -42,9 +42,26 @@ class SecureStore(context: Context) {
         prefs?.edit()?.putString(KEY_TEH_LINK_AUTH, token.trim())?.apply()
     }
 
+    /** Passphrase SQLCipher para Room; se genera una vez y persiste cifrada. */
+    fun getOrCreateDatabasePassphrase(): ByteArray {
+        val existing = prefs?.getString(KEY_DB_PASSPHRASE, null)
+        if (!existing.isNullOrBlank()) {
+            return existing.toByteArray(Charsets.UTF_8)
+        }
+        val generated = buildString(PASSPHRASE_LENGTH) {
+            val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            val random = java.security.SecureRandom()
+            repeat(PASSPHRASE_LENGTH) { append(alphabet[random.nextInt(alphabet.length)]) }
+        }
+        prefs?.edit()?.putString(KEY_DB_PASSPHRASE, generated)?.apply()
+        return generated.toByteArray(Charsets.UTF_8)
+    }
+
     companion object {
         private const val TAG = "SecureStore"
         private const val KEY_GEMINI = "gemini_api_key"
         private const val KEY_TEH_LINK_AUTH = "teh_link_auth_token"
+        private const val KEY_DB_PASSPHRASE = "room_db_passphrase"
+        private const val PASSPHRASE_LENGTH = 32
     }
 }

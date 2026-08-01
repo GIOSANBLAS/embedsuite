@@ -43,6 +43,9 @@ class DashboardViewModel(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private var lastOtaCheckMs = 0L
+    private var lastOtaFirmware = ""
+
     init {
         viewModelScope.launch {
             combine(
@@ -203,9 +206,19 @@ class DashboardViewModel(
     }
 
     private fun checkOta(deviceFirmware: String) {
+        val now = System.currentTimeMillis()
+        if (now - lastOtaCheckMs < OTA_CHECK_INTERVAL_MS && deviceFirmware == lastOtaFirmware) {
+            return
+        }
+        lastOtaCheckMs = now
+        lastOtaFirmware = deviceFirmware
         viewModelScope.launch {
             val status = otaUpdateChecker.check(deviceFirmware)
             _uiState.update { it.copy(otaStatus = status) }
         }
+    }
+
+    companion object {
+        private const val OTA_CHECK_INTERVAL_MS = 60_000L
     }
 }

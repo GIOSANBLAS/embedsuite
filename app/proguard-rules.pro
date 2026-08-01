@@ -14,5 +14,8 @@
 # usb-serial-for-android (reflective driver probe)
 -keep class com.hoho.android.usbserial.** { *; }
 -dontwarn com.hoho.android.usbserial.**
+# SQLCipher
+-keep class net.sqlcipher.** { *; }
+-dontwarn net.sqlcipher.**
 # BuildConfig
 -keep class com.embedsuite.app.BuildConfig { *; }

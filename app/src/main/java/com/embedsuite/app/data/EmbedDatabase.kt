@@ -17,6 +17,7 @@ import androidx.room.RoomDatabase
     version = 7,
     exportSchema = false
 )
+/** Room local; cifrado at-rest vía SQLCipher cuando [SecureStore] está disponible. */
 abstract class EmbedDatabase : RoomDatabase() {
     abstract fun capturedSignalDao(): CapturedSignalDao
     abstract fun irButtonDao(): IrButtonDao

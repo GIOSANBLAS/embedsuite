@@ -3,7 +3,9 @@ package com.embedsuite.app.macro
 import com.embedsuite.app.connection.BruceCommandValidator
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.data.MacroEntity
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 
 class MacroEngine(
     private val connectionManager: DeviceConnectionManager,
@@ -11,6 +13,16 @@ class MacroEngine(
 ) {
 
     suspend fun execute(macro: MacroEntity): Result<Int> {
+        return try {
+            withTimeout(120_000L) {
+                executeCommands(macro)
+            }
+        } catch (_: TimeoutCancellationException) {
+            Result.failure(Exception("Macro cancelado: timeout 120s."))
+        }
+    }
+
+    private suspend fun executeCommands(macro: MacroEntity): Result<Int> {
         val commands = macro.commands.lines()
             .map { it.trim() }
             .filter { it.isNotBlank() && !it.startsWith("#") }

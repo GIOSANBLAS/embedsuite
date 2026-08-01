@@ -117,7 +117,9 @@ object TehLinkResponseParser {
     fun parseIrResult(data: JSONObject): TehLinkIrResult {
         return TehLinkIrResult(
             ready = data.optBoolean("ready"),
-            message = data.optString("message")
+            message = data.optString("message"),
+            raw = data.optString("raw"),
+            protocol = data.optString("protocol")
         )
     }
 
@@ -197,7 +199,8 @@ object TehLinkResponseParser {
             uiScreen = data.optString("ui_screen"),
             uptimeMs = data.optLong("uptime_ms"),
             sim = sim,
-            capabilities = capabilities
+            capabilities = capabilities,
+            batteryPct = data.optInt("battery_pct").takeIf { data.has("battery_pct") }
         )
     }
 

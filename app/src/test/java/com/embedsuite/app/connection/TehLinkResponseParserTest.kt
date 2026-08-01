@@ -352,7 +352,8 @@ class TehLinkResponseParserTest {
                   "ui_screen": "Home",
                   "uptime_ms": 5000,
                   "sim": {"pn532": false},
-                  "capabilities": {"nfc": true, "ir": true, "gps_external": false}
+                  "capabilities": {"nfc": true, "ir": true, "gps_external": false},
+                  "battery_pct": 72
                 }
                 """.trimIndent()
             )
@@ -360,6 +361,7 @@ class TehLinkResponseParserTest {
         assertTrue(status.capabilities["nfc"] == true)
         assertTrue(status.capabilities["ir"] == true)
         assertFalse(status.capabilities["gps_external"] == true)
+        assertEquals(72, status.batteryPct)
     }
 
     @Test

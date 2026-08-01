@@ -106,7 +106,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 Text("DUMPS GUARDADOS — EMULAR", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonCyan, modifier = Modifier.fillMaxWidth())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
                     items(uiState.savedDumps, key = { it.id }) { dump ->
-                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = isConnected && !isXibalba) {
+                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = isConnected && nfcDeviceEnabled) {
                             Text(dump.uid, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
                         }
                     }

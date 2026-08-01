@@ -54,11 +54,17 @@ class RfReplayEngine(
                 te = te,
                 count = 10
             )
+            val xibalba = connectionManager.detectedProfile.value ==
+                com.embedsuite.app.connection.FirmwareProfile.XIBALBA
             return ReplayPreview(
                 command = cmd,
                 protocol = decoded.protocol,
                 frequency = signal.frequency.ifBlank { decoded.frequency },
-                summary = RfProtocolDecoder.formatDecoded(decoded),
+                summary = if (xibalba) {
+                    "TEH-Link subghz_tx (${decoded.protocol})"
+                } else {
+                    RfProtocolDecoder.formatDecoded(decoded)
+                },
                 subFile = null,
                 canTransmit = true
             )
@@ -105,7 +111,11 @@ class RfReplayEngine(
             }
         }
 
-        val result = connectionManager.sendCommand(preview.command)
+        val result = if (connectionManager.detectedProfile.value == com.embedsuite.app.connection.FirmwareProfile.XIBALBA) {
+            replayViaTehLink(preview, signal)
+        } else {
+            connectionManager.sendCommand(preview.command)
+        }
         val success = result.isSuccess
         if (success) SoundFeedback.playSuccess() else SoundFeedback.playError()
         txHistoryRepository.record(signal, preview.command, success)
@@ -115,6 +125,32 @@ class RfReplayEngine(
     suspend fun replayFromDeviceFile(relativePath: String): Result<String> {
         val cmd = BruceCommands.subGhzTxFromFile(relativePath)
         return connectionManager.sendCommand(cmd).map { "TX OK: $cmd" }
+    }
+
+    private suspend fun replayViaTehLink(
+        preview: ReplayPreview,
+        signal: CapturedSignalEntity
+    ): Result<String> {
+        if (!connectionManager.hasXibalbaCapability("subghz_tx")) {
+            return Result.failure(Exception("Sub-GHz TX no disponible en este dispositivo."))
+        }
+
+        val devicePath = preview.devicePath
+        if (!devicePath.isNullOrBlank() && devicePath.startsWith("/sdcard/")) {
+            return connectionManager.tehLinkRunSubGhzReplay(devicePath).map {
+                "TEH-Link replay OK: $devicePath"
+            }
+        }
+
+        val decoded = decodeSignal(signal)
+        val rawHex = decoded?.hexKey?.ifBlank { null }
+            ?: signal.rawData.replace(Regex("[^0-9A-Fa-f]"), "").takeIf { it.length >= 4 }
+            ?: return Result.failure(Exception("Sin payload RF para TX."))
+
+        val freq = signal.frequency.replace(Regex("[^0-9.]"), "").toDoubleOrNull()
+        return connectionManager.tehLinkRunSubGhzTx(rawHex, freq).map {
+            "TEH-Link TX OK: $rawHex"
+        }
     }
 
     private fun decodeSignal(signal: CapturedSignalEntity): DecodedRfSignal? {

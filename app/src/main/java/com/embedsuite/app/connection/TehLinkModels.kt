@@ -29,7 +29,8 @@ data class TehLinkDeviceStatus(
     val uiScreen: String,
     val uptimeMs: Long,
     val sim: Map<String, Boolean>,
-    val capabilities: Map<String, Boolean> = emptyMap()
+    val capabilities: Map<String, Boolean> = emptyMap(),
+    val batteryPct: Int? = null
 )
 
 data class TehLinkActionInfo(
@@ -74,7 +75,9 @@ data class TehLinkNfcResult(
 
 data class TehLinkIrResult(
     val ready: Boolean = false,
-    val message: String = ""
+    val message: String = "",
+    val raw: String = "",
+    val protocol: String = ""
 )
 
 data class TehLinkActionState(
@@ -111,6 +114,10 @@ object TehLinkConsoleChips {
         Chip("get_info", """{"cmd":"get_info","id":2}"""),
         Chip("get_status", """{"cmd":"get_status","id":3}"""),
         Chip("back_to_menu", """{"cmd":"back_to_menu","id":4}"""),
-        Chip("list_actions", """{"cmd":"list_actions","id":5}""")
+        Chip("list_actions", """{"cmd":"list_actions","id":5}"""),
+        Chip("subghz_tx", """{"cmd":"run_action","id":6,"args":{"plugin_id":"subghz_analyzer","action":"subghz_tx","params":{"raw":"AABBCC","confirm":true}}}"""),
+        Chip("ir_rx", """{"cmd":"run_action","id":7,"args":{"plugin_id":"ir_toolkit","action":"rx_start","params":{"seconds":10}}}"""),
+        Chip("nfc_read", """{"cmd":"run_action","id":8,"args":{"plugin_id":"nfc_toolkit","action":"read"}}"""),
+        Chip("nrf24", """{"cmd":"run_action","id":9,"args":{"plugin_id":"nrf24_toolkit","action":"status"}}""")
     )
 }

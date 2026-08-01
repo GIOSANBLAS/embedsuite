@@ -23,8 +23,8 @@ class FirmwareRepositoryTest {
             source = FirmwareSource.OFFICIAL_BRUCE
         )
         val xibalba = FirmwareRelease(
-            tagName = "v0.15.0",
-            name = "Ward",
+            tagName = "v0.16.0",
+            name = "Beacon",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",
             isPrerelease = true,
@@ -32,5 +32,6 @@ class FirmwareRepositoryTest {
         )
         val recommended = FirmwareCatalog.pickRecommended(listOf(bruce, xibalba), FirmwareProfile.XIBALBA)
         assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
+        assertEquals("v0.16.0", recommended?.tagName)
     }
 }

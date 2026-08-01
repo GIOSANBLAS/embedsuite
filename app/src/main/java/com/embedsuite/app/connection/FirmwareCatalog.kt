@@ -52,17 +52,20 @@ object FirmwareCatalog {
     /** Nota mostrada junto al firmware recomendado. */
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Fallback embebido si GitHub API no responde (v0.15.0 Pulse — NFC/IR + phone GPS wardriving). */
-    val XIBALBA_FALLBACK_V015: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.15.0",
-        name = "v0.15.0 Pulse",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.15.0/te-embed-xibalba.bin",
+    /** Fallback embebido si GitHub API no responde (v0.16.0 Beacon — full pre-hardware stack). */
+    val XIBALBA_FALLBACK_V016: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.16.0",
+        name = "v0.16.0 Beacon",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.0/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.15 Pulse (PN532, IR, TEH-Link gps_update)",
-        sha256Hex = "8862e9abd3e5a913f4a7f7056ea5e871e9bafef514506d82b1ee0f17f35ab988"
+        description = "T-Embed Xibalba v0.16 Beacon (CC1101 TX, IR RX, battery, nRF24 STATUS)",
+        sha256Hex = "6c832dc1daa3c5f6f242e0c538bce9bb32873deaa6b2e822f57fecf623f88394"
     )
+
+    /** @deprecated Use [XIBALBA_FALLBACK_V016] */
+    val XIBALBA_FALLBACK_V015: FirmwareRelease = XIBALBA_FALLBACK_V016
 
     /** @deprecated Use [XIBALBA_FALLBACK_V015] */
     val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V015

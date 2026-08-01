@@ -386,7 +386,8 @@ class DeviceConnectionManager(
                 sdMounted = if (status.sdMounted) "OK" else "MISSING",
                 profile = FirmwareProfile.XIBALBA,
                 simFlags = status.sim,
-                xibalbaCapabilities = status.capabilities
+                xibalbaCapabilities = status.capabilities,
+                battery = status.batteryPct?.let { "$it%" } ?: info.battery
             )
             _systemInfo.value = info
             _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
@@ -560,9 +561,56 @@ class DeviceConnectionManager(
         val pluginId = when (key) {
             "nfc" -> "nfc_toolkit"
             "ir" -> "ir_toolkit"
+            "subghz_tx" -> "subghz_analyzer"
+            "ir_rx" -> "ir_toolkit"
+            "nrf24" -> "nrf24_toolkit"
             else -> key
         }
         return _systemInfo.value.xibalbaPlugins.any { it.id == pluginId }
+    }
+
+    suspend fun tehLinkRunSubGhzTx(rawHex: String, freqMhz: Double? = null): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("Sub-GHz TX TEH-Link solo en Xibalba."))
+        }
+        return tehLinkClient.runSubGhzTx(transport, rawHex, freqMhz).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] subghz_tx → ${result.state.message.ifBlank { result.state.state }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunSubGhzReplay(devicePath: String): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("Sub-GHz replay TEH-Link solo en Xibalba."))
+        }
+        return tehLinkClient.runSubGhzReplay(transport, devicePath).onSuccess { result ->
+            _events.tryEmit(
+                BruceEvent.RawLine(
+                    "[TEH-Link] subghz_replay → ${result.state.message.ifBlank { result.state.state }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunIrRx(seconds: Int = 10): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("IR RX TEH-Link solo en Xibalba."))
+        }
+        return tehLinkClient.runIrRxStart(transport, seconds)
+    }
+
+    suspend fun tehLinkRunNfcEmulate(uid: String): Result<TehLinkActionResult> {
+        return tehLinkRunAction(
+            pluginId = "nfc_toolkit",
+            action = "emulate",
+            params = JSONObject().put("uid", uid)
+        )
     }
 
     suspend fun tehLinkRunBleScan(seconds: Int): Result<TehLinkActionResult> {

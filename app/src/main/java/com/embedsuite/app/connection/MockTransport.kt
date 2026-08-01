@@ -149,7 +149,11 @@ class MockTransport(
                 .put("capabilities", JSONObject()
                     .put("nfc", true)
                     .put("ir", true)
+                    .put("subghz_tx", true)
+                    .put("ir_rx", true)
+                    .put("nrf24", false)
                     .put("gps_external", false))
+                .put("battery_pct", 87)
             "open_plugin" -> {
                 val pluginId = root.optString("plugin_id")
                 if (pluginId.isBlank()) {

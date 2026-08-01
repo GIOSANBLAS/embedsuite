@@ -127,8 +127,32 @@ class NfcIrViewModel(
     }
 
     fun emulateUid(uid: String? = null) {
-        _uiState.update {
-            it.copy(estadoOperacion = "Emulación UID no soportada en Xibalba (solo lectura PN532).")
+        val targetUid = uid?.takeIf { it.isNotBlank() && it != "—" } ?: _uiState.value.nfcUid
+        if (targetUid.isBlank() || targetUid == "—") {
+            _uiState.update { it.copy(estadoOperacion = "UID vacío — lee un tag primero.") }
+            return
+        }
+        viewModelScope.launch {
+            if (detectedProfile.value == FirmwareProfile.XIBALBA) {
+                connectionManager.tehLinkRunNfcEmulate(targetUid.replace(":", "")).fold(
+                    onSuccess = { result ->
+                        _uiState.update {
+                            it.copy(
+                                estadoOperacion = result.state.message.ifBlank {
+                                    "UID staged (validación hardware pendiente)"
+                                }
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(estadoOperacion = "Emulate error: ${err.message}") }
+                    }
+                )
+            } else {
+                _uiState.update {
+                    it.copy(estadoOperacion = "Emulación UID no soportada en este perfil.")
+                }
+            }
         }
     }
 
@@ -202,8 +226,32 @@ class NfcIrViewModel(
     }
 
     fun captureIr() {
-        _uiState.update {
-            it.copy(estadoOperacion = "Captura IR RX pendiente en firmware (stub GPIO1).")
+        viewModelScope.launch {
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "Captura IR solo vía TEH-Link (Xibalba).") }
+                return@launch
+            }
+            if (!connectionManager.hasXibalbaCapability("ir_rx") &&
+                !connectionManager.hasXibalbaCapability("ir")
+            ) {
+                _uiState.update { it.copy(estadoOperacion = "IR RX no reportado por el dispositivo.") }
+                return@launch
+            }
+            _uiState.update { it.copy(estadoOperacion = "Capturando IR (10s)...") }
+            connectionManager.tehLinkRunIrRx(10).fold(
+                onSuccess = { result ->
+                    val raw = result.state.ir?.raw.orEmpty()
+                    val msg = result.state.message.ifBlank { result.state.state }
+                    _uiState.update {
+                        it.copy(
+                            estadoOperacion = if (raw.isNotBlank()) "IR capturado: $raw" else msg
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(estadoOperacion = "IR RX error: ${err.message}") }
+                }
+            )
         }
     }
 

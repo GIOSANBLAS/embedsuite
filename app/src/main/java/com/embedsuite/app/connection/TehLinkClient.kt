@@ -208,6 +208,67 @@ class TehLinkClient(
         )
     }
 
+    suspend fun runSubGhzTx(
+        transport: TEmbedTransport,
+        rawHex: String,
+        freqMhz: Double? = null
+    ): Result<TehLinkActionResult> {
+        val params = JSONObject()
+            .put("raw", rawHex)
+            .put("confirm", true)
+        if (freqMhz != null) {
+            params.put("freq_mhz", freqMhz)
+        }
+        return runAction(
+            transport,
+            pluginId = "subghz_analyzer",
+            action = "subghz_tx",
+            params = params
+        )
+    }
+
+    suspend fun runSubGhzReplay(
+        transport: TEmbedTransport,
+        devicePath: String
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "subghz_analyzer",
+            action = "subghz_replay",
+            params = JSONObject()
+                .put("path", devicePath)
+                .put("confirm", true)
+        )
+    }
+
+    suspend fun runIrRxStart(
+        transport: TEmbedTransport,
+        seconds: Int = 10
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "ir_toolkit",
+            action = "rx_start",
+            params = JSONObject().put("seconds", seconds.coerceIn(1, 60))
+        )
+    }
+
+    suspend fun runNfcEmulate(
+        transport: TEmbedTransport,
+        uid: String
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "nfc_toolkit",
+            action = "emulate",
+            params = JSONObject().put("uid", uid)
+        )
+    }
+
+    suspend fun runNrf24Status(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, pluginId = "nrf24_toolkit", action = "status")
+    }
+
     suspend fun sendRawJson(
         transport: TEmbedTransport,
         json: String,
@@ -295,7 +356,7 @@ class TehLinkClient(
     }
 
     private fun timeoutForAction(action: String, params: JSONObject?): Long {
-        if (action == "scan_start" || action == "capture_start") {
+        if (action == "scan_start" || action == "capture_start" || action == "rx_start") {
             val seconds = (params?.optInt("seconds", 10) ?: 10).coerceIn(1, 120)
             return ((seconds + 15).coerceAtMost(320).coerceAtLeast(15)) * 1000L
         }

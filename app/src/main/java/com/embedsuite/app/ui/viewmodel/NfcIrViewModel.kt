@@ -34,6 +34,7 @@ class NfcIrViewModel(
     val uiState: StateFlow<NfcIrUiState> = _uiState.asStateFlow()
 
     val connectionState = connectionManager.connectionState
+    val detectedProfile = connectionManager.detectedProfile
     val irButtons: StateFlow<List<IrButtonEntity>> = irRepository.allButtons
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

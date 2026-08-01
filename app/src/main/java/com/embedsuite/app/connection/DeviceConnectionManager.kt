@@ -384,7 +384,8 @@ class DeviceConnectionManager(
                 uptime = String.format("%02d:%02d:%02d", hours, mins, secs),
                 uiScreen = status.uiScreen,
                 sdMounted = if (status.sdMounted) "OK" else "MISSING",
-                profile = FirmwareProfile.XIBALBA
+                profile = FirmwareProfile.XIBALBA,
+                simFlags = status.sim
             )
             _systemInfo.value = info
             _events.tryEmit(BruceEvent.SystemInfoUpdate(info))
@@ -547,13 +548,34 @@ class DeviceConnectionManager(
     }
 
     suspend fun startSubGhzRawCapture(seconds: Int = 10) {
+        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
+            startSubGhzTehLinkCapture(seconds).onFailure {
+                _events.tryEmit(BruceEvent.TehLinkNotice(it.message ?: "Captura Sub-GHz falló"))
+            }
+            return
+        }
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
         setSubGhzFrequency(_subGhzFrequencyMhz.value)
         sendCommand(BruceCommands.subGhzRxRaw(seconds))
     }
 
+    /** Captura Sub-GHz remota vía TEH-Link (Xibalba / CC1101 Plus). */
+    suspend fun startSubGhzTehLinkCapture(seconds: Int = 15): Result<TehLinkActionResult> {
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("Captura TEH-Link solo disponible con firmware Xibalba."))
+        }
+        return tehLinkRunAction(
+            pluginId = "subghz_analyzer",
+            action = "capture_start",
+            params = org.json.JSONObject().put("seconds", seconds)
+        )
+    }
+
     /** Spectrum/waterfall se alimentan del stream de `rx raw` (no hay `subghz scan` en wiki). */
     suspend fun startSubGhzSpectrumScan() {
+        if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
+            return
+        }
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
         setSubGhzFrequency(_subGhzFrequencyMhz.value)
         sendCommand(BruceCommands.subGhzRxRaw(20))
@@ -738,7 +760,9 @@ class DeviceConnectionManager(
             channel = update.channel.ifBlank { current.channel },
             uiScreen = update.uiScreen.ifBlank { current.uiScreen },
             sdMounted = update.sdMounted.ifBlank { current.sdMounted },
-            profile = if (update.profile != FirmwareProfile.UNKNOWN) update.profile else current.profile
+            profile = if (update.profile != FirmwareProfile.UNKNOWN) update.profile else current.profile,
+            xibalbaPlugins = update.xibalbaPlugins.ifEmpty { current.xibalbaPlugins },
+            simFlags = update.simFlags.ifEmpty { current.simFlags }
         )
     }
 

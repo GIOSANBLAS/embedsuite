@@ -32,7 +32,9 @@ data class SystemInfo(
     val uiScreen: String = "",
     val sdMounted: String = "",
     val profile: FirmwareProfile = FirmwareProfile.UNKNOWN,
-    val xibalbaPlugins: List<TehLinkPluginInfo> = emptyList()
+    val xibalbaPlugins: List<TehLinkPluginInfo> = emptyList(),
+    /** Subsistemas en modo simulación (TEH-Link get_status.sim). Vacío = desconocido. */
+    val simFlags: Map<String, Boolean> = emptyMap()
 )
 
 sealed class BruceEvent {

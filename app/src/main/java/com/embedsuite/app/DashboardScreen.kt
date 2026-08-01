@@ -41,6 +41,7 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val detectedProfile by connectionManager.detectedProfile.collectAsState()
     val fieldActive by FieldOperationManager.isActiveFlow.collectAsState()
     var replayTarget by remember { mutableStateOf<CapturedSignalEntity?>(null) }
     var keepScreenOn by remember { mutableStateOf(appPreferences.fieldKeepScreenOn) }
@@ -72,8 +73,13 @@ fun DashboardScreen(
 
         when (val ota = uiState.otaStatus) {
             is OtaUpdateStatus.UpdateAvailable -> {
+                val otaTitleRes = if (detectedProfile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA) {
+                    R.string.dash_ota_title_xibalba
+                } else {
+                    R.string.dash_ota_title
+                }
                 GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                    Text(stringResource(R.string.dash_ota_title), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
+                    Text(stringResource(otaTitleRes), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
                     Text(stringResource(R.string.dash_ota_body, ota.deviceVersion, ota.latestVersion), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
                     TextButton(onClick = onNavigateTools) {
                         Text(stringResource(R.string.dash_ota_action), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
@@ -81,6 +87,20 @@ fun DashboardScreen(
                 }
             }
             else -> {}
+        }
+
+        val simActive = uiState.systemInfo.simFlags.any { it.value }
+        if (simActive && uiState.connectionState is ConnectionState.Connected) {
+            val simList = uiState.systemInfo.simFlags.filter { it.value }.keys.sorted().joinToString(", ")
+            GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Text(
+                    stringResource(R.string.plus_compat_sim_warning, simList),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = NeonOrange,
+                    lineHeight = 12.sp
+                )
+            }
         }
 
         GlassCard(accent = connectionColor(uiState.connectionState), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {

@@ -22,8 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.SignalEntry
 import com.embedsuite.app.rf.RfFrequencyPresets
 import com.embedsuite.app.ui.components.RfFrequencyPicker
@@ -36,6 +38,7 @@ fun SubGhzScreen(
     onSignalSelected: (SignalEntry) -> Unit = {}
 ) {
     val connectionState by connectionManager.connectionState.collectAsState()
+    val detectedProfile by connectionManager.detectedProfile.collectAsState()
     val signalLog by connectionManager.signalLog.collectAsState()
     val selectedMhz by connectionManager.subGhzFrequencyMhz.collectAsState()
     val rfLive by connectionManager.rfLive.collectAsState()
@@ -70,16 +73,33 @@ fun SubGhzScreen(
         }
     }
 
+    val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
+    val liveRfEnabled = isConnected && !isXibalba
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(FlipperBackground)
             .padding(10.dp)
     ) {
+        if (isXibalba) {
+            Text(
+                stringResource(R.string.plus_compat_subghz_xibalba_hint),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                color = NeonOrange,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
         HeaderSection(
+            headerTitle = if (isXibalba) {
+                stringResource(R.string.plus_compat_subghz_header_xibalba)
+            } else {
+                stringResource(R.string.plus_compat_subghz_header_bruce)
+            },
             frequency = currentFrequency,
             isConnected = isConnected,
-            lastRssi = rfLive.lastRssiDbm
+            lastRssi = if (liveRfEnabled) rfLive.lastRssiDbm else null
         )
 
         RfFrequencyPicker(
@@ -105,7 +125,7 @@ fun SubGhzScreen(
         SectionHeader(
             title = "RF SPECTRUM ANALYZER",
             badge = rfLive.lastRssiDbm?.let { "${it.toInt()} dBm" } ?: "${spectrumPoints.size} PTS",
-            isLive = isConnected && (isCapturingRaw || isScanning)
+            isLive = liveRfEnabled && (isCapturingRaw || isScanning)
         )
         SpectrumAnalyzerView(
             points = spectrumPoints,
@@ -120,8 +140,8 @@ fun SubGhzScreen(
 
         SectionHeader(
             title = "WATERFALL DISPLAY",
-            badge = if (isConnected && (isCapturingRaw || isScanning)) "LIVE" else "PAUSED",
-            isLive = isConnected && (isCapturingRaw || isScanning)
+            badge = if (liveRfEnabled && (isCapturingRaw || isScanning)) "LIVE" else "PAUSED",
+            isLive = liveRfEnabled && (isCapturingRaw || isScanning)
         )
         WaterfallDisplayView(
             history = rfLive.waterfall,
@@ -166,6 +186,7 @@ fun SubGhzScreen(
             isCapturing = isCapturingRaw,
             isScanning = isScanning,
             isConnected = isConnected,
+            isXibalba = isXibalba,
             onToggleCapture = {
                 scope.launch {
                     if (isCapturingRaw) {
@@ -175,10 +196,15 @@ fun SubGhzScreen(
                         isScanning = false
                         connectionManager.startSubGhzRawCapture(15)
                         isCapturingRaw = true
+                        if (isXibalba) {
+                            kotlinx.coroutines.delay(15_000L)
+                            isCapturingRaw = false
+                        }
                     }
                 }
             },
             onToggleScan = {
+                if (isXibalba) return@QuickActionButtons
                 scope.launch {
                     if (isScanning) {
                         connectionManager.stopSubGhzCapture()
@@ -218,7 +244,12 @@ private fun WaveformViewer(
 }
 
 @Composable
-private fun HeaderSection(frequency: String, isConnected: Boolean, lastRssi: Float?) {
+private fun HeaderSection(
+    headerTitle: String,
+    frequency: String,
+    isConnected: Boolean,
+    lastRssi: Float?
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -226,7 +257,7 @@ private fun HeaderSection(frequency: String, isConnected: Boolean, lastRssi: Flo
     ) {
         Column {
             Text(
-                text = "BRUCE T-EMBED COMPANION",
+                text = headerTitle,
                 color = FlipperTextSecondary,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -398,12 +429,17 @@ private fun QuickActionButtons(
     isCapturing: Boolean,
     isScanning: Boolean,
     isConnected: Boolean,
+    isXibalba: Boolean,
     onToggleCapture: () -> Unit,
     onToggleScan: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "TX: Tools → Sync SD → TX en .sub del T-Embed (o biblioteca si está decodificada)",
+            if (isXibalba) {
+                "Captura remota vía TEH-Link. Resultados en pantalla del T-Embed."
+            } else {
+                "TX: Tools → Sync SD → TX en .sub del T-Embed (o biblioteca si está decodificada)"
+            },
             fontFamily = FontFamily.Monospace,
             fontSize = 8.sp,
             color = FlipperTextSecondary,
@@ -413,22 +449,24 @@ private fun QuickActionButtons(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Button(
-                onClick = onToggleScan,
-                enabled = isConnected,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isScanning) NeonCyan.copy(alpha = 0.3f) else FlipperGrid
-                ),
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    if (isScanning) "STOP UI" else "LISTEN 20s",
-                    color = if (isScanning) BlackAMOLED else NeonCyan,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
+            if (!isXibalba) {
+                Button(
+                    onClick = onToggleScan,
+                    enabled = isConnected,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isScanning) NeonCyan.copy(alpha = 0.3f) else FlipperGrid
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        if (isScanning) "STOP UI" else "LISTEN 20s",
+                        color = if (isScanning) BlackAMOLED else NeonCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
 
             Button(
@@ -441,7 +479,11 @@ private fun QuickActionButtons(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = if (isCapturing) "STOP UI" else "RAW RX 15s",
+                    text = when {
+                        isCapturing -> "STOP UI"
+                        isXibalba -> stringResource(R.string.plus_compat_capture_tehlink)
+                        else -> "RAW RX 15s"
+                    },
                     color = if (isCapturing) Color.White else FlipperSignalNeon,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,

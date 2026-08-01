@@ -22,7 +22,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.data.NfcDumpEntity
 import com.embedsuite.app.flipper.FlipperFileManager
 import androidx.compose.ui.unit.dp
@@ -41,14 +43,26 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
 
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
+    val detectedProfile by viewModel.detectedProfile.collectAsState()
     val irButtons by viewModel.irButtons.collectAsState()
     val isConnected = connectionState is ConnectionState.Connected
+    val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
+    val deviceOpsEnabled = isConnected && !isXibalba
     val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (isXibalba) {
+            Text(
+                stringResource(R.string.plus_compat_nfc_ir_unavailable),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                color = NeonOrange,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            )
+        }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             FilterChip(
                 selected = uiState.modo == "NFC / RFID",
@@ -78,7 +92,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 Text("DUMPS GUARDADOS — EMULAR", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonCyan, modifier = Modifier.fillMaxWidth())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
                     items(uiState.savedDumps, key = { it.id }) { dump ->
-                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = isConnected) {
+                        OutlinedButton(onClick = { viewModel.emulateFromDump(dump) }, enabled = deviceOpsEnabled) {
                             Text(dump.uid, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
                         }
                     }
@@ -91,6 +105,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 nfcDump = uiState.nfcDump,
                 parsedMifare = uiState.parsedMifare,
                 isConnected = isConnected,
+                controlsEnabled = deviceOpsEnabled,
                 onRead = { viewModel.readNfc() },
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
@@ -115,6 +130,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 modifier = Modifier.weight(1f),
                 irButtons = irButtons,
                 isConnected = isConnected,
+                controlsEnabled = deviceOpsEnabled,
                 onSend = { viewModel.sendIr(it) },
                 onCapture = { viewModel.captureIr() },
                 onAdd = { showAddIr = true },
@@ -157,6 +173,7 @@ private fun NfcPanel(
     nfcDump: String,
     parsedMifare: String,
     isConnected: Boolean,
+    controlsEnabled: Boolean = isConnected,
     onRead: () -> Unit,
     onEmulate: () -> Unit,
     onClearDump: () -> Unit,
@@ -177,10 +194,10 @@ private fun NfcPanel(
     }
     Spacer(modifier = Modifier.height(12.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Button(onClick = onRead, enabled = isConnected, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen)) {
+        Button(onClick = onRead, enabled = controlsEnabled, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen)) {
             Text("LEER TAG", fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 11.sp)
         }
-        OutlinedButton(onClick = onEmulate, enabled = isConnected, modifier = Modifier.weight(1f)) {
+        OutlinedButton(onClick = onEmulate, enabled = controlsEnabled, modifier = Modifier.weight(1f)) {
             Text("EMULAR UID", fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 11.sp)
         }
         OutlinedButton(onClick = onExportNfc, enabled = nfcDump.isNotBlank(), modifier = Modifier.weight(1f)) {
@@ -211,6 +228,7 @@ private fun IrPanel(
     modifier: Modifier = Modifier,
     irButtons: List<IrButtonEntity>,
     isConnected: Boolean,
+    controlsEnabled: Boolean = isConnected,
     onSend: (String) -> Unit,
     onCapture: () -> Unit,
     onAdd: () -> Unit,
@@ -225,7 +243,7 @@ private fun IrPanel(
     LazyVerticalGrid(columns = GridCells.Fixed(3), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.fillMaxWidth()) {
         items(irButtons, key = { it.id }) { button ->
             Column {
-                Button(onClick = { onSend(button.bruceCommand) }, enabled = isConnected, modifier = Modifier.fillMaxWidth().height(48.dp),
+                Button(onClick = { onSend(button.bruceCommand) }, enabled = controlsEnabled, modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = NeonOrange.copy(alpha = 0.85f)), shape = RoundedCornerShape(6.dp)) {
                     Text(button.buttonName, fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 10.sp)
                 }
@@ -236,7 +254,7 @@ private fun IrPanel(
         }
     }
     Spacer(modifier = Modifier.height(8.dp))
-    OutlinedButton(onClick = onCapture, enabled = isConnected, modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = onCapture, enabled = controlsEnabled, modifier = Modifier.fillMaxWidth()) {
         Icon(Icons.Default.Sensors, null, tint = NeonOrange, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(6.dp))
         Text("CAPTURAR COMANDO IR", fontFamily = FontFamily.Monospace, color = NeonOrange, fontSize = 11.sp)

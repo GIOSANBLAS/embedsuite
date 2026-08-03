@@ -95,7 +95,7 @@
 
     <string name="dash_command_center">CENTRO DE COMANDO</string>
     <string name="dash_ota_title_xibalba">ATUALIZAÇÃO XIBALBA DISPONÍVEL</string>
-    <string name="plus_compat_sim_warning">⚠ Build em SIMULAÇÃO: %1$s. Flashe Xibalba v0.17.0 (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_sim_warning">⚠ Build em SIMULAÇÃO: %1$s. Flashe Xibalba v0.17.1 (perfil CC1101 Plus real).</string>
     <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall ao vivo não disponíveis via TEH-Link. Use captura TEH-Link ou o menu Sub-GHz do T-Embed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="subghz_freq_local_hint">Frequência salva no app. Ajuste também no menu Sub-GHz do T-Embed se necessário.</string>

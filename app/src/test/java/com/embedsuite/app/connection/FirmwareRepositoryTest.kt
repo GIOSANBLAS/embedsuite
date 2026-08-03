@@ -23,7 +23,7 @@ class FirmwareRepositoryTest {
             source = FirmwareSource.OFFICIAL_XIBALBA
         )
         val xibalbaNew = FirmwareRelease(
-            tagName = "v0.17.0",
+            tagName = "v0.17.1",
             name = "Glow",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",
@@ -32,13 +32,13 @@ class FirmwareRepositoryTest {
         )
         val recommended = FirmwareCatalog.pickRecommended(listOf(xibalbaOld, xibalbaNew), FirmwareProfile.XIBALBA)
         assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
-        assertEquals("v0.17.0", recommended?.tagName)
+        assertEquals("v0.17.1", recommended?.tagName)
     }
 
     @Test
     fun pickRecommended_xibalbaOnlyList() {
         val xibalba = FirmwareRelease(
-            tagName = "v0.17.0",
+            tagName = "v0.17.1",
             name = "Glow",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",
@@ -47,13 +47,13 @@ class FirmwareRepositoryTest {
         )
         val recommended = FirmwareCatalog.pickRecommended(listOf(xibalba), FirmwareProfile.XIBALBA)
         assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
-        assertEquals("v0.17.0", recommended?.tagName)
+        assertEquals("v0.17.1", recommended?.tagName)
     }
 
     @Test
     fun deviceCatalog_isXibalbaOnly() {
         val xibalba = FirmwareRelease(
-            tagName = "v0.17.0",
+            tagName = "v0.17.1",
             name = "Glow",
             downloadUrl = "https://example.com/xibalba.bin",
             fileName = "te-embed-xibalba.bin",

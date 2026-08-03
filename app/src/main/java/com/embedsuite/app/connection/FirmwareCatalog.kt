@@ -46,13 +46,14 @@ object FirmwareCatalog {
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
     val XIBALBA_FALLBACK_V0170: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.17.0",
-        name = "v0.17.0 Spark",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.17.0/te-embed-xibalba.bin",
+        tagName = "v0.17.1",
+        name = "v0.17.1 Spark",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.17.1/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "T-Embed Xibalba v0.17.0 Spark (nRF24 TX/RX, NFC UID emulate, BadUSB EXFIL)"
+        description = "T-Embed Xibalba v0.17.1 Spark (safe CDC hardware profile, OTA rollback, nRF24/NFC/EXFIL)",
+        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd"
     )
 
     val XIBALBA_FALLBACK_V0165: FirmwareRelease = FirmwareRelease(

@@ -121,7 +121,7 @@ class MockTransport(
             }
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
-                .put("version", "0.17.0")
+                .put("version", "0.17.1")
                 .put("codename", "Spark")
                 .put("channel", "release")
                 .put("proto", "teh-link")
@@ -788,7 +788,7 @@ class MockTransport(
         private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
 
         val defaultResponses = mapOf(
-            "info" to "Xibalba v0.17.0 | CC1101 | Free heap: 120000",
+            "info" to "Xibalba v0.17.1 | CC1101 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",
             "uptime" to "Uptime: 01:23:45",
             "subghz" to "Sub-GHz menu",

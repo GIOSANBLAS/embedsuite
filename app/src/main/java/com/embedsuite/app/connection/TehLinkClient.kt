@@ -269,6 +269,22 @@ class TehLinkClient(
         return runAction(transport, pluginId = "nrf24_toolkit", action = "status")
     }
 
+    suspend fun runNrf24Tx(
+        transport: TEmbedTransport,
+        hex: String
+    ): Result<TehLinkActionResult> {
+        return runAction(
+            transport,
+            pluginId = "nrf24_toolkit",
+            action = "tx",
+            params = JSONObject().put("hex", hex)
+        )
+    }
+
+    suspend fun runNfcEmulateStop(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, pluginId = "nfc_toolkit", action = "emulate_stop")
+    }
+
     suspend fun sendRawJson(
         transport: TEmbedTransport,
         json: String,

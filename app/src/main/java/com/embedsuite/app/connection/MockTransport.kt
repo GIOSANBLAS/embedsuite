@@ -121,8 +121,8 @@ class MockTransport(
             }
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
-                .put("version", "0.16.5")
-                .put("codename", "Glow")
+                .put("version", "0.17.0")
+                .put("codename", "Spark")
                 .put("channel", "release")
                 .put("proto", "teh-link")
                 .put("proto_ver", 3)
@@ -148,11 +148,13 @@ class MockTransport(
                     .put("pn532", true))
                 .put("capabilities", JSONObject()
                     .put("nfc", true)
+                    .put("nfc_emulate", true)
                     .put("ir", true)
                     .put("subghz_tx", true)
                     .put("ir_rx", true)
                     .put("nrf24", false)
                     .put("badusb_hid", false)
+                    .put("badusb_exfil", true)
                     .put("charger", true)
                     .put("fuel_gauge", true)
                     .put("gps_external", false))
@@ -786,7 +788,7 @@ class MockTransport(
         private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
 
         val defaultResponses = mapOf(
-            "info" to "Xibalba v0.16.5 | CC1101 | Free heap: 120000",
+            "info" to "Xibalba v0.17.0 | CC1101 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",
             "uptime" to "Uptime: 01:23:45",
             "subghz" to "Sub-GHz menu",

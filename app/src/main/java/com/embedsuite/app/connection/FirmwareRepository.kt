@@ -110,7 +110,7 @@ class FirmwareRepository {
 
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    return@withContext Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0162))
+                    return@withContext Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
                 }
 
                 val body = response.body?.string().orEmpty()
@@ -151,13 +151,13 @@ class FirmwareRepository {
                 }
 
                 if (results.isEmpty()) {
-                    Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0162))
+                    Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
                 } else {
                     Result.success(results)
                 }
             }
         } catch (_: Exception) {
-            Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0162))
+            Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
         }
     }
 

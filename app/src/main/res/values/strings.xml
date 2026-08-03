@@ -101,9 +101,9 @@
 
     <!-- Hardware bring-up (Xibalba Day 1) -->
     <string name="hardware_bringup_title">GUÍA DÍA 1 · HARDWARE</string>
-    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.16.5</string>
+    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.17.0</string>
     <string name="hardware_bringup_flash_header">1 · FLASHEAR FIRMWARE</string>
-    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.16.5 Glow\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
+    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.17.0 Spark\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
     <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
     <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
     <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
@@ -111,7 +111,7 @@
     <string name="hardware_bringup_test_log">ABRIR HARDWARE_TEST_LOG.md</string>
     <string name="hardware_bringup_test_log_sub">Registro de pruebas en GitHub (te-embed-xibalba)</string>
     <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>
-    <string name="settings_hardware_bringup_sub">Flash v0.16.5, pairing GPIO6, checklist de pruebas</string>
+    <string name="settings_hardware_bringup_sub">Flash v0.17.0, pairing GPIO6, checklist de pruebas</string>
     <string name="dash_hardware_bringup">Guía hardware Día 1 →</string>
 
     <!-- Dashboard -->
@@ -119,7 +119,7 @@
     <string name="dash_ota_title_xibalba">ACTUALIZACIÓN XIBALBA DISPONIBLE</string>
     <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
     <string name="dash_ota_action">Ir a Tools → Flash</string>
-    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.16.5 (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.17.0 (perfil CC1101 Plus real).</string>
     <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba (USB): captura TEH-Link y TX/replay listos. Espectro/waterfall en vivo aún no expuesto por el firmware — usa el menú Sub-GHz del T-Embed si lo necesitas.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="subghz_freq_local_hint">Frecuencia guardada en la app. Ajusta también la frecuencia en el menú Sub-GHz del T-Embed si hace falta.</string>

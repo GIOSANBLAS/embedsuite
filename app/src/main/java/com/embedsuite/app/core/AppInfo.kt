@@ -37,14 +37,33 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "4.0.7",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Simbiosis Xibalba: telemetría CC1101 en vivo (paquetes/tiempo) vía get_action_state",
+                "Captura con freq_mhz + capture_stop real; macros ejecutan run_action TEH-Link",
+                "Perfiles/chips alineados al protocolo (sin CLI Bruce legacy)",
+                "Mock: subghz_tx/replay; USB sigue siendo el camino diario"
+            )
+        ),
+        ChangelogEntry(
+            version = "4.0.6",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Pulido USB diario: auto-reconnect y arranque priorizan USB OTG",
+                "WiFi/BLE marcados experimental en Tools y Ajustes",
+                "Espectro/waterfall live oculto (stub TEH-Link listo para activar)",
+                "Metadata unificada 4.0.6; manual docs Xibalba; OTA/replay/widget más robustos"
+            )
+        ),
+        ChangelogEntry(
             version = "4.0.0",
             date = "Ago 2026",
             highlights = listOf(
                 "Xibalba Native: app orientada 100% a T-Embed CC1101 Plus + firmware Xibalba",
                 "Eliminación completa de código y UI legacy; solo TEH-Link",
                 "Catálogo firmware solo releases Xibalba oficiales; custom .bin local",
-                "OTA USB (TEH-Link); LinkDebugPanel en MapTools",
-                "Versión 4.0.0 build 20"
+                "OTA USB (TEH-Link); LinkDebugPanel en MapTools"
             )
         ),
         ChangelogEntry(
@@ -55,7 +74,7 @@ object AppInfo {
                 "TEH-Link primario en RF/NFC/IR/wardriving/OTA",
                 "Splash, ajustes y copy orientados a T-Embed CC1101 Plus + te-embed-xibalba",
                 "Consola TEH-Link JSON",
-                "OTA Xibalba v0.16.2 catalog preservado; versión 3.9.0 build 19"
+                "OTA Xibalba v0.16.4 catalog preservado; versión 3.9.0 build 19"
             )
         ),
         ChangelogEntry(

@@ -200,7 +200,10 @@ object TehLinkResponseParser {
             uptimeMs = data.optLong("uptime_ms"),
             sim = sim,
             capabilities = capabilities,
-            batteryPct = data.optInt("battery_pct").takeIf { data.has("battery_pct") }
+            batteryPct = data.optInt("battery_pct").takeIf { data.has("battery_pct") },
+            chargeStatus = data.optString("charge_status").takeIf { data.has("charge_status") },
+            charging = data.optBoolean("charging").takeIf { data.has("charging") },
+            vbusPresent = data.optBoolean("vbus_present").takeIf { data.has("vbus_present") }
         )
     }
 

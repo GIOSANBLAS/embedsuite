@@ -18,7 +18,7 @@
     <string name="nav_cli">CLI</string>
     <string name="nav_ai">AI</string>
     <string name="nav_tools">Tools</string>
-    <string name="topbar_subtitle">T-Embed CC1101 Plus</string>
+    <string name="topbar_subtitle">Xibalba // TEH-Link · T-Embed CC1101</string>
     <string name="status_offline">OFFLINE</string>
     <string name="status_sync">SYNC…</string>
     <string name="status_link_ok">LINK OK</string>
@@ -34,6 +34,8 @@
     <string name="action_share">Compartir</string>
     <string name="action_transmit">Transmitir</string>
     <string name="action_unavailable">No disponible</string>
+    <string name="action_ok">OK</string>
+    <string name="action_refresh_state">Actualizar estado</string>
 
     <!-- Onboarding legal -->
     <string name="onboard_connect_title">CONECTAR T-EMBED</string>
@@ -99,9 +101,9 @@
 
     <!-- Hardware bring-up (Xibalba Day 1) -->
     <string name="hardware_bringup_title">GUÍA DÍA 1 · HARDWARE</string>
-    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.16.2</string>
+    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.16.4</string>
     <string name="hardware_bringup_flash_header">1 · FLASHEAR FIRMWARE</string>
-    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.16.2 Glow\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
+    <string name="hardware_bringup_flash_body">• Tools → Flash → Xibalba v0.16.4 Glow\n• Conecta USB OTG (TEH-Link activo tras flash)\n• Verifica boot splash LVGL + chase WS2812\n• Si ves flags SIM en el Dashboard, re-flashea perfil CC1101 Plus real</string>
     <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
     <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
     <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
@@ -109,7 +111,7 @@
     <string name="hardware_bringup_test_log">ABRIR HARDWARE_TEST_LOG.md</string>
     <string name="hardware_bringup_test_log_sub">Registro de pruebas en GitHub (te-embed-xibalba)</string>
     <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>
-    <string name="settings_hardware_bringup_sub">Flash v0.16.2, pairing GPIO6, checklist de pruebas</string>
+    <string name="settings_hardware_bringup_sub">Flash v0.16.4, pairing GPIO6, checklist de pruebas</string>
     <string name="dash_hardware_bringup">Guía hardware Día 1 →</string>
 
     <!-- Dashboard -->
@@ -117,10 +119,19 @@
     <string name="dash_ota_title_xibalba">ACTUALIZACIÓN XIBALBA DISPONIBLE</string>
     <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
     <string name="dash_ota_action">Ir a Tools → Flash</string>
-    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.16.2 (perfil CC1101 Plus real).</string>
-    <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall en vivo no disponibles vía TEH-Link. Usa «Captura TEH-Link» o el menú Sub-GHz del T-Embed.</string>
+    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.16.4 (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba (USB): captura TEH-Link y TX/replay listos. Espectro/waterfall en vivo aún no expuesto por el firmware — usa el menú Sub-GHz del T-Embed si lo necesitas.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="subghz_freq_local_hint">Frecuencia guardada en la app. Ajusta también la frecuencia en el menú Sub-GHz del T-Embed si hace falta.</string>
+    <string name="rf_live_unavailable_title">ESPECTRO / WATERFALL</string>
+    <string name="rf_live_unavailable_body">Espectro live no disponible vía TEH-Link. Usa Captura TEH-Link; verás paquetes RX en tiempo real.</string>
+    <string name="rf_capture_live_title">CC1101 CAPTURE STATUS</string>
+    <string name="rf_capture_live_body">RX LIVE · paquetes %1$d · quedan %2$ds</string>
+    <string name="transport_usb_recommended">USB OTG — recomendado y prioritario para uso diario (captura, TX, OTA).</string>
+    <string name="transport_wifi_experimental">⚠ WiFi TEH-Link es EXPERIMENTAL. Puede fallar en RF/OTA. Preferir USB OTG.</string>
+    <string name="transport_ble_experimental">⚠ BLE TEH-Link es EXPERIMENTAL. Preferir USB OTG para uso diario.</string>
+    <string name="transport_experimental_warning">⚠ Transporte experimental: la app prioriza USB al reconectar y al arrancar.</string>
+    <string name="settings_transport_usb_priority">Auto-reconnect y arranque priorizan USB. * = experimental.</string>
     <string name="plus_compat_nfc_unavailable">NFC del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware PN532).</string>
     <string name="plus_compat_ir_unavailable">IR del dispositivo no disponible (actualiza firmware Xibalba v0.15+ o perfil hardware IR).</string>
     <string name="plus_compat_capture_tehlink">CAPTURA TEH-LINK (15s)</string>
@@ -208,7 +219,7 @@
     <string name="tools_rf_highlight">Señal RF #%1$d en biblioteca</string>
 
     <!-- RF Hub -->
-    <string name="rf_tab_spectrum">SPECTRUM</string>
+    <string name="rf_tab_spectrum">RF</string>
     <string name="rf_tab_library">BIBLIOTECA</string>
     <string name="rf_tab_analysis">ANÁLISIS</string>
 
@@ -317,8 +328,97 @@
     <string name="console_placeholder_teh_link">JSON TEH-Link, ej. {\"cmd\":\"ping\"} (↑↓ historial)</string>
     <string name="console_import_macro">Importar macro TEH-Link (JSON)</string>
     <string name="console_teh_link_macros">Macros TEH-Link:</string>
+    <string name="console_teh_link_chips">TEH-Link:</string>
+    <string name="console_chip_list_actions">list_actions</string>
+    <string name="console_chip_back_menu">back_to_menu</string>
+    <string name="console_chip_subghz_tx">subghz_tx</string>
+
+    <!-- Offline maps -->
+    <string name="offline_map_title">MAPAS OFFLINE</string>
+    <string name="offline_map_cache">Caché: %1$s</string>
+    <string name="offline_map_status_idle">Tiles en caché para war-driving sin datos.</string>
+    <string name="offline_map_status_gps_required">GPS requerido para precachear zona.</string>
+    <string name="offline_map_status_downloading">Descargando tiles ~8 km…</string>
+    <string name="offline_map_status_done">Listo: %1$d tiles cacheados.</string>
+    <string name="offline_map_status_error">Error: %1$s</string>
+    <string name="offline_map_status_cleared">Caché de mapas eliminada.</string>
+    <string name="offline_map_precache">PRECACHEAR ZONA</string>
+    <string name="offline_map_clear">LIMPIAR</string>
+
+    <!-- Link debug categories -->
+    <string name="debug_cat_all">ALL</string>
+    <string name="debug_cat_rf">RF</string>
+    <string name="debug_cat_system">SYS</string>
+    <string name="debug_cat_error">ERR</string>
+    <string name="debug_cat_storage">SD</string>
+    <string name="debug_cat_other">OTHER</string>
 
     <!-- NFC/IR -->
     <string name="nfc_ir_command_teh_link">Comando IR (TEH-Link)</string>
     <string name="nfc_waiting_teh_link">Esperando respuesta TEH-Link…</string>
+
+    <!-- Dashboard acciones TEH-Link -->
+    <string name="dashboard_menu">MENU</string>
+    <string name="dashboard_action_capture_15s">Captura 15s</string>
+    <string name="dashboard_action_demo_script">Script demo</string>
+    <string name="dashboard_action_wifi_scan">WiFi scan 10s</string>
+    <string name="dashboard_action_ble_scan">BLE scan 10s</string>
+    <string name="dashboard_action_wardriving_start">Wardriving inicio</string>
+    <string name="dashboard_action_wardriving_stop">Wardriving parar</string>
+    <string name="dashboard_action_hash_test">Hash test</string>
+    <string name="dashboard_action_gen_password">Gen password</string>
+    <string name="dashboard_action_seconds_left">%1$ds restantes</string>
+    <string name="dashboard_action_pkts">%1$d pkts</string>
+    <string name="dashboard_action_aps">%1$d APs</string>
+    <string name="dashboard_secret_hidden">[secreto oculto]</string>
+
+    <!-- Map tools (export / macros / conexión) -->
+    <string name="map_ota_available">OTA: %1$s %2$s disponible (actual: %3$s)</string>
+    <string name="map_export_signals_count">Señales guardadas: %1$d</string>
+    <string name="map_export_status_json">JSON: %1$s</string>
+    <string name="map_export_status_csv">CSV: %1$s</string>
+    <string name="map_export_status_kml">KML: %1$s</string>
+    <string name="map_export_status_html">HTML: %1$s</string>
+    <string name="map_export_status_pdf">PDF: %1$s</string>
+    <string name="map_export_status_backup">Backup: %1$s</string>
+    <string name="map_export_status_sub">Export .sub: %1$s</string>
+    <string name="map_export_error">Error: %1$s</string>
+    <string name="map_export_backup_error">Backup error: %1$s</string>
+    <string name="map_export_no_rf">Sin señales RF para exportar</string>
+    <string name="map_share_sub">Compartir .sub</string>
+    <string name="map_export_backup_btn">Backup</string>
+    <string name="map_export_import_btn">Import</string>
+    <string name="map_macros_title">MACROS / SCRIPTS</string>
+    <string name="map_macro_new_cd">Nuevo macro</string>
+    <string name="map_macro_hint">Macros TEH-Link: JSON por línea, # comentarios, wait 1000ms</string>
+    <string name="map_macro_new_title">Nuevo macro</string>
+    <string name="map_macro_name">Nombre</string>
+    <string name="map_macro_commands">Comandos (uno por línea)</string>
+    <string name="map_connection_title">CONEXIÓN T-EMBED</string>
+    <string name="map_conn_disconnected">DESCONECTADO</string>
+    <string name="map_conn_connecting">CONECTANDO…</string>
+    <string name="map_conn_connected">CONECTADO // %1$s</string>
+    <string name="map_conn_error">ERROR: %1$s</string>
+    <string name="map_wifi_host">Host WiFi</string>
+    <string name="map_connect">CONECTAR</string>
+    <string name="map_disconnect">DESCONECTAR</string>
+    <string name="map_refresh_esp32">Actualizar info ESP32</string>
+    <string name="map_monitor_title">MONITOR ESP32-S3</string>
+    <string name="map_monitor_battery">BATERÍA</string>
+    <string name="map_monitor_status">ESTADO</string>
+    <string name="map_monitor_online">ONLINE</string>
+    <string name="map_monitor_offline">OFFLINE</string>
+
+    <!-- Asistente AI -->
+    <string name="ai_title">EMBED AI CORE</string>
+    <string name="ai_mode_status">Modo: %1$s | %2$s</string>
+    <string name="ai_link_ok">LINK OK</string>
+    <string name="ai_offline">OFFLINE</string>
+    <string name="ai_settings_cd">Ajustes AI</string>
+    <string name="ai_clear_cd">Limpiar chat</string>
+    <string name="ai_chip_capture">Captura RF</string>
+    <string name="ai_chip_analyze">Analizar</string>
+    <string name="ai_chip_report">Reporte</string>
+    <string name="ai_voice_prompt">Comando para T-Embed…</string>
+    <string name="ai_prompt_capture">Captura subghz raw 15 segundos</string>
 </resources>

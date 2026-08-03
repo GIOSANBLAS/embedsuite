@@ -45,6 +45,16 @@ object FirmwareCatalog {
 
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
+    val XIBALBA_FALLBACK_V0164: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.16.4",
+        name = "v0.16.4 Glow",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.4/te-embed-xibalba.bin",
+        fileName = "te-embed-xibalba.bin",
+        isPrerelease = true,
+        source = FirmwareSource.OFFICIAL_XIBALBA,
+        description = "T-Embed Xibalba v0.16.4 Glow (BQ25896 charger + hardware TinyUSB HID + TEH-Link caps)"
+    )
+
     val XIBALBA_FALLBACK_V0162: FirmwareRelease = FirmwareRelease(
         tagName = "v0.16.2",
         name = "v0.16.2 Glow",
@@ -56,11 +66,11 @@ object FirmwareCatalog {
         sha256Hex = "6fbdbaeeccfbd017bf71ffe1475e170c8b9970d5528f1c9466ed749fc404c512"
     )
 
-    val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0162
-    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0162
-    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0161
-    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0161
-    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0161
+    val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0164
+    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0164
+    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0164
+    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0164
+    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0164
 
     fun markRecommended(
         releases: List<FirmwareRelease>,

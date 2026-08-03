@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlin.coroutines.cancellation.CancellationException
 import java.io.File
 import com.embedsuite.app.rf.RfLineParser
 import com.embedsuite.app.BuildConfig
@@ -115,10 +116,25 @@ class DeviceConnectionManager(
                 if (autoReconnect && state is ConnectionState.Disconnected) {
                     delay(3000)
                     if (_connectionState.value is ConnectionState.Disconnected) {
-                        connect(prefs.defaultTransport.value)
+                        // USB primero (estable); solo si falla se intenta el transporte preferido.
+                        reconnectPreferringUsb(prefs.defaultTransport.value)
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Reconexión robusta para uso diario: USB OTG tiene prioridad absoluta.
+     * WiFi/BLE solo como fallback si el usuario los eligió y USB no está disponible.
+     */
+    private suspend fun reconnectPreferringUsb(preferred: TransportType) {
+        val usb = connect(TransportType.USB)
+        if (usb.isSuccess) return
+        if (preferred != TransportType.USB &&
+            _connectionState.value is ConnectionState.Disconnected
+        ) {
+            connect(preferred)
         }
     }
 
@@ -294,7 +310,7 @@ class DeviceConnectionManager(
                 profile = FirmwareProfile.XIBALBA,
                 simFlags = status.sim,
                 xibalbaCapabilities = status.capabilities,
-                battery = status.batteryPct?.let { "$it%" } ?: info.battery
+                battery = formatBatteryLine(status) ?: info.battery
             )
             _systemInfo.value = info
             _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
@@ -463,9 +479,28 @@ class DeviceConnectionManager(
             "subghz_tx" -> "subghz_analyzer"
             "ir_rx" -> "ir_toolkit"
             "nrf24" -> "nrf24_toolkit"
+            "badusb_hid" -> "badusb"
+            "charger" -> "charger"
+            "fuel_gauge" -> "fuel_gauge"
             else -> key
         }
         return _systemInfo.value.xibalbaPlugins.any { it.id == pluginId }
+    }
+
+    private fun formatBatteryLine(status: TehLinkDeviceStatus): String? {
+        val pct = status.batteryPct?.let { "$it%" }
+        val charge = when {
+            status.charging == true -> status.chargeStatus?.ifBlank { "charging" } ?: "charging"
+            status.vbusPresent == true -> status.chargeStatus ?: "usb"
+            !status.chargeStatus.isNullOrBlank() -> status.chargeStatus
+            else -> null
+        }
+        return when {
+            pct != null && charge != null -> "$pct · $charge"
+            pct != null -> pct
+            charge != null -> charge
+            else -> null
+        }
     }
 
     suspend fun tehLinkRunSubGhzTx(rawHex: String, freqMhz: Double? = null): Result<TehLinkActionResult> {
@@ -559,10 +594,14 @@ class DeviceConnectionManager(
         }
     }
 
-    suspend fun startSubGhzRawCapture(seconds: Int = 10) {
-        startSubGhzTehLinkCapture(seconds).onFailure {
-            _events.tryEmit(DeviceEvent.TehLinkNotice(it.message ?: "Captura Sub-GHz falló"))
-        }
+    suspend fun startSubGhzRawCapture(seconds: Int = 10): Result<String> {
+        return startSubGhzTehLinkCapture(seconds).fold(
+            onSuccess = { Result.success("Captura TEH-Link ${seconds}s") },
+            onFailure = {
+                _events.tryEmit(DeviceEvent.TehLinkNotice(it.message ?: "Captura Sub-GHz falló"))
+                Result.failure(it)
+            }
+        )
     }
 
     /** Captura Sub-GHz remota vía TEH-Link (Xibalba / CC1101 Plus). */
@@ -570,23 +609,51 @@ class DeviceConnectionManager(
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("Captura TEH-Link solo disponible con firmware Xibalba."))
         }
+        val freq = _subGhzFrequencyMhz.value.replace(Regex("[^0-9.]"), "").toDoubleOrNull()
+        val params = org.json.JSONObject().put("seconds", seconds.coerceIn(1, 120))
+        if (freq != null && freq > 100.0) {
+            params.put("freq_mhz", freq)
+        }
         return tehLinkRunAction(
             pluginId = "subghz_analyzer",
             action = "capture_start",
-            params = org.json.JSONObject().put("seconds", seconds)
+            params = params
         )
     }
 
-    /** Spectrum/waterfall requiere captura TEH-Link en vivo (no disponible en stream legacy). */
+    /**
+     * Spectrum/waterfall live aún no expuesto de forma estable por TEH-Link.
+     * Telemetría real de captura: usa [tehLinkGetActionState]("subghz_analyzer").
+     */
     suspend fun startSubGhzSpectrumScan(): Result<String> {
-        return Result.failure(Exception("Spectrum requiere captura TEH-Link (Xibalba)."))
+        return Result.failure(
+            Exception(
+                "Espectro/waterfall en vivo no disponible aún vía TEH-Link. " +
+                    "Usa Captura TEH-Link; el estado RX (paquetes) se actualiza vía get_action_state."
+            )
+        )
     }
 
-    /**
-     * Resetea estado local de live UI.
-     */
-    suspend fun stopSubGhzCapture() {
+    /** Detiene captura remota en el T-Embed y limpia UI local. */
+    suspend fun stopSubGhzCapture(): Result<String> {
         _rfLive.value = RfLiveEngine.reset(_subGhzFrequencyMhz.value)
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.success("UI reset")
+        }
+        return tehLinkRunAction(
+            pluginId = "subghz_analyzer",
+            action = "capture_stop"
+        ).fold(
+            onSuccess = { Result.success(it.state.message.ifBlank { "Captura detenida" }) },
+            onFailure = {
+                // Firmware puede no exponer capture_stop; UI igual se limpia.
+                Result.success("UI reset (${it.message})")
+            }
+        )
+    }
+
+    suspend fun pollSubGhzCaptureState(): Result<TehLinkActionState> {
+        return tehLinkGetActionState("subghz_analyzer")
     }
 
     suspend fun uploadFirmwareOta(
@@ -594,25 +661,31 @@ class DeviceConnectionManager(
         expectedSha256: String? = null,
         onProgress: (Int) -> Unit
     ): Result<String> {
-        val sha256Hex = expectedSha256?.trim()?.lowercase()
-            ?: FirmwareRepository.computeFileSha256Hex(binFile)
-        FirmwareRepository.verifyFileSha256(binFile, sha256Hex).getOrElse {
-            return Result.failure(it)
-        }
-
-        return when (_detectedProfile.value) {
-            FirmwareProfile.XIBALBA -> {
-                val transport = activeTransport
-                    ?: return Result.failure(Exception("Sin transporte activo para OTA."))
-                if (_activeTransportType.value != TransportType.USB &&
-                    !(BuildConfig.ENABLE_MOCK_TRANSPORT && transport is MockTransport)
-                ) {
-                    return Result.failure(Exception("OTA Xibalba requiere conexión USB (TEH-Link)."))
-                }
-                ensureTehLinkAuth(transport)
-                tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
+        return try {
+            val sha256Hex = expectedSha256?.trim()?.lowercase()
+                ?: FirmwareRepository.computeFileSha256Hex(binFile)
+            FirmwareRepository.verifyFileSha256(binFile, sha256Hex).getOrElse {
+                return Result.failure(it)
             }
-            else -> Result.failure(Exception("OTA requiere firmware Xibalba conectado por USB (TEH-Link)."))
+
+            when (_detectedProfile.value) {
+                FirmwareProfile.XIBALBA -> {
+                    val transport = activeTransport
+                        ?: return Result.failure(Exception("Sin transporte activo para OTA."))
+                    if (_activeTransportType.value != TransportType.USB &&
+                        !(BuildConfig.ENABLE_MOCK_TRANSPORT && transport is MockTransport)
+                    ) {
+                        return Result.failure(Exception("OTA Xibalba requiere conexión USB (TEH-Link)."))
+                    }
+                    ensureTehLinkAuth(transport)
+                    tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
+                }
+                else -> Result.failure(Exception("OTA requiere firmware Xibalba conectado por USB (TEH-Link)."))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(Exception("OTA falló: ${e.message ?: e.javaClass.simpleName}"))
         }
     }
 

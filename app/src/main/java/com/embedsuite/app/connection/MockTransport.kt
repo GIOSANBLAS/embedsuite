@@ -121,8 +121,8 @@ class MockTransport(
             }
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
-                .put("version", "0.15.0")
-                .put("codename", "Pulse")
+                .put("version", "0.16.4")
+                .put("codename", "Glow")
                 .put("channel", "release")
                 .put("proto", "teh-link")
                 .put("proto_ver", 3)
@@ -152,8 +152,14 @@ class MockTransport(
                     .put("subghz_tx", true)
                     .put("ir_rx", true)
                     .put("nrf24", false)
+                    .put("badusb_hid", false)
+                    .put("charger", true)
+                    .put("fuel_gauge", true)
                     .put("gps_external", false))
                 .put("battery_pct", 87)
+                .put("charge_status", "idle")
+                .put("charging", false)
+                .put("vbus_present", true)
             "open_plugin" -> {
                 val pluginId = root.optString("plugin_id")
                 if (pluginId.isBlank()) {
@@ -532,6 +538,29 @@ class MockTransport(
                     subghzStateJson().put("action", action).put("state", "stopped")
                 }
                 "status" -> subghzStateJson()
+                "subghz_tx" -> {
+                    val raw = params.optString("raw")
+                    if (raw.isBlank()) {
+                        JSONObject()
+                            .put("plugin_id", "subghz_analyzer")
+                            .put("action", action)
+                            .put("state", "error")
+                            .put("message", "raw vacío")
+                    } else {
+                        JSONObject()
+                            .put("plugin_id", "subghz_analyzer")
+                            .put("action", action)
+                            .put("state", "ok")
+                            .put("message", "TX mock ${raw.take(12)}")
+                    }
+                }
+                "subghz_replay" -> {
+                    JSONObject()
+                        .put("plugin_id", "subghz_analyzer")
+                        .put("action", action)
+                        .put("state", "ok")
+                        .put("message", "replay mock ${params.optString("path")}")
+                }
                 else -> null
             }
             "wifi_toolkit" -> when (action) {
@@ -577,6 +606,13 @@ class MockTransport(
                     .put("sak", 8)
                     .put("state", "tag_found")
                     .put("message", "tag_read")
+                "emulate" -> JSONObject()
+                    .put("plugin_id", "nfc_toolkit")
+                    .put("action", action)
+                    .put("ready", true)
+                    .put("uid", params.optString("uid", "04:A1:B2:C3"))
+                    .put("state", "emulating")
+                    .put("message", "uid_emulate")
                 "status" -> JSONObject()
                     .put("plugin_id", "nfc_toolkit")
                     .put("ready", true)
@@ -590,6 +626,13 @@ class MockTransport(
                     .put("ready", true)
                     .put("state", "sent")
                     .put("message", "ir_tx_ok")
+                "rx_start" -> JSONObject()
+                    .put("plugin_id", "ir_toolkit")
+                    .put("action", action)
+                    .put("ready", true)
+                    .put("state", "listening")
+                    .put("seconds_remaining", params.optInt("seconds", 10))
+                    .put("message", "ir_rx")
                 "status" -> JSONObject()
                     .put("plugin_id", "ir_toolkit")
                     .put("ready", true)
@@ -743,7 +786,7 @@ class MockTransport(
         private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
 
         val defaultResponses = mapOf(
-            "info" to "Xibalba v0.16.2 | CC1101 | Free heap: 120000",
+            "info" to "Xibalba v0.16.4 | CC1101 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",
             "uptime" to "Uptime: 01:23:45",
             "subghz" to "Sub-GHz menu",

@@ -74,7 +74,7 @@ object AppInfo {
                 "TEH-Link primario en RF/NFC/IR/wardriving/OTA",
                 "Splash, ajustes y copy orientados a T-Embed CC1101 Plus + te-embed-xibalba",
                 "Consola TEH-Link JSON",
-                "OTA Xibalba v0.16.4 catalog preservado; versión 3.9.0 build 19"
+                "OTA Xibalba v0.16.5 catalog preservado; versión 3.9.0 build 19"
             )
         ),
         ChangelogEntry(

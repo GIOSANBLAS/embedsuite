@@ -95,7 +95,7 @@
 
     <string name="dash_command_center">COMMAND CENTER</string>
     <string name="dash_ota_title_xibalba">XIBALBA UPDATE AVAILABLE</string>
-    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.16.4 (real CC1101 Plus profile).</string>
+    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.16.5 (real CC1101 Plus profile).</string>
     <string name="plus_compat_subghz_xibalba_hint">Xibalba (USB): TEH-Link capture and TX/replay ready. Live spectrum/waterfall not yet exposed by firmware — use the T-Embed Sub-GHz menu if needed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="rf_live_unavailable_title">SPECTRUM / WATERFALL</string>

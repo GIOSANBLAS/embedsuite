@@ -472,7 +472,8 @@ class DeviceConnectionManager(
     fun hasXibalbaCapability(key: String): Boolean {
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) return false
         val caps = _systemInfo.value.xibalbaCapabilities
-        if (caps[key] == true) return true
+        // Explicit firmware capability wins — including false (sim / missing HW).
+        if (caps.containsKey(key)) return caps[key] == true
         val pluginId = when (key) {
             "nfc" -> "nfc_toolkit"
             "ir" -> "ir_toolkit"

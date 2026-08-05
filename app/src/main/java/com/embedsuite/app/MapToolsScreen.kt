@@ -103,8 +103,22 @@ fun MapToolsScreen(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("ALL", "RF", "WIFI", "BLE").forEach { layer ->
-                            FilterChip(selected = mapLayer == layer, onClick = { mapLayer = layer },
-                                label = { Text(layer, fontFamily = FontFamily.Monospace, fontSize = 9.sp) })
+                            FilterChip(
+                                selected = mapLayer == layer,
+                                onClick = { mapLayer = layer },
+                                label = {
+                                    Text(
+                                        layer,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 9.sp,
+                                        color = if (mapLayer == layer) BlackAMOLED else MatrixGreen
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MatrixGreen,
+                                    containerColor = DarkSurfaceElevated
+                                )
+                            )
                         }
                     }
                     HeatmapMapView(
@@ -123,15 +137,15 @@ fun MapToolsScreen(
         AlertDialog(
             onDismissRequest = { viewModel.dismissImportPreview() },
             containerColor = DarkSurface,
-            title = { Text("Importar ${preview.type}", fontFamily = FontFamily.Monospace, color = NeonCyan) },
+            title = { Text(stringResource(R.string.map_import_title, preview.type), fontFamily = FontFamily.Monospace, color = NeonCyan) },
             text = {
                 Column {
                     Text(preview.fileName, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
                     Text(preview.summary, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)
                 }
             },
-            confirmButton = { TextButton(onClick = { viewModel.confirmImport() }) { Text("Importar", color = MatrixGreen) } },
-            dismissButton = { TextButton(onClick = { viewModel.dismissImportPreview() }) { Text("Cancelar", color = TextGray) } }
+            confirmButton = { TextButton(onClick = { viewModel.confirmImport() }) { Text(stringResource(R.string.action_import), color = MatrixGreen) } },
+            dismissButton = { TextButton(onClick = { viewModel.dismissImportPreview() }) { Text(stringResource(R.string.action_cancel), color = TextGray) } }
         )
     }
 
@@ -144,7 +158,17 @@ fun MapToolsScreen(
             is OtaUpdateStatus.UpdateAvailable -> {
                 Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                     Column(Modifier.padding(12.dp)) {
-                        Text("OTA: ${ota.sourceLabel} ${ota.latestVersion} disponible (actual: ${ota.deviceVersion})", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange)
+                        Text(
+                            stringResource(
+                                R.string.map_ota_available,
+                                ota.sourceLabel,
+                                ota.latestVersion,
+                                ota.deviceVersion
+                            ),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            color = NeonOrange
+                        )
                     }
                 }
             }
@@ -228,34 +252,36 @@ fun MapToolsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         ExportCard(
-            exportStatus = uiState.exportStatus.ifBlank { "Señales guardadas: ${uiState.signalCount}" },
-            onExportJson = { scope.launch { viewModel.exportJson().fold(onSuccess = { f -> viewModel.setExportStatus("JSON: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus("Error: ${it.message}") }) } },
-            onExportCsv = { scope.launch { viewModel.exportCsv().fold(onSuccess = { f -> viewModel.setExportStatus("CSV: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus("Error: ${it.message}") }) } },
-            onExportKml = { scope.launch { viewModel.exportKml().fold(onSuccess = { f -> viewModel.setExportStatus("KML: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus("Error: ${it.message}") }) } },
-            onBackup = { scope.launch { viewModel.exportBackup().fold(onSuccess = { f -> viewModel.setExportStatus("Backup: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus("Backup error: ${it.message}") }) } },
+            exportStatus = uiState.exportStatus.ifBlank {
+                stringResource(R.string.map_export_signals_count, uiState.signalCount)
+            },
+            onExportJson = { scope.launch { viewModel.exportJson().fold(onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_json, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }) } },
+            onExportCsv = { scope.launch { viewModel.exportCsv().fold(onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_csv, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }) } },
+            onExportKml = { scope.launch { viewModel.exportKml().fold(onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_kml, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }) } },
+            onBackup = { scope.launch { viewModel.exportBackup().fold(onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_backup, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() }, onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_backup_error, it.message ?: "?")) }) } },
             onExportSub = {
                 scope.launch {
                     val file = viewModel.exportSub(context)
                     if (file != null) {
-                        context.startActivity(Intent.createChooser(FlipperFileManager.shareFile(context, file), "Compartir .sub"))
-                        viewModel.setExportStatus("Export .sub: ${file.name}")
-                    } else viewModel.setExportStatus("Sin señales RF para exportar")
+                        context.startActivity(Intent.createChooser(FlipperFileManager.shareFile(context, file), context.getString(R.string.map_share_sub)))
+                        viewModel.setExportStatus(context.getString(R.string.map_export_status_sub, file.name))
+                    } else viewModel.setExportStatus(context.getString(R.string.map_export_no_rf))
                 }
             },
             onImport = { importLauncher.launch(arrayOf("text/*", "application/json", "*/*")) },
             onExportHtml = {
                 scope.launch {
                     viewModel.exportSessionHtml().fold(
-                        onSuccess = { f -> viewModel.setExportStatus("HTML: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() },
-                        onFailure = { viewModel.setExportStatus("Error: ${it.message}") }
+                        onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_html, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() },
+                        onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }
                     )
                 }
             },
             onExportPdf = {
                 scope.launch {
                     viewModel.exportSessionPdf().fold(
-                        onSuccess = { f -> viewModel.setExportStatus("PDF: ${f.name}"); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() },
-                        onFailure = { viewModel.setExportStatus("Error: ${it.message}") }
+                        onSuccess = { f -> viewModel.setExportStatus(context.getString(R.string.map_export_status_pdf, f.name)); Toast.makeText(context, f.absolutePath, Toast.LENGTH_LONG).show() },
+                        onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }
                     )
                 }
             }
@@ -282,6 +308,8 @@ fun MapToolsScreen(
         FirmwareFlashCard(
             otaProgress = otaProgress,
             flashStatus = flashStatus.ifBlank { stringResource(R.string.firmware_status_ready) },
+            lastOta = systemInfo.lastOta,
+            hardening = systemInfo.hardening,
             firmwareOptions = uiState.allFirmwareOptions,
             selectedRelease = uiState.selectedRelease,
             recommendedRelease = uiState.recommendedRelease,
@@ -327,8 +355,8 @@ private fun ExportCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                 OutlinedButton(onClick = onExportSub, modifier = Modifier.weight(1f)) { Text(".sub", fontFamily = FontFamily.Monospace, color = NeonOrange, fontSize = 10.sp) }
-                OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text("Backup", fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 10.sp) }
-                OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) { Text("Import", fontFamily = FontFamily.Monospace, color = NeonOrange, fontSize = 10.sp) }
+                OutlinedButton(onClick = onBackup, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.map_export_backup_btn), fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 10.sp) }
+                OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.map_export_import_btn), fontFamily = FontFamily.Monospace, color = NeonOrange, fontSize = 10.sp) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                 OutlinedButton(onClick = onExportHtml, modifier = Modifier.weight(1f)) { Text("HTML", fontFamily = FontFamily.Monospace, color = MatrixGreen, fontSize = 10.sp) }
@@ -349,7 +377,8 @@ private fun MacroPanel(
     var showCreate by remember { mutableStateOf(false) }
     var macroName by remember { mutableStateOf("") }
     var macroCommands by remember { mutableStateOf("") }
-    var macroStatus by remember { mutableStateOf("Macros TEH-Link: JSON por línea, # comentarios, wait 1000ms") }
+    val macroHint = stringResource(R.string.map_macro_hint)
+    var macroStatus by remember { mutableStateOf(macroHint) }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -358,9 +387,9 @@ private fun MacroPanel(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("MACROS / SCRIPTS", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MatrixGreen)
+                Text(stringResource(R.string.map_macros_title), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MatrixGreen)
                 IconButton(onClick = { showCreate = true }) {
-                    Icon(Icons.Default.Add, "Nuevo macro", tint = NeonCyan, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Add, stringResource(R.string.map_macro_new_cd), tint = NeonCyan, modifier = Modifier.size(18.dp))
                 }
             }
             Text(macroStatus, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
@@ -399,14 +428,14 @@ private fun MacroPanel(
         AlertDialog(
             onDismissRequest = { showCreate = false },
             containerColor = DarkSurface,
-            title = { Text("Nuevo macro", fontFamily = FontFamily.Monospace, color = MatrixGreen) },
+            title = { Text(stringResource(R.string.map_macro_new_title), fontFamily = FontFamily.Monospace, color = MatrixGreen) },
             text = {
                 Column {
                     OutlinedTextField(value = macroName, onValueChange = { macroName = it },
-                        label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
+                        label = { Text(stringResource(R.string.map_macro_name)) }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(
                         value = macroCommands, onValueChange = { macroCommands = it },
-                        label = { Text("Comandos (uno por línea)") },
+                        label = { Text(stringResource(R.string.map_macro_commands)) },
                         modifier = Modifier.fillMaxWidth().height(120.dp)
                     )
                 }
@@ -419,10 +448,10 @@ private fun MacroPanel(
                         macroName = ""
                         macroCommands = ""
                     }
-                }) { Text("Guardar", color = MatrixGreen) }
+                }) { Text(stringResource(R.string.action_save), color = MatrixGreen) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreate = false }) { Text("Cancelar", color = TextGray) }
+                TextButton(onClick = { showCreate = false }) { Text(stringResource(R.string.action_cancel), color = TextGray) }
             }
         )
     }
@@ -445,13 +474,13 @@ private fun ConnectionCard(
         modifier = Modifier.fillMaxWidth().border(1.dp, MatrixGreen.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text("CONEXIÓN T-EMBED", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeonCyan)
+            Text(stringResource(R.string.map_connection_title), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeonCyan)
             Spacer(modifier = Modifier.height(8.dp))
             val statusText = when (connectionState) {
-                ConnectionState.Disconnected -> "DESCONECTADO"
-                ConnectionState.Connecting -> "CONECTANDO..."
-                is ConnectionState.Connected -> "CONECTADO // ${connectionState.detail}"
-                is ConnectionState.Error -> "ERROR: ${connectionState.message}"
+                ConnectionState.Disconnected -> stringResource(R.string.map_conn_disconnected)
+                ConnectionState.Connecting -> stringResource(R.string.map_conn_connecting)
+                is ConnectionState.Connected -> stringResource(R.string.map_conn_connected, connectionState.detail)
+                is ConnectionState.Error -> stringResource(R.string.map_conn_error, connectionState.message)
             }
             val statusColor = when (connectionState) {
                 is ConnectionState.Connected -> MatrixGreen
@@ -477,19 +506,19 @@ private fun ConnectionCard(
             if (selectedTransport == TransportType.BLE) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "BLE experimental para TEH-Link. Preferir USB OTG.",
+                    stringResource(R.string.transport_ble_experimental),
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange
                 )
             }
             if (selectedTransport == TransportType.WIFI) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "WiFi: transporte TEH-Link (HTTP). RF Live mejor por USB.",
-                    fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
+                    stringResource(R.string.transport_wifi_experimental),
+                    fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange
                 )
                 OutlinedTextField(
                     value = wifiHost, onValueChange = onWifiHostChange,
-                    label = { Text("Host WiFi", fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
+                    label = { Text(stringResource(R.string.map_wifi_host), fontFamily = FontFamily.Monospace, fontSize = 10.sp) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MatrixGreen, unfocusedBorderColor = TextGray, focusedTextColor = MatrixGreen, unfocusedTextColor = MatrixGreen)
                 )
@@ -497,23 +526,23 @@ private fun ConnectionCard(
             if (selectedTransport == TransportType.USB) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "USB OTG @ 115200 — recomendado para RF Live / capturas.",
+                    stringResource(R.string.transport_usb_recommended),
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onConnect, colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen), modifier = Modifier.weight(1f)) {
-                    Text("CONECTAR", fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 11.sp)
+                    Text(stringResource(R.string.map_connect), fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 11.sp)
                 }
                 OutlinedButton(onClick = onDisconnect, modifier = Modifier.weight(1f)) {
-                    Text("DESCONECTAR", fontFamily = FontFamily.Monospace, color = NeonRed, fontSize = 11.sp)
+                    Text(stringResource(R.string.map_disconnect), fontFamily = FontFamily.Monospace, color = NeonRed, fontSize = 11.sp)
                 }
             }
             TextButton(onClick = onRefreshInfo) {
                 Icon(Icons.Default.Refresh, null, tint = NeonCyan, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Actualizar info ESP32", fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 10.sp)
+                Text(stringResource(R.string.map_refresh_esp32), fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 10.sp)
             }
         }
     }
@@ -530,12 +559,19 @@ private fun SystemMonitorCard(
         modifier = Modifier.fillMaxWidth().border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text("MONITOR ESP32-S3", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeonCyan)
+            Text(stringResource(R.string.map_monitor_title), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeonCyan)
             InfoLine("UPTIME", systemInfo.uptime.ifBlank { "—" })
             InfoLine("FREE HEAP", systemInfo.freeHeap.ifBlank { "—" })
-            InfoLine("BATERÍA", systemInfo.battery.ifBlank { "—" })
+            InfoLine(stringResource(R.string.map_monitor_battery), systemInfo.battery.ifBlank { "—" })
             InfoLine("FIRMWARE", systemInfo.firmware.ifBlank { "Xibalba" })
-            InfoLine("ESTADO", if (connectionState is ConnectionState.Connected) "ONLINE" else "OFFLINE")
+            InfoLine(
+                stringResource(R.string.map_monitor_status),
+                if (connectionState is ConnectionState.Connected) {
+                    stringResource(R.string.map_monitor_online)
+                } else {
+                    stringResource(R.string.map_monitor_offline)
+                }
+            )
         }
     }
 }

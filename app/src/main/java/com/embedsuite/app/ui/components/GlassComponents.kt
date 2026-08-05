@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.embedsuite.app.R
 import com.embedsuite.app.ui.theme.*
 import kotlin.math.sin
 
@@ -202,7 +204,7 @@ fun EmbedTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
-                    contentDescription = "Ajustes",
+                    contentDescription = stringResource(R.string.settings_title),
                     tint = MatrixGreen,
                     modifier = Modifier.size(22.dp)
                 )

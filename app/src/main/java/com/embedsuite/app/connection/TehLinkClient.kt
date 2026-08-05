@@ -281,6 +281,34 @@ class TehLinkClient(
         )
     }
 
+    suspend fun getOtaStatus(transport: TEmbedTransport): Result<TehLinkOtaStatus> {
+        return execute(transport, "ota_status", timeoutMs = 5_000L)
+            .map(TehLinkResponseParser::parseOtaStatus)
+    }
+
+    /** Borra el coredump ELF guardado en flash tras haberlo volcado a Android. */
+    suspend fun clearCoredump(transport: TEmbedTransport): Result<Boolean> {
+        return execute(transport, "coredump_clear", timeoutMs = 8_000L)
+            .mapCatching { data -> data.optBoolean("ok") }
+    }
+
+    /** Stress test integrado: loop N x [wifi_scan, ble_scan, subghz_capture, crypto_hash]
+     *  y devuelve diferencia de heap libre (para detectar memory leaks). */
+    suspend fun runSoakStress(
+        transport: TEmbedTransport,
+        iterations: Int = 5,
+        perStepSeconds: Int = 3
+    ): Result<TehLinkSoakResult> {
+        val params = JSONObject()
+            .put("iterations", iterations.coerceIn(1, 20))
+            .put("seconds", perStepSeconds.coerceIn(1, 30))
+        return runAction(transport, "diagnostic_tools", "soak_test", params)
+            .mapCatching { result ->
+                result.state.soak
+                    ?: TehLinkResponseParser.parseSoakResult(JSONObject())
+            }
+    }
+
     suspend fun runNfcEmulateStop(transport: TEmbedTransport): Result<TehLinkActionResult> {
         return runAction(transport, pluginId = "nfc_toolkit", action = "emulate_stop")
     }

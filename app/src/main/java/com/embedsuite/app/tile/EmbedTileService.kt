@@ -33,7 +33,7 @@ class EmbedTileService : TileService() {
             if (state is ConnectionState.Connected) {
                 container.connectionManager.disconnect()
             } else {
-                container.connectionManager.connect(container.appPreferences.defaultTransport.value)
+                container.connectionManager.connect(TransportType.USB)
             }
             updateTile()
         }

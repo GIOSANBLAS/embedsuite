@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.embedsuite.app.R
 import com.embedsuite.app.map.MapTileCacheManager
 import com.embedsuite.app.map.OsmdroidConfig
 import com.embedsuite.app.ui.theme.*
@@ -22,9 +24,10 @@ fun OfflineMapCard(
     currentLng: Double?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var cacheSize by remember { mutableStateOf(OsmdroidConfig.formatCacheSize(OsmdroidConfig.cacheSizeBytes())) }
-    var status by remember { mutableStateOf("Tiles en caché para war-driving sin datos.") }
+    var status by remember { mutableStateOf(context.getString(R.string.offline_map_status_idle)) }
     var downloading by remember { mutableStateOf(false) }
     var progress by remember { mutableIntStateOf(0) }
     var total by remember { mutableIntStateOf(0) }
@@ -38,13 +41,13 @@ fun OfflineMapCard(
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Text(
-                "MAPAS OFFLINE",
+                stringResource(R.string.offline_map_title),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 12.sp,
                 color = NeonCyan
             )
             Text(
-                "Caché: $cacheSize",
+                stringResource(R.string.offline_map_cache, cacheSize),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 9.sp,
                 color = TextGray
@@ -59,21 +62,26 @@ fun OfflineMapCard(
                 LinearProgressIndicator(
                     progress = { progress.toFloat() / total.coerceAtLeast(1) },
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    color = MatrixGreen
+                    color = MatrixGreen,
+                    trackColor = DarkSurfaceElevated
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                NeonOutlinedButton(
+                    text = stringResource(R.string.offline_map_precache),
                     onClick = {
                         val lat = currentLat
                         val lng = currentLng
                         if (lat == null || lng == null) {
-                            status = "GPS requerido para precachear zona."
-                            return@Button
+                            status = context.getString(R.string.offline_map_status_gps_required)
+                            return@NeonOutlinedButton
                         }
                         downloading = true
-                        status = "Descargando tiles ~8 km..."
+                        status = context.getString(R.string.offline_map_status_downloading)
                         scope.launch {
                             mapTileCacheManager.downloadAreaAround(
                                 lat = lat,
@@ -85,30 +93,32 @@ fun OfflineMapCard(
                             ).fold(
                                 onSuccess = { tiles ->
                                     cacheSize = OsmdroidConfig.formatCacheSize(OsmdroidConfig.cacheSizeBytes())
-                                    status = "Listo: $tiles tiles cacheados."
+                                    status = context.getString(R.string.offline_map_status_done, tiles)
                                 },
                                 onFailure = { e ->
-                                    status = "Error: ${e.message}"
+                                    status = context.getString(
+                                        R.string.offline_map_status_error,
+                                        e.message ?: "?"
+                                    )
                                 }
                             )
                             downloading = false
                         }
                     },
                     enabled = !downloading,
-                    colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen, contentColor = BlackAMOLED)
-                ) {
-                    Text("PRECACHEAR ZONA", fontFamily = FontFamily.Monospace, fontSize = 9.sp)
-                }
-                OutlinedButton(
+                    modifier = Modifier.weight(1f)
+                )
+                NeonOutlinedButton(
+                    text = stringResource(R.string.offline_map_clear),
                     onClick = {
                         OsmdroidConfig.clearCache()
                         cacheSize = OsmdroidConfig.formatCacheSize(0)
-                        status = "Caché de mapas eliminada."
+                        status = context.getString(R.string.offline_map_status_cleared)
                     },
-                    enabled = !downloading
-                ) {
-                    Text("LIMPIAR", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonRed)
-                }
+                    color = NeonRed,
+                    enabled = !downloading,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

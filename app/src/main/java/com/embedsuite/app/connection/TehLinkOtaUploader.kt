@@ -7,6 +7,10 @@ import java.io.File
 /**
  * OTA firmware upload for T-Embed Xibalba via TEH-Link (USB CDC).
  * Protocol: ota_begin → ota_chunk (sequential) → ota_finish with SHA256 verification.
+ *
+ * After ota_finish the device writes SHA256 incrementally (mbedtls_sha256_update) and
+ * validates. EmbedSuite MUST call ota_status afterwards to show the user whether the
+ * flash integrity check actually passed before rebooting.
  */
 class TehLinkOtaUploader(private val tehLinkClient: TehLinkClient) {
 
@@ -16,14 +20,21 @@ class TehLinkOtaUploader(private val tehLinkClient: TehLinkClient) {
         private const val OTA_BEGIN_TIMEOUT_MS = 15_000L
         private const val OTA_CHUNK_TIMEOUT_MS = 30_000L
         private const val OTA_FINISH_TIMEOUT_MS = 60_000L
+        private const val OTA_VERIFY_TIMEOUT_MS = 8_000L
     }
+
+    data class OtaResult(
+        val totalBytes: Long,
+        val sha256Verified: Boolean,
+        val otaState: String
+    )
 
     suspend fun upload(
         transport: TEmbedTransport,
         binFile: File,
         expectedSha256: String,
         onProgress: (Int) -> Unit
-    ): Result<String> = runCatching {
+    ): Result<OtaResult> = runCatching {
         val sha256 = expectedSha256.trim().lowercase()
         FirmwareRepository.verifyFileSha256(binFile, sha256).getOrThrow()
         val totalSize = binFile.length()
@@ -57,14 +68,29 @@ class TehLinkOtaUploader(private val tehLinkClient: TehLinkClient) {
                 ).getOrThrow()
                 written += read
                 seq++
-                val pct = (5 + (written * 85 / totalSize)).toInt().coerceIn(5, 90)
+                val pct = (5 + (written * 82 / totalSize)).toInt().coerceIn(5, 87)
                 onProgress(pct)
             }
         }
 
-        onProgress(95)
+        onProgress(92)
         tehLinkClient.executeCommand(transport, "ota_finish", null, OTA_FINISH_TIMEOUT_MS).getOrThrow()
+        onProgress(95)
+
+        /* Paso final IMPRESCINDIBLE introducido en Xibalba 0.17.1:
+         * confirmar que el lado del dispositivo marcó sha256_verified = true
+         * antes de recomendar reboot al usuario. */
+        kotlinx.coroutines.delay(600)
+        val finalStatus = tehLinkClient.getOtaStatus(transport).getOrElse {
+            TehLinkOtaStatus(state = "complete", bytesWritten = written, totalSize = totalSize, sha256Verified = false)
+        }
         onProgress(100)
-        "OTA TEH-Link OK (${totalSize} bytes, SHA256 verificado)"
+
+        OtaResult(
+            totalBytes = totalSize,
+            sha256Verified = finalStatus.sha256Verified,
+            otaState = finalStatus.state
+        )
     }
 }
+

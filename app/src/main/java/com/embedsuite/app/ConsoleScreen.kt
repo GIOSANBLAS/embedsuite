@@ -106,15 +106,32 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
                 }
             }
         }
-        Text("TEH-Link:", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        Text(stringResource(R.string.console_teh_link_chips), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             tehLinkChips.forEach { chip ->
-                TextButton(onClick = { viewModel.sendCommand(chip.json) }) {
-                    Text(chip.label, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
-                }
+                SuggestionChip(
+                    onClick = { viewModel.sendCommand(chip.json) },
+                    label = {
+                        Text(
+                            chipDisplayLabel(chip.label),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.sp,
+                            maxLines = 1
+                        )
+                    },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = DarkSurfaceElevated,
+                        labelColor = NeonCyan
+                    ),
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = NeonCyan.copy(alpha = 0.45f)
+                    )
+                )
             }
         }
         if (uiState.showSuggestions && suggestions.isNotEmpty()) {
@@ -164,4 +181,12 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun chipDisplayLabel(label: String): String = when (label) {
+    "list_actions" -> stringResource(R.string.console_chip_list_actions)
+    "back_to_menu" -> stringResource(R.string.console_chip_back_menu)
+    "subghz_tx" -> stringResource(R.string.console_chip_subghz_tx)
+    else -> label
 }

@@ -45,7 +45,9 @@ fun SubGhzScreen(
 
     var currentFrequency by remember { mutableStateOf(RfFrequencyPresets.label(selectedMhz)) }
     var isCapturingRaw by remember { mutableStateOf(false) }
-    var isScanning by remember { mutableStateOf(false) }
+    var capturePackets by remember { mutableIntStateOf(0) }
+    var captureRemaining by remember { mutableIntStateOf(0) }
+    var captureMessage by remember { mutableStateOf("") }
 
     val isConnected = connectionState is ConnectionState.Connected
     val scope = rememberCoroutineScope()
@@ -64,6 +66,22 @@ fun SubGhzScreen(
         }
     }
 
+    // Simbiosis real: telemetría CC1101 vía get_action_state mientras captura
+    LaunchedEffect(isCapturingRaw, isConnected) {
+        if (!isCapturingRaw || !isConnected) return@LaunchedEffect
+        while (isCapturingRaw) {
+            connectionManager.pollSubGhzCaptureState().onSuccess { state ->
+                capturePackets = state.packets
+                captureRemaining = state.secondsRemaining
+                captureMessage = state.message.ifBlank { state.state }
+                if (!state.capturing && state.secondsRemaining <= 0 && state.state != "started") {
+                    isCapturingRaw = false
+                }
+            }
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+
     val spectrumPoints = remember(rfLive.spectrumBins) {
         rfLive.spectrumBins.mapIndexed { index, bin ->
             Offset(
@@ -74,7 +92,8 @@ fun SubGhzScreen(
     }
 
     val isXibalba = detectedProfile == FirmwareProfile.XIBALBA
-    val liveRfEnabled = false
+    // Opción B: espectro/waterfall live no estable vía TEH-Link — UI oculta, captura sí.
+    val liveSpectrumAvailable = false
 
     Column(
         modifier = Modifier
@@ -95,7 +114,7 @@ fun SubGhzScreen(
             headerTitle = stringResource(R.string.plus_compat_subghz_header_xibalba),
             frequency = currentFrequency,
             isConnected = isConnected,
-            lastRssi = if (liveRfEnabled) rfLive.lastRssiDbm else null
+            lastRssi = null
         )
 
         RfFrequencyPicker(
@@ -118,37 +137,78 @@ fun SubGhzScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        SectionHeader(
-            title = "RF SPECTRUM ANALYZER",
-            badge = rfLive.lastRssiDbm?.let { "${it.toInt()} dBm" } ?: "${spectrumPoints.size} PTS",
-            isLive = liveRfEnabled && (isCapturingRaw || isScanning)
-        )
-        SpectrumAnalyzerView(
-            points = spectrumPoints,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(130.dp)
-                .background(FlipperCardBg, RoundedCornerShape(6.dp))
-                .border(1.dp, FlipperGrid, RoundedCornerShape(6.dp))
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        SectionHeader(
-            title = "WATERFALL DISPLAY",
-            badge = if (liveRfEnabled && (isCapturingRaw || isScanning)) "LIVE" else "PAUSED",
-            isLive = liveRfEnabled && (isCapturingRaw || isScanning)
-        )
-        WaterfallDisplayView(
-            history = rfLive.waterfall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .background(FlipperCardBg, RoundedCornerShape(6.dp))
-                .border(1.dp, FlipperGrid, RoundedCornerShape(6.dp))
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
+        if (liveSpectrumAvailable) {
+            SectionHeader(
+                title = "RF SPECTRUM ANALYZER",
+                badge = rfLive.lastRssiDbm?.let { "${it.toInt()} dBm" } ?: "${spectrumPoints.size} PTS",
+                isLive = isCapturingRaw
+            )
+            SpectrumAnalyzerView(
+                points = spectrumPoints,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp)
+                    .background(FlipperCardBg, RoundedCornerShape(6.dp))
+                    .border(1.dp, FlipperGrid, RoundedCornerShape(6.dp))
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            SectionHeader(
+                title = "WATERFALL DISPLAY",
+                badge = if (isCapturingRaw) "LIVE" else "PAUSED",
+                isLive = isCapturingRaw
+            )
+            WaterfallDisplayView(
+                history = rfLive.waterfall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(FlipperCardBg, RoundedCornerShape(6.dp))
+                    .border(1.dp, FlipperGrid, RoundedCornerShape(6.dp))
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        } else {
+            SectionHeader(
+                title = stringResource(R.string.rf_capture_live_title),
+                badge = if (isCapturingRaw) "LIVE" else "IDLE",
+                isLive = isCapturingRaw
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .background(FlipperCardBg, RoundedCornerShape(6.dp))
+                    .border(1.dp, FlipperGrid, RoundedCornerShape(6.dp))
+                    .padding(10.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Column {
+                    Text(
+                        if (isCapturingRaw) {
+                            stringResource(
+                                R.string.rf_capture_live_body,
+                                capturePackets,
+                                captureRemaining
+                            )
+                        } else {
+                            stringResource(R.string.rf_live_unavailable_body)
+                        },
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp,
+                        color = if (isCapturingRaw) FlipperSignalNeon else FlipperTextSecondary
+                    )
+                    if (captureMessage.isNotBlank()) {
+                        Text(
+                            captureMessage.take(80),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 8.sp,
+                            color = FlipperTextSecondary,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        }
 
         SectionHeader(
             title = "WAVEFORM VIEWER (µs)",
@@ -180,7 +240,6 @@ fun SubGhzScreen(
 
         QuickActionButtons(
             isCapturing = isCapturingRaw,
-            isScanning = isScanning,
             isConnected = isConnected,
             isXibalba = isXibalba,
             onToggleCapture = {
@@ -189,20 +248,13 @@ fun SubGhzScreen(
                         connectionManager.stopSubGhzCapture()
                         isCapturingRaw = false
                     } else {
-                        isScanning = false
-                        connectionManager.startSubGhzRawCapture(15)
-                        isCapturingRaw = true
-                        if (isXibalba) {
+                        val started = connectionManager.startSubGhzRawCapture(15)
+                        isCapturingRaw = started.isSuccess
+                        if (isCapturingRaw && isXibalba) {
                             kotlinx.coroutines.delay(15_000L)
                             isCapturingRaw = false
                         }
                     }
-                }
-            },
-            onToggleScan = {
-                scope.launch {
-                    connectionManager.startSubGhzSpectrumScan()
-                        .onFailure { /* spectrum not available via TEH-Link stream */ }
                 }
             }
         )
@@ -386,7 +438,7 @@ private fun SignalLogTableView(
         if (signals.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Presiona CAPTURAR RAW o SCAN para escuchar señales...",
+                    "Presiona CAPTURAR para escuchar señales…",
                     color = FlipperTextSecondary,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
@@ -416,69 +468,42 @@ private fun SignalLogTableView(
 @Composable
 private fun QuickActionButtons(
     isCapturing: Boolean,
-    isScanning: Boolean,
     isConnected: Boolean,
     isXibalba: Boolean,
-    onToggleCapture: () -> Unit,
-    onToggleScan: () -> Unit
+    onToggleCapture: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             if (isXibalba) {
-                "Captura remota vía TEH-Link. Resultados en pantalla del T-Embed."
+                "Captura remota vía TEH-Link (USB). Resultados en pantalla del T-Embed."
             } else {
-                "TX: Tools → Sync SD → TX en .sub del T-Embed (o biblioteca si está decodificada)"
+                "Conecta T-Embed Xibalba por USB OTG para capturar."
             },
             fontFamily = FontFamily.Monospace,
             fontSize = 8.sp,
             color = FlipperTextSecondary,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        Button(
+            onClick = onToggleCapture,
+            enabled = isConnected,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isCapturing) FlipperAlertRed else FlipperGrid
+            ),
+            shape = RoundedCornerShape(6.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            if (!isXibalba) {
-                Button(
-                    onClick = onToggleScan,
-                    enabled = isConnected,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isScanning) NeonCyan.copy(alpha = 0.3f) else FlipperGrid
-                    ),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        if (isScanning) "STOP UI" else "LISTEN 20s",
-                        color = if (isScanning) BlackAMOLED else NeonCyan,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
-            }
-
-            Button(
-                onClick = onToggleCapture,
-                enabled = isConnected,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCapturing) FlipperAlertRed else FlipperGrid
-                ),
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = when {
-                        isCapturing -> "STOP UI"
-                        isXibalba -> stringResource(R.string.plus_compat_capture_tehlink)
-                        else -> "RAW RX 15s"
-                    },
-                    color = if (isCapturing) Color.White else FlipperSignalNeon,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
+            Text(
+                text = when {
+                    isCapturing -> "STOP UI"
+                    isXibalba -> stringResource(R.string.plus_compat_capture_tehlink)
+                    else -> "RAW RX 15s"
+                },
+                color = if (isCapturing) Color.White else FlipperSignalNeon,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
         }
     }
 }

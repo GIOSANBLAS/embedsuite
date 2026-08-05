@@ -84,7 +84,6 @@ fun PermissionsFlowScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         if (current.first == EmbedPermission.USB) {
-            Text(stringResource(R.string.perm_usb_body), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange)
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { granted = true }, colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen)) {
                 Text(stringResource(R.string.perm_usb_connected), fontFamily = FontFamily.Monospace, color = BlackAMOLED)

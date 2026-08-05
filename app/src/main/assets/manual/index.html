@@ -76,7 +76,7 @@
 
 <div class="card">
   <p><strong>Hardware:</strong> LilyGO T-Embed CC1101 Plus con firmware <strong>te-embed-xibalba</strong>.</p>
-  <p><strong>Conexión:</strong> USB OTG (principal). Emparejamiento TEH-Link: mantén pulsado el botón lateral ~2 s (ventana 120 s).</p>
+  <p><strong>Conexión:</strong> <strong>USB OTG (recomendado y prioritario)</strong>. WiFi/BLE TEH-Link son experimentales. Emparejamiento: mantén pulsado el botón lateral ~2 s (ventana 120 s).</p>
   <p class="warn">Uso RF/IR/NFC solo en entornos autorizados. Eres responsable del cumplimiento legal.</p>
 </div>
 
@@ -97,11 +97,12 @@
 <h2>3. Sub-GHz (plugin <code>subghz_analyzer</code>)</h2>
 <table>
   <tr><th>Acción app</th><th>TEH-Link</th><th>Notas</th></tr>
-  <tr><td>Captura RX</td><td><code>capture_start</code> / <code>capture_stop</code></td><td>Parámetro <code>seconds</code></td></tr>
+  <tr><td>Captura RX</td><td><code>capture_start</code> / <code>capture_stop</code></td><td>Parámetro <code>seconds</code> · USB recomendado</td></tr>
   <tr><td>TX RAW</td><td><code>subghz_tx</code></td><td><code>raw</code>, <code>confirm:true</code></td></tr>
   <tr><td>Replay .sub</td><td><code>subghz_replay</code></td><td>Ruta en SD del dispositivo</td></tr>
   <tr><td>Estado</td><td><code>status</code></td><td>Estado del plugin</td></tr>
 </table>
+<p class="warn">Espectro/waterfall FFT no está en TEH-Link aún. Durante Captura TEH-Link la app muestra telemetría real (paquetes / segundos restantes) vía <code>get_action_state</code>.</p>
 
 <h2>4. WiFi (plugin <code>wifi_toolkit</code>)</h2>
 <div class="cmd">{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}</div>
@@ -153,7 +154,7 @@
   <tr><td>Plugin no disponible</td><td>Firmware sin CC1101 real → modo simulación; revisar <code>get_status</code> capabilities</td></tr>
 </table>
 
-<p class="sub" style="margin-top:24px">EMBED SUITE 4.0.0 build 20 · Xibalba Native · GIOSÁNBLAS / Cursor</p>
+<p class="sub" style="margin-top:24px">EMBED SUITE 4.0.7 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS / Cursor</p>
 
 </body>
 </html>

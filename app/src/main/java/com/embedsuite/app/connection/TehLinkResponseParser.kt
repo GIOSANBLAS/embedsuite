@@ -19,6 +19,7 @@ object TehLinkResponseParser {
                 )
             }
         }
+        val hardening = parseHardeningInfo(data.optJSONObject("hardening"))
         return TehLinkDeviceInfo(
             product = data.optString("product"),
             version = data.optString("version"),
@@ -26,7 +27,25 @@ object TehLinkResponseParser {
             channel = data.optString("channel"),
             proto = data.optString("proto"),
             protoVer = data.optInt("proto_ver", 1),
-            plugins = plugins
+            plugins = plugins,
+            hardening = hardening
+        )
+    }
+
+    fun parseHardeningInfo(data: JSONObject?): TehLinkHardeningInfo {
+        if (data == null) return TehLinkHardeningInfo()
+        return TehLinkHardeningInfo(
+            twdtEnabled = data.optBoolean("twdt_enabled"),
+            twdtTimeoutSeconds = data.optInt("twdt_timeout_s", 0),
+            bodEnabled = data.optBoolean("bod_enabled"),
+            bodVoltage = data.optDouble("bod_v_mv").let { mv ->
+                if (data.has("bod_v_mv") && mv > 0) (mv / 1000.0).toFloat() else null
+            },
+            secureBoot = data.optBoolean("secure_boot"),
+            flashEncryption = data.optBoolean("flash_encryption"),
+            nvsEncryption = data.optBoolean("nvs_encryption"),
+            stackCanaries = data.optBoolean("stack_canaries"),
+            heapPoisoning = data.optBoolean("heap_poisoning")
         )
     }
 
@@ -131,6 +150,26 @@ object TehLinkResponseParser {
         )
     }
 
+    fun parseOtaStatus(data: JSONObject): TehLinkOtaStatus {
+        return TehLinkOtaStatus(
+            state = data.optString("state", "idle"),
+            bytesWritten = data.optLong("bytes_written", 0L),
+            totalSize = data.optLong("total_size", 0L),
+            sha256Verified = data.optBoolean("sha256_verified")
+        )
+    }
+
+    fun parseSoakResult(data: JSONObject): TehLinkSoakResult {
+        return TehLinkSoakResult(
+            iterations = data.optInt("iterations"),
+            failures = data.optInt("failures"),
+            heapFreeBefore = data.optLong("heap_before"),
+            heapFreeAfter = data.optLong("heap_after"),
+            leakBytes = data.optLong("leak_bytes"),
+            completed = data.optBoolean("completed")
+        )
+    }
+
     fun parseActionState(data: JSONObject): TehLinkActionState {
         val wardriving = if (data.has("ap_count") || data.has("csv_path")) {
             parseWardrivingStatus(data)
@@ -152,6 +191,16 @@ object TehLinkResponseParser {
         } else {
             null
         }
+        val ota = if (data.has("sha256_verified") || data.has("state") && data.optString("plugin_id", "") == "ota") {
+            parseOtaStatus(data)
+        } else {
+            null
+        }
+        val soak = if (data.has("iterations") && data.has("leak_bytes")) {
+            parseSoakResult(data)
+        } else {
+            null
+        }
         return TehLinkActionState(
             pluginId = data.optString("plugin_id"),
             action = data.optString("action"),
@@ -168,7 +217,9 @@ object TehLinkResponseParser {
             wardriving = wardriving,
             crypto = crypto,
             nfc = nfc,
-            ir = ir
+            ir = ir,
+            ota = ota,
+            soak = soak
         )
     }
 
@@ -203,7 +254,11 @@ object TehLinkResponseParser {
             batteryPct = data.optInt("battery_pct").takeIf { data.has("battery_pct") },
             chargeStatus = data.optString("charge_status").takeIf { data.has("charge_status") },
             charging = data.optBoolean("charging").takeIf { data.has("charging") },
-            vbusPresent = data.optBoolean("vbus_present").takeIf { data.has("vbus_present") }
+            vbusPresent = data.optBoolean("vbus_present").takeIf { data.has("vbus_present") },
+            heapFreeBytes = data.optLong("heap_free_bytes").takeIf { data.has("heap_free_bytes") },
+            psramFreeBytes = data.optLong("psram_free_bytes").takeIf { data.has("psram_free_bytes") },
+            coredumpPresent = data.optBoolean("coredump_present"),
+            wdtPanicReason = data.optString("panic_reason").takeIf { data.has("panic_reason") && !data.optString("panic_reason").isNullOrBlank() }
         )
     }
 

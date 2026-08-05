@@ -1,4 +1,4 @@
-﻿package com.embedsuite.app.connection
+package com.embedsuite.app.connection
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -390,5 +390,220 @@ class TehLinkResponseParserTest {
             """{"cmd":"run_action","id":2,"plugin_id":"badusb","action":"run_script"}"""
         )
         assertTrue(err.isFailure)
+    }
+
+    // ========== XIBALBA v0.17 HARDENING + OTA SHA256 + SOAK ==========
+
+    @Test
+    fun parseDeviceInfo_readsHardeningFlags() {
+        val info = TehLinkResponseParser.parseDeviceInfo(
+            JSONObject(
+                """
+                {
+                  "product": "T-Embed Xibalba",
+                  "version": "0.17.1",
+                  "codename": "Spark",
+                  "channel": "release",
+                  "proto": "teh-link",
+                  "proto_ver": 3,
+                  "hardening": {
+                    "twdt_enabled": true,
+                    "twdt_timeout_seconds": 30,
+                    "bod_enabled": true,
+                    "bod_voltage": 3.0,
+                    "secure_boot": true,
+                    "flash_encryption": true,
+                    "nvs_encryption": true,
+                    "stack_canaries": true,
+                    "heap_poisoning": true
+                  },
+                  "plugins": []
+                }
+                """.trimIndent()
+            )
+        )
+        assertTrue(info.hardening.twdtEnabled)
+        assertEquals(30, info.hardening.twdtTimeoutSeconds)
+        assertTrue(info.hardening.bodEnabled)
+        assertEquals(3.0f, info.hardening.bodVoltage ?: 0f, 0.01f)
+        assertTrue(info.hardening.secureBoot)
+        assertTrue(info.hardening.flashEncryption)
+        assertTrue(info.hardening.nvsEncryption)
+        assertTrue(info.hardening.stackCanaries)
+        assertTrue(info.hardening.heapPoisoning)
+    }
+
+    @Test
+    fun parseHardeningInfo_nullObject_producesAllFalse() {
+        val h = TehLinkResponseParser.parseHardeningInfo(null)
+        assertFalse(h.twdtEnabled)
+        assertEquals(0, h.twdtTimeoutSeconds)
+        assertFalse(h.secureBoot)
+        assertFalse(h.flashEncryption)
+        assertFalse(h.nvsEncryption)
+    }
+
+    @Test
+    fun parseDeviceStatus_readsHeapCoredumpAndWdtReason() {
+        val status = TehLinkResponseParser.parseDeviceStatus(
+            JSONObject(
+                """
+                {
+                  "uptime_ms": 3600000,
+                  "ui_screen": "Sub-GHz Analyzer",
+                  "sd_mounted": true,
+                  "heap_free_bytes": 123456,
+                  "psram_free_bytes": 8388608,
+                  "coredump_present": true,
+                  "wdt_panic_reason": "Task watchdog fired (ui_shell)"
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals(123456, status.heapFreeBytes)
+        assertEquals(8388608, status.psramFreeBytes)
+        assertTrue(status.coredumpPresent)
+        assertEquals("Task watchdog fired (ui_shell)", status.wdtPanicReason)
+    }
+
+    @Test
+    fun parseOtaStatus_sha256Verified_producesProgressAndState() {
+        val ota = TehLinkResponseParser.parseOtaStatus(
+            JSONObject(
+                """
+                {
+                  "state": "verified",
+                  "bytes_written": 2876416,
+                  "total_size": 2876416,
+                  "sha256_verified": true
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals("verified", ota.state)
+        assertEquals(2876416L, ota.bytesWritten)
+        assertEquals(2876416L, ota.totalSize)
+        assertTrue(ota.sha256Verified)
+        assertEquals(100, ota.progressPct)
+        assertTrue(ota.isComplete)
+        assertFalse(ota.hasError)
+    }
+
+    @Test
+    fun parseOtaStatus_inProgress_partialBytes() {
+        val ota = TehLinkResponseParser.parseOtaStatus(
+            JSONObject(
+                """
+                {
+                  "state": "writing",
+                  "bytes_written": 287641,
+                  "total_size": 2876416,
+                  "sha256_verified": false
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals(10, ota.progressPct)
+        assertFalse(ota.isComplete)
+        assertFalse(ota.sha256Verified)
+    }
+
+    @Test
+    fun parseOtaStatus_errorState_hasErrorFlag() {
+        val ota = TehLinkResponseParser.parseOtaStatus(
+            JSONObject(
+                """
+                {
+                  "state": "error",
+                  "error": "sha256_mismatch",
+                  "bytes_written": 0,
+                  "total_size": 0,
+                  "sha256_verified": false
+                }
+                """.trimIndent()
+            )
+        )
+        assertTrue(ota.hasError)
+        assertEquals("error", ota.state)
+    }
+
+    @Test
+    fun parseActionState_containsOtaAndSoakFields() {
+        val state = TehLinkResponseParser.parseActionState(
+            JSONObject(
+                """
+                {
+                  "plugin_id": "ota_toolkit",
+                  "action": "upload",
+                  "state": "running",
+                  "progress": 55,
+                  "running": true,
+                  "ota_status": {
+                    "state": "writing",
+                    "bytes_written": 1572864,
+                    "total_size": 2876416,
+                    "sha256_verified": false
+                  },
+                  "soak": {
+                    "iterations": 500,
+                    "failures": 0,
+                    "heap_before": 262144,
+                    "heap_after": 258048,
+                    "leak_bytes": 4096,
+                    "completed": 500
+                  }
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals("writing", state.ota?.state)
+        assertEquals(55, state.ota?.progressPct)
+        assertFalse(state.ota?.sha256Verified!!)
+        val s = state.soak
+        assertNotNull(s)
+        assertEquals(500, s!!.iterations)
+        assertEquals(4096, s.leakBytes)
+        assertFalse(s.isHealthy)   // 4096 B leak ≥ threshold
+    }
+
+    @Test
+    fun parseSoakResult_healthyWhenLeakUnderThreshold() {
+        val soak = TehLinkResponseParser.parseSoakResult(
+            JSONObject(
+                """
+                {
+                  "iterations": 1000,
+                  "failures": 0,
+                  "heap_before": 262144,
+                  "heap_after": 261900,
+                  "leak_bytes": 244,
+                  "completed": 1000
+                }
+                """.trimIndent()
+            )
+        )
+        assertTrue(soak.isHealthy)
+        assertEquals(0, soak.failures)
+        assertEquals(244, soak.leakBytes)
+    }
+
+    @Test
+    fun parseSoakResult_unhealthyWhenFailuresPresent() {
+        val soak = TehLinkResponseParser.parseSoakResult(
+            JSONObject(
+                """
+                {
+                  "iterations": 500,
+                  "failures": 3,
+                  "heap_before": 262144,
+                  "heap_after": 262144,
+                  "leak_bytes": 0,
+                  "completed": 497
+                }
+                """.trimIndent()
+            )
+        )
+        assertFalse(soak.isHealthy)
+        assertEquals(3, soak.failures)
     }
 }

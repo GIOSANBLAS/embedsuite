@@ -31,7 +31,7 @@ fun SplashScreen(onFinished: () -> Unit) {
             0.60f to "PAIRING READY — GPIO6 LONG-PRESS",
             0.78f to "SYNC XIBALBA SYMBIOSIS CORE...",
             0.92f to "TEH-LINK ONLINE — RF/NFC/IR",
-            1.0f to "EMBED SUITE v4.0.0 ONLINE."
+            1.0f to "EMBED SUITE v${com.embedsuite.app.core.AppVersion.NAME} ONLINE."
         )
         for ((pct, msg) in steps) {
             delay(320)

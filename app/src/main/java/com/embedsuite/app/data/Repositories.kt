@@ -145,20 +145,79 @@ class ProfileRepository(private val dao: ProfileDao) {
 
     companion object {
         val DEFAULT_PROFILES = listOf(
-            ProfileEntity(name = "433.92 MHz Listen", category = "RF", commands = "subghz rx raw 15", description = "Escucha Sub-GHz 15s (freq en menú T-Embed)"),
-            ProfileEntity(name = "Raw Capture 30s", category = "RF", commands = "subghz rx raw 30", description = "Captura RAW extendida"),
-            ProfileEntity(name = "TV Power NEC", category = "IR", commands = """{"cmd":"run_action","plugin_id":"ir_toolkit","action":"send","params":{"protocol":"NEC","address":"00FF","command":"00FF"}}""", description = "Power NEC vía TEH-Link"),
-            ProfileEntity(name = "IR Sniff 10s", category = "IR", commands = "ir rx raw 10", description = "Captura señal IR"),
-            ProfileEntity(name = "System Recon", category = "RECON", commands = "info\nfree\nuptime", description = "Info ESP32-S3"),
-            ProfileEntity(name = "WiFi Scan", category = "RECON", commands = """{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}""", description = "Escaneo WiFi vía TEH-Link"),
-            ProfileEntity(name = "I2C Bus Scan", category = "RECON", commands = "i2c scan", description = "Escanea bus I2C"),
-            ProfileEntity(name = "Storage List", category = "RECON", commands = "storage list /", description = "Lista archivos SD/LittleFS")
+            ProfileEntity(
+                name = "Captura Sub-GHz 15s",
+                category = "RF",
+                commands = """{"cmd":"run_action","plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":15,"freq_mhz":433.92}}""",
+                description = "Captura TEH-Link 15s @ 433.92 (usar Dashboard/RF — run_action no va por consola)"
+            ),
+            ProfileEntity(
+                name = "Captura Sub-GHz 30s",
+                category = "RF",
+                commands = """{"cmd":"run_action","plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30,"freq_mhz":433.92}}""",
+                description = "Captura TEH-Link extendida"
+            ),
+            ProfileEntity(
+                name = "TV Power NEC",
+                category = "IR",
+                commands = """{"cmd":"run_action","plugin_id":"ir_toolkit","action":"send","params":{"protocol":"NEC","address":"00FF","command":"00FF"}}""",
+                description = "Power NEC vía TEH-Link (pantalla NFC/IR)"
+            ),
+            ProfileEntity(
+                name = "IR Sniff 10s",
+                category = "IR",
+                commands = """{"cmd":"run_action","plugin_id":"ir_toolkit","action":"rx_start","params":{"seconds":10}}""",
+                description = "Captura IR vía TEH-Link"
+            ),
+            ProfileEntity(
+                name = "System Recon",
+                category = "RECON",
+                commands = """{"cmd":"get_info","id":1}
+{"cmd":"get_status","id":2}""",
+                description = "get_info + get_status TEH-Link"
+            ),
+            ProfileEntity(
+                name = "WiFi Scan T-Embed",
+                category = "RECON",
+                commands = """{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}""",
+                description = "Escaneo WiFi del T-Embed (Dashboard)"
+            ),
+            ProfileEntity(
+                name = "List Actions",
+                category = "RECON",
+                commands = """{"cmd":"list_actions","id":1}""",
+                description = "Descubre acciones TEH-Link del firmware"
+            ),
+            ProfileEntity(
+                name = "Sub-GHz State",
+                category = "RECON",
+                commands = """{"cmd":"get_action_state","id":1,"plugin_id":"subghz_analyzer"}""",
+                description = "Telemetría captura CC1101"
+            )
         )
 
         val SCENARIO_PROFILES = listOf(
-            ProfileEntity(name = "Garage Audit", category = "SCENARIO", commands = "subghz rx raw 20\nwait 2000ms\ninfo", description = "Auditoría RF 20s + info"),
-            ProfileEntity(name = "Hotel IR Scan", category = "SCENARIO", commands = "ir rx raw 15\nwait 1000ms\nir rx raw 15", description = "Captura IR habitación"),
-            ProfileEntity(name = "IoT Recon", category = "SCENARIO", commands = "info\ni2c scan\nfree\nwebui", description = "Recon dispositivo IoT")
+            ProfileEntity(
+                name = "Garage Audit",
+                category = "SCENARIO",
+                commands = """{"cmd":"run_action","plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":20,"freq_mhz":433.92}}
+{"cmd":"get_status","id":2}""",
+                description = "Captura RF 20s + status"
+            ),
+            ProfileEntity(
+                name = "Hotel IR Scan",
+                category = "SCENARIO",
+                commands = """{"cmd":"run_action","plugin_id":"ir_toolkit","action":"rx_start","params":{"seconds":15}}""",
+                description = "Captura IR habitación"
+            ),
+            ProfileEntity(
+                name = "IoT Recon",
+                category = "SCENARIO",
+                commands = """{"cmd":"get_info","id":1}
+{"cmd":"get_status","id":2}
+{"cmd":"list_actions","id":3}""",
+                description = "Recon TEH-Link completo"
+            )
         )
     }
 }

@@ -14,7 +14,21 @@ data class TehLinkDeviceInfo(
     val channel: String,
     val proto: String,
     val protoVer: Int,
-    val plugins: List<TehLinkPluginInfo>
+    val plugins: List<TehLinkPluginInfo>,
+    val hardening: TehLinkHardeningInfo = TehLinkHardeningInfo()
+)
+
+/** Flags de seguridad / hardening reportados por Xibalba v0.17+. */
+data class TehLinkHardeningInfo(
+    val twdtEnabled: Boolean = false,
+    val twdtTimeoutSeconds: Int = 0,
+    val bodEnabled: Boolean = false,
+    val bodVoltage: Float? = null,
+    val secureBoot: Boolean = false,
+    val flashEncryption: Boolean = false,
+    val nvsEncryption: Boolean = false,
+    val stackCanaries: Boolean = false,
+    val heapPoisoning: Boolean = false
 )
 
 data class TehLinkScreenInfo(
@@ -33,7 +47,11 @@ data class TehLinkDeviceStatus(
     val batteryPct: Int? = null,
     val chargeStatus: String? = null,
     val charging: Boolean? = null,
-    val vbusPresent: Boolean? = null
+    val vbusPresent: Boolean? = null,
+    val heapFreeBytes: Long? = null,
+    val psramFreeBytes: Long? = null,
+    val coredumpPresent: Boolean = false,
+    val wdtPanicReason: String? = null
 )
 
 data class TehLinkActionInfo(
@@ -83,6 +101,22 @@ data class TehLinkIrResult(
     val protocol: String = ""
 )
 
+/** Estado de OTA expandido: incluye sha256_verified introducido en Xibalba 0.17.1+. */
+data class TehLinkOtaStatus(
+    val state: String = "idle",
+    val bytesWritten: Long = 0,
+    val totalSize: Long = 0,
+    val sha256Verified: Boolean = false
+) {
+    val progressPct: Int
+        get() {
+            if (totalSize <= 0) return 0
+            return (bytesWritten * 100L / totalSize).coerceIn(0L, 100L).toInt()
+        }
+    val isComplete: Boolean get() = state.equals("complete", true)
+    val hasError: Boolean get() = state.equals("error", true) || state.equals("mismatch", true)
+}
+
 data class TehLinkActionState(
     val pluginId: String,
     val action: String = "",
@@ -99,7 +133,9 @@ data class TehLinkActionState(
     val wardriving: TehLinkWardrivingStatus? = null,
     val crypto: TehLinkCryptoResult? = null,
     val nfc: TehLinkNfcResult? = null,
-    val ir: TehLinkIrResult? = null
+    val ir: TehLinkIrResult? = null,
+    val ota: TehLinkOtaStatus? = null,
+    val soak: TehLinkSoakResult? = null
 )
 
 data class TehLinkActionResult(
@@ -107,6 +143,19 @@ data class TehLinkActionResult(
     val action: String,
     val state: TehLinkActionState
 )
+
+/** Resultado de un soak test stress: detección de memory leaks / cuelgues. */
+data class TehLinkSoakResult(
+    val iterations: Int = 0,
+    val failures: Int = 0,
+    val heapFreeBefore: Long = 0,
+    val heapFreeAfter: Long = 0,
+    val leakBytes: Long = 0,
+    val completed: Boolean = false
+) {
+    val isHealthy: Boolean
+        get() = completed && failures == 0 && leakBytes < 16_384L
+}
 
 /** Chips rápidos TEH-Link para consola Xibalba. */
 object TehLinkConsoleChips {
@@ -118,7 +167,9 @@ object TehLinkConsoleChips {
         Chip("get_status", """{"cmd":"get_status","id":3}"""),
         Chip("get_screen", """{"cmd":"get_screen","id":4}"""),
         Chip("list_actions", """{"cmd":"list_actions","id":5}"""),
-        Chip("get_action_state", """{"cmd":"get_action_state","id":6,"plugin_id":"subghz_analyzer"}"""),
-        Chip("back_to_menu", """{"cmd":"back_to_menu","id":7}""")
+        Chip("ota_status", """{"cmd":"ota_status","id":6}"""),
+        Chip("get_action_state", """{"cmd":"get_action_state","id":7,"plugin_id":"subghz_analyzer"}"""),
+        Chip("back_to_menu", """{"cmd":"back_to_menu","id":8}""")
     )
 }
+

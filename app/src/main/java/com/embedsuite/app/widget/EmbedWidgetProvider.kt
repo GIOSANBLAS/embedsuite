@@ -42,45 +42,64 @@ class EmbedWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_RX_15S -> {
                 scope.launch {
-                    AppContainer.instance?.connectionManager?.startSubGhzRawCapture(15)
+                    try {
+                        val cm = AppContainer.instance?.connectionManager
+                        if (cm == null) {
+                            toast(context, context.getString(R.string.widget_tx_no_app))
+                            return@launch
+                        }
+                        if (cm.connectionState.value !is ConnectionState.Connected) {
+                            toast(context, context.getString(R.string.widget_tx_offline))
+                            return@launch
+                        }
+                        cm.startSubGhzRawCapture(15).onFailure {
+                            toast(context, it.message ?: context.getString(R.string.widget_tx_fail))
+                        }
+                    } catch (e: Exception) {
+                        toast(context, e.message ?: context.getString(R.string.widget_tx_fail))
+                    }
+                    updateAllWidgets(context)
                 }
-                updateAllWidgets(context)
             }
             ACTION_TX_FAV -> {
                 scope.launch {
-                    val container = AppContainer.instance
-                    if (container == null) {
-                        toast(context, context.getString(R.string.widget_tx_no_app))
-                        return@launch
-                    }
-                    val link = container.connectionManager.connectionState.value
-                    if (link !is ConnectionState.Connected) {
-                        toast(context, context.getString(R.string.widget_tx_offline))
-                        return@launch
-                    }
-                    val fav = container.signalRepository.getFavoriteRf(1).firstOrNull()
-                    if (fav == null) {
-                        toast(context, context.getString(R.string.widget_tx_no_fav))
-                        return@launch
-                    }
-                    WidgetStateStore.updateFavoriteLabel(
-                        context,
-                        fav.label.ifBlank { fav.protocol.ifBlank { fav.name } }
-                    )
-                    container.rfReplayEngine.replay(fav).fold(
-                        onSuccess = {
-                            toast(
-                                context,
-                                context.getString(
-                                    R.string.widget_tx_ok,
-                                    fav.label.ifBlank { fav.protocol }
-                                )
-                            )
-                        },
-                        onFailure = {
-                            toast(context, it.message ?: context.getString(R.string.widget_tx_fail))
+                    try {
+                        val container = AppContainer.instance
+                        if (container == null) {
+                            toast(context, context.getString(R.string.widget_tx_no_app))
+                            return@launch
                         }
-                    )
+                        val link = container.connectionManager.connectionState.value
+                        if (link !is ConnectionState.Connected) {
+                            toast(context, context.getString(R.string.widget_tx_offline))
+                            return@launch
+                        }
+                        val fav = container.signalRepository.getFavoriteRf(1).firstOrNull()
+                        if (fav == null) {
+                            toast(context, context.getString(R.string.widget_tx_no_fav))
+                            return@launch
+                        }
+                        WidgetStateStore.updateFavoriteLabel(
+                            context,
+                            fav.label.ifBlank { fav.protocol.ifBlank { fav.name } }
+                        )
+                        container.rfReplayEngine.replay(fav).fold(
+                            onSuccess = {
+                                toast(
+                                    context,
+                                    context.getString(
+                                        R.string.widget_tx_ok,
+                                        fav.label.ifBlank { fav.protocol }
+                                    )
+                                )
+                            },
+                            onFailure = {
+                                toast(context, it.message ?: context.getString(R.string.widget_tx_fail))
+                            }
+                        )
+                    } catch (e: Exception) {
+                        toast(context, e.message ?: context.getString(R.string.widget_tx_fail))
+                    }
                     updateAllWidgets(context)
                 }
             }

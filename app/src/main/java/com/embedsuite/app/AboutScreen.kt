@@ -98,7 +98,7 @@ private fun AboutMainContent(
     ) {
         GlassCard(accent = MatrixGreen, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                LilyGoLogo(logoSize = 96.dp, showSubtitle = false, brutal = true)
+                LilyGoLogo(logoSize = 124.dp, showSubtitle = false, brutal = true)
                 Spacer(Modifier.height(8.dp))
                 Text("EMBED SUITE", fontFamily = FontFamily.Monospace, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MatrixGreen)
                 Text("v${AppVersion.NAME} (build ${AppVersion.CODE})", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)

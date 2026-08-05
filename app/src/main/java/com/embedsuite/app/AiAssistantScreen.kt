@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,7 @@ fun AiAssistantScreen(
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val voiceLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -75,7 +77,7 @@ fun AiAssistantScreen(
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-MX")
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Comando para T-Embed...")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.ai_voice_prompt))
             }
             voiceLauncher.launch(intent)
         }
@@ -99,14 +101,19 @@ fun AiAssistantScreen(
         ) {
             Column {
                 Text(
-                    "EMBED AI CORE",
+                    stringResource(R.string.ai_title),
                     fontFamily = FontFamily.Monospace,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = MatrixGreen
                 )
+                val linkLabel = if (connectionState is com.embedsuite.app.connection.ConnectionState.Connected) {
+                    stringResource(R.string.ai_link_ok)
+                } else {
+                    stringResource(R.string.ai_offline)
+                }
                 Text(
-                    "Modo: ${aiMode.name} | ${if (connectionState is com.embedsuite.app.connection.ConnectionState.Connected) "LINK OK" else "OFFLINE"}",
+                    stringResource(R.string.ai_mode_status, aiMode.name, linkLabel),
                     fontFamily = FontFamily.Monospace,
                     fontSize = 9.sp,
                     color = TextGray
@@ -117,10 +124,10 @@ fun AiAssistantScreen(
             }
             Row {
                 IconButton(onClick = { showSettings = !showSettings }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Ajustes AI", tint = NeonCyan)
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.ai_settings_cd), tint = NeonCyan)
                 }
                 IconButton(onClick = { aiEngine.clearChat() }) {
-                    Icon(Icons.Default.DeleteSweep, contentDescription = "Limpiar", tint = NeonOrange)
+                    Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_cd), tint = NeonOrange)
                 }
             }
         }
@@ -160,13 +167,13 @@ fun AiAssistantScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            QuickAiChip("Captura RF") {
-                scope.launch { aiEngine.processUserInput("Captura subghz raw 15 segundos") }
+            QuickAiChip(stringResource(R.string.ai_chip_capture)) {
+                scope.launch { aiEngine.processUserInput(context.getString(R.string.ai_prompt_capture)) }
             }
-            QuickAiChip("Analizar") {
+            QuickAiChip(stringResource(R.string.ai_chip_analyze)) {
                 scope.launch { aiEngine.analyzeLastSignal() }
             }
-            QuickAiChip("Reporte") {
+            QuickAiChip(stringResource(R.string.ai_chip_report)) {
                 scope.launch { aiEngine.generateSessionReport() }
             }
         }

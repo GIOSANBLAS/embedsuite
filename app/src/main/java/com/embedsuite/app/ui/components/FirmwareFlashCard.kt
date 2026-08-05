@@ -1,5 +1,6 @@
 package com.embedsuite.app.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,10 @@ import com.embedsuite.app.ui.theme.*
 fun FirmwareFlashCard(
     otaProgress: Int,
     flashStatus: String,
+    /** Último estado OTA reportado por el firmware Xibalba (sha256_verified / state). */
+    lastOta: com.embedsuite.app.connection.TehLinkOtaStatus = com.embedsuite.app.connection.TehLinkOtaStatus(),
+    /** Hardening actual del dispositivo conectado (si es Xibalba) para mostrar flag Secure. */
+    hardening: com.embedsuite.app.connection.TehLinkHardeningInfo = com.embedsuite.app.connection.TehLinkHardeningInfo(),
     firmwareOptions: List<FirmwareRelease>,
     selectedRelease: FirmwareRelease?,
     recommendedRelease: FirmwareRelease?,
@@ -190,6 +195,57 @@ fun FirmwareFlashCard(
                             trackColor = DarkSurfaceElevated
                         )
                         Spacer(Modifier.height(6.dp))
+                    }
+
+                    /* ====== SHA256 VERIFIED BADGE ====== */
+                    when {
+                        lastOta.sha256Verified -> {
+                            AssistChip(
+                                onClick = {},
+                                label = {
+                                    Text(
+                                        "✅ SHA256 VERIFIED · ${lastOta.totalBytes} B · state=${lastOta.state}",
+                                        fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = MatrixGreen
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MatrixGreen.copy(alpha = 0.12f),
+                                    labelColor = MatrixGreen
+                                )
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        otaProgress == 100 && !lastOta.sha256Verified && lastOta.totalBytes > 0L -> {
+                            AssistChip(
+                                onClick = {},
+                                label = {
+                                    Text(
+                                        "⚠️ NO VERIFICADO: NO REINICIES · Flashea USB de nuevo con esptool.py si persiste",
+                                        fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = NeonRed
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = NeonRed.copy(alpha = 0.15f),
+                                    labelColor = NeonRed
+                                )
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                    }
+
+                    /* ====== SECURE BOOT PROFILE RECOMMENDATION ====== */
+                    if (otaProgress == 0 && (hardening.secureBoot == false || hardening.flashEncryption == false)) {
+                        Row(
+                            Modifier.fillMaxWidth().background(NeonPurple.copy(alpha = 0.12f)).padding(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "🔐 Perfil RELEASE (Secure Boot V2 RSA-3072 + Flash Encryption AES-256 + NVS enc) disponible en build release-flash. Aplícalo solo una vez tras validar build debug.",
+                                fontFamily = FontFamily.Monospace, fontSize = 8.sp,
+                                color = NeonPurple, modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
                     }
                     Button(
                         onClick = onLoadReleases,

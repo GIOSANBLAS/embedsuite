@@ -25,6 +25,8 @@ data class SignalEntry(
 data class SystemInfo(
     val uptime: String = "",
     val freeHeap: String = "",
+    val freeHeapBytes: Long? = null,
+    val freePsramBytes: Long? = null,
     val battery: String = "",
     val firmware: String = "",
     val codename: String = "",
@@ -36,7 +38,15 @@ data class SystemInfo(
     /** Subsistemas en modo simulación (TEH-Link get_status.sim). Vacío = desconocido. */
     val simFlags: Map<String, Boolean> = emptyMap(),
     /** Capabilities reportadas por TEH-Link get_status.capabilities. */
-    val xibalbaCapabilities: Map<String, Boolean> = emptyMap()
+    val xibalbaCapabilities: Map<String, Boolean> = emptyMap(),
+    /** Flags de hardening reportados por Xibalba 0.17.1+ (TWDT / BOD / Secure Boot / etc). */
+    val hardening: TehLinkHardeningInfo = TehLinkHardeningInfo(),
+    /** Coredump ELF pendiente en flash (solo útil cuando hubo pánico WDT). */
+    val coredumpPending: Boolean = false,
+    /** Última razón de pánico TWDT (null si el firmware no reinició por watchdog). */
+    val wdtPanicReason: String? = null,
+    /** Estado OTA más reciente: sha256_verified, progress, state. */
+    val lastOta: TehLinkOtaStatus = TehLinkOtaStatus()
 )
 
 sealed class DeviceEvent {
@@ -47,4 +57,6 @@ sealed class DeviceEvent {
     data class SystemInfoUpdate(val info: SystemInfo) : DeviceEvent()
     /** Avisos TEH-Link (pairing, auth). */
     data class TehLinkNotice(val message: String) : DeviceEvent()
+    /** OTA Xibalba completada: expone sha256_verified para UI feedback instantáneo. */
+    data class OtaCompleted(val status: TehLinkOtaStatus) : DeviceEvent()
 }

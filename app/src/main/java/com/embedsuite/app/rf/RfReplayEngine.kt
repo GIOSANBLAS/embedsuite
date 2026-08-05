@@ -1,5 +1,6 @@
 package com.embedsuite.app.rf
 
+import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.core.SoundFeedback
@@ -24,71 +25,92 @@ class RfReplayEngine(
     )
 
     fun preview(signal: CapturedSignalEntity): ReplayPreview {
+        val linked = connectionManager.connectionState.value is ConnectionState.Connected
+        val xibalba = connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA
         val decoded = decodeSignal(signal)
         val devicePath = signal.detail.takeIf { it.startsWith("device:") }
             ?.removePrefix("device:")?.trim()
 
+        fun gate(okPayload: Boolean, emptyPayloadMsg: String): Pair<Boolean, String> {
+            return when {
+                !linked -> false to TX_REQUIRES_LINK
+                !xibalba -> false to TX_REQUIRES_XIBALBA
+                !okPayload -> false to emptyPayloadMsg
+                else -> true to ""
+            }
+        }
+
         if (!devicePath.isNullOrBlank() && devicePath.endsWith(".sub", ignoreCase = true)) {
+            val (can, blocker) = gate(true, "")
             return ReplayPreview(
                 command = "tehlink:subghz_replay:$devicePath",
                 protocol = decoded?.protocol ?: signal.protocol.ifBlank { "RAW" },
                 frequency = signal.frequency.ifBlank { decoded?.frequency ?: DEFAULT },
                 summary = "TEH-Link replay desde: $devicePath",
-                canTransmit = connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA,
-                blockerMessage = if (connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA) "" else TX_REQUIRES_XIBALBA,
+                canTransmit = can,
+                blockerMessage = blocker,
                 devicePath = devicePath
             )
         }
 
         if (decoded != null && decoded.protocol != "RAW" && decoded.hexKey.isNotBlank()) {
+            val (can, blocker) = gate(true, "")
             return ReplayPreview(
                 command = "tehlink:subghz_tx:${decoded.hexKey}",
                 protocol = decoded.protocol,
                 frequency = signal.frequency.ifBlank { decoded.frequency },
                 summary = "TEH-Link subghz_tx (${decoded.protocol})",
-                canTransmit = connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA,
-                blockerMessage = if (connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA) "" else TX_REQUIRES_XIBALBA,
+                canTransmit = can,
+                blockerMessage = blocker,
                 rawHex = decoded.hexKey
             )
         }
 
         val rawHex = signal.rawData.replace(Regex("[^0-9A-Fa-f]"), "").takeIf { it.length >= 4 }
+        val (can, blocker) = gate(!rawHex.isNullOrBlank(), "Sin payload RF para TX.")
         return ReplayPreview(
             command = "tehlink:subghz_tx:${rawHex.orEmpty()}",
             protocol = "RAW",
             frequency = signal.frequency.ifBlank { DEFAULT },
             summary = "TEH-Link subghz_tx (RAW hex)",
-            canTransmit = connectionManager.detectedProfile.value == FirmwareProfile.XIBALBA &&
-                !rawHex.isNullOrBlank(),
-            blockerMessage = when {
-                connectionManager.detectedProfile.value != FirmwareProfile.XIBALBA -> TX_REQUIRES_XIBALBA
-                rawHex.isNullOrBlank() -> "Sin payload RF para TX."
-                else -> ""
-            },
+            canTransmit = can,
+            blockerMessage = blocker,
             rawHex = rawHex
         )
     }
 
     suspend fun replay(signal: CapturedSignalEntity): Result<String> {
-        val preview = preview(signal)
-        if (!preview.canTransmit) {
+        return try {
+            val preview = preview(signal)
+            if (!preview.canTransmit) {
+                SoundFeedback.playError()
+                runCatching { txHistoryRepository.record(signal, preview.command, false) }
+                return Result.failure(Exception(preview.blockerMessage.ifBlank { TX_REQUIRES_XIBALBA }))
+            }
+            val result = replayViaTehLink(preview, signal)
+            val success = result.isSuccess
+            if (success) SoundFeedback.playSuccess() else SoundFeedback.playError()
+            runCatching { txHistoryRepository.record(signal, preview.command, success) }
+            result
+        } catch (e: Exception) {
             SoundFeedback.playError()
-            txHistoryRepository.record(signal, preview.command, false)
-            return Result.failure(Exception(preview.blockerMessage.ifBlank { TX_REQUIRES_XIBALBA }))
+            Result.failure(Exception("TX falló: ${e.message ?: e.javaClass.simpleName}"))
         }
-        val result = replayViaTehLink(preview, signal)
-        val success = result.isSuccess
-        if (success) SoundFeedback.playSuccess() else SoundFeedback.playError()
-        txHistoryRepository.record(signal, preview.command, success)
-        return result
     }
 
     suspend fun replayFromDeviceFile(relativePath: String): Result<String> {
-        if (connectionManager.detectedProfile.value != FirmwareProfile.XIBALBA) {
-            return Result.failure(Exception(TX_REQUIRES_XIBALBA))
+        return try {
+            if (connectionManager.connectionState.value !is ConnectionState.Connected) {
+                return Result.failure(Exception(TX_REQUIRES_LINK))
+            }
+            if (connectionManager.detectedProfile.value != FirmwareProfile.XIBALBA) {
+                return Result.failure(Exception(TX_REQUIRES_XIBALBA))
+            }
+            val path = if (relativePath.startsWith("/")) relativePath else "/sdcard/$relativePath"
+            connectionManager.tehLinkRunSubGhzReplay(path).map { "TEH-Link replay OK: $path" }
+        } catch (e: Exception) {
+            Result.failure(Exception("Replay falló: ${e.message ?: e.javaClass.simpleName}"))
         }
-        val path = if (relativePath.startsWith("/")) relativePath else "/sdcard/$relativePath"
-        return connectionManager.tehLinkRunSubGhzReplay(path).map { "TEH-Link replay OK: $path" }
     }
 
     private suspend fun replayViaTehLink(
@@ -162,5 +184,6 @@ class RfReplayEngine(
 
     companion object {
         private const val TX_REQUIRES_XIBALBA = "TX RF requiere T-Embed Xibalba conectado (TEH-Link)."
+        private const val TX_REQUIRES_LINK = "Sin LINK. Conecta el T-Embed por USB OTG."
     }
 }

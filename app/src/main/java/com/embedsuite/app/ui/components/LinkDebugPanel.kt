@@ -76,17 +76,21 @@ fun LinkDebugPanel(
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 DebugCategory.entries.forEach { cat ->
                     FilterChip(
                         selected = filter == cat,
                         onClick = { filter = cat },
                         label = {
                             Text(
-                                cat.name,
+                                debugCategoryLabel(cat),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 8.sp,
-                                color = if (filter == cat) BlackAMOLED else MatrixGreen
+                                color = if (filter == cat) BlackAMOLED else MatrixGreen,
+                                maxLines = 1
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -144,7 +148,11 @@ fun LinkDebugPanel(
                             color = MatrixGreen
                         )
                         TextButton(onClick = { fullscreen = false }) {
-                            Text("CERRAR", fontFamily = FontFamily.Monospace, color = NeonRed)
+                            Text(
+                                stringResource(R.string.action_close),
+                                fontFamily = FontFamily.Monospace,
+                                color = NeonRed
+                            )
                         }
                     }
                     LinkDebugPanel(modifier = Modifier.weight(1f), compact = false)
@@ -179,4 +187,14 @@ private fun copyDebugLog(context: Context, filter: DebugCategory) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("TEH-Link debug", text))
     Toast.makeText(context, context.getString(R.string.tools_debug_copied, text.lines().size), Toast.LENGTH_SHORT).show()
+}
+
+@Composable
+private fun debugCategoryLabel(cat: DebugCategory): String = when (cat) {
+    DebugCategory.ALL -> stringResource(R.string.debug_cat_all)
+    DebugCategory.RF -> stringResource(R.string.debug_cat_rf)
+    DebugCategory.SYSTEM -> stringResource(R.string.debug_cat_system)
+    DebugCategory.ERROR -> stringResource(R.string.debug_cat_error)
+    DebugCategory.STORAGE -> stringResource(R.string.debug_cat_storage)
+    DebugCategory.OTHER -> stringResource(R.string.debug_cat_other)
 }

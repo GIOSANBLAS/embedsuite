@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EMBED SUITE — Manual Interactivo</title>
+  <title>EMBED SUITE 4.0 — Manual Xibalba / TEH-Link</title>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -12,7 +12,6 @@
       --cyan: #00e5ff;
       --orange: #ff6b00;
       --red: #ff0040;
-      --blue: #0080ff;
       --gray: #888;
       --text: #c8ffc8;
       --border: rgba(0,255,65,.25);
@@ -22,474 +21,140 @@
       font-family: "Consolas", "Courier New", monospace;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.5;
-      display: flex;
-      min-height: 100vh;
+      line-height: 1.55;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
     }
-    #sidebar {
-      width: 280px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      padding: 16px;
-      position: fixed;
-      height: 100vh;
-      overflow-y: auto;
-      z-index: 10;
-    }
-    #sidebar h1 {
-      font-size: 14px;
-      color: var(--green);
-      margin-bottom: 4px;
-    }
-    #sidebar .sub {
-      font-size: 10px;
-      color: var(--gray);
-      margin-bottom: 16px;
-    }
-    #search {
-      width: 100%;
-      padding: 8px 10px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      margin-bottom: 12px;
-      border-radius: 4px;
-    }
-    #search:focus { outline: none; border-color: var(--cyan); }
-    .filter-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-    .filter-btn {
-      font-size: 9px;
-      padding: 4px 8px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--green);
-      cursor: pointer;
-      border-radius: 3px;
-      font-family: inherit;
-    }
-    .filter-btn.active, .filter-btn:hover {
-      background: var(--green);
-      color: var(--bg);
-    }
-    .nav-link {
-      display: block;
-      padding: 6px 8px;
-      color: var(--cyan);
-      text-decoration: none;
-      font-size: 11px;
-      border-left: 2px solid transparent;
-    }
-    .nav-link:hover { border-left-color: var(--green); color: var(--green); }
-    #main {
-      margin-left: 280px;
-      flex: 1;
-      padding: 24px 32px 80px;
-      max-width: 960px;
-    }
-    section { margin-bottom: 40px; scroll-margin-top: 20px; }
+    h1 { color: var(--green); font-size: 18px; margin-bottom: 4px; }
+    .sub { color: var(--gray); font-size: 11px; margin-bottom: 20px; }
     h2 {
-      color: var(--green);
-      font-size: 16px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 16px;
-    }
-    h3 { color: var(--cyan); font-size: 13px; margin: 20px 0 10px; }
-    p, li { font-size: 12px; margin-bottom: 8px; }
-    .hw-diagram {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 16px;
-      font-size: 11px;
-      white-space: pre;
-      overflow-x: auto;
-      margin: 16px 0;
       color: var(--cyan);
+      font-size: 14px;
+      margin: 24px 0 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
     }
+    h3 { color: var(--green); font-size: 12px; margin: 14px 0 6px; }
+    p, li { font-size: 12px; margin-bottom: 8px; }
+    ul { padding-left: 18px; margin-bottom: 12px; }
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      transition: border-color .2s;
+      padding: 12px;
+      margin-bottom: 12px;
     }
-    .card:hover { border-color: var(--green); }
-    .card.hidden { display: none; }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      cursor: pointer;
+    .cmd {
+      background: #000;
+      border-left: 3px solid var(--orange);
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--green);
+      margin: 8px 0;
+      overflow-x: auto;
     }
-    .card-title { color: var(--green); font-size: 13px; font-weight: bold; }
-    .card-screen { font-size: 9px; color: var(--gray); }
-    .card-body {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,.06);
-      display: none;
-    }
-    .card.open .card-body { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 10px 0; }
+    th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+    th { color: var(--cyan); background: #0d0d0d; }
     .badge {
-      font-size: 8px;
+      display: inline-block;
+      font-size: 9px;
       padding: 2px 6px;
       border-radius: 3px;
-      white-space: nowrap;
+      background: var(--green);
+      color: var(--bg);
+      margin-left: 6px;
     }
-    .badge-tembed { background: rgba(255,107,0,.2); color: var(--orange); border: 1px solid var(--orange); }
-    .badge-cc1101 { background: rgba(0,255,65,.15); color: var(--green); border: 1px solid var(--green); }
-    .badge-phone { background: rgba(0,128,255,.15); color: var(--blue); border: 1px solid var(--blue); }
-    .badge-nfc { background: rgba(0,229,255,.12); color: var(--cyan); border: 1px solid var(--cyan); }
-    .cmd {
-      background: var(--bg);
-      padding: 6px 10px;
-      font-size: 11px;
-      color: var(--orange);
-      border-left: 3px solid var(--orange);
-      margin: 8px 0;
-    }
-    .tip {
-      font-size: 10px;
-      color: var(--gray);
-      font-style: italic;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-      margin: 12px 0;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: left;
-    }
-    th { color: var(--cyan); background: var(--surface); }
-    #stats {
-      position: fixed;
-      bottom: 0;
-      left: 280px;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 8px 24px;
-      font-size: 10px;
-      color: var(--gray);
-    }
-    @media (max-width: 768px) {
-      #sidebar { width: 100%; height: auto; position: relative; }
-      #main { margin-left: 0; padding: 16px; }
-      #stats { left: 0; }
-    }
+    .warn { color: var(--red); font-size: 11px; }
   </style>
 </head>
 <body>
 
-<nav id="sidebar">
-  <h1>EMBED SUITE</h1>
-  <div class="sub">Manual v3.8.1 · T-Embed CC1101 Plus</div>
-  <input type="search" id="search" placeholder="Buscar botón, comando, pantalla…" autocomplete="off">
-  <div class="filter-row" id="filters">
-    <button class="filter-btn active" data-filter="all">TODOS</button>
-    <button class="filter-btn" data-filter="dashboard">INICIO</button>
-    <button class="filter-btn" data-filter="rf">RF</button>
-    <button class="filter-btn" data-filter="wifi">WiFi</button>
-    <button class="filter-btn" data-filter="nfc">NFC/IR</button>
-    <button class="filter-btn" data-filter="cli">CLI</button>
-    <button class="filter-btn" data-filter="ai">AI</button>
-    <button class="filter-btn" data-filter="tools">Tools</button>
-    <button class="filter-btn" data-filter="widget">Widget</button>
-  </div>
-  <a class="nav-link" href="#conexion">→ Conexión hardware</a>
-  <a class="nav-link" href="#dashboard">→ Dashboard</a>
-  <a class="nav-link" href="#rf">→ RF / CC1101</a>
-  <a class="nav-link" href="#wifi">→ WiFi / BLE (teléfono)</a>
-  <a class="nav-link" href="#nfc">→ NFC / IR</a>
-  <a class="nav-link" href="#cli">→ CLI Bruce</a>
-  <a class="nav-link" href="#ai">→ AI Assistant</a>
-  <a class="nav-link" href="#tools">→ Tools</a>
-  <a class="nav-link" href="#widget">→ Widget &amp; Tile</a>
-  <a class="nav-link" href="#campo">→ Modo campo</a>
-  <a class="nav-link" href="#troubleshoot">→ Problemas</a>
-</nav>
+<h1>EMBED SUITE 4.0</h1>
+<p class="sub">Xibalba Native · T-Embed CC1101 Plus · Protocolo TEH-Link (JSON NDJSON por USB CDC)</p>
 
-<main id="main">
+<div class="card">
+  <p><strong>Hardware:</strong> LilyGO T-Embed CC1101 Plus con firmware <strong>te-embed-xibalba</strong>.</p>
+  <p><strong>Conexión:</strong> <strong>USB OTG (recomendado y prioritario)</strong>. WiFi/BLE TEH-Link son experimentales. Emparejamiento: mantén pulsado el botón lateral ~2 s (ventana 120 s).</p>
+  <p class="warn">Uso RF/IR/NFC solo en entornos autorizados. Eres responsable del cumplimiento legal.</p>
+</div>
 
-<section id="conexion">
-  <h2>// CONEXIÓN HARDWARE</h2>
-  <div class="hw-diagram">
-[ Android ]  ──USB OTG──►  [ T-Embed CC1101 Plus ]
-     │                           ├── ESP32-S3 (Bruce CLI)
-     │                           ├── CC1101 Sub-GHz (315–915 MHz)
-     │                           ├── PN532 NFC / RFID
-     │                           ├── IR TX/RX
-     │                           └── microSD (señales .sub)
-     │
-     ├── WiFi BruceNet (192.168.4.1) ── HTTP /cm
-     └── BLE Nordic UART ── GATT serial
-  </div>
-  <table>
-    <tr><th>Transporte</th><th>Requisito</th><th>Ideal para</th></tr>
-    <tr><td>USB OTG</td><td>Cable + permiso USB</td><td>CLI, RF, NFC, flash USB</td></tr>
-    <tr><td>WiFi BruceNet</td><td>AP BruceNet, host 192.168.4.1</td><td>OTA firmware, CLI sin cable</td></tr>
-    <tr><td>BLE</td><td>Emparejar en Ajustes Android</td><td>Enlace wireless diario</td></tr>
-  </table>
-  <p class="tip">Estado <strong>LINK OK</strong> en la barra superior = T-Embed responde por el transporte activo.</p>
-</section>
+<h2>1. Arquitectura TEH-Link</h2>
+<p>La app habla JSON línea a línea con el firmware. Comandos base:</p>
+<ul>
+  <li><code>ping</code>, <code>pair</code>, <code>get_info</code>, <code>get_status</code></li>
+  <li><code>open_plugin</code>, <code>back_to_menu</code>, <code>list_actions</code></li>
+  <li><code>run_action</code> — ejecuta acciones de plugins Xibalba</li>
+  <li><code>ota_begin</code> / <code>ota_chunk</code> / <code>ota_finish</code> — actualización USB</li>
+</ul>
+<div class="cmd">{"cmd":"run_action","id":1,"plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30}}</div>
 
-<section id="dashboard" data-section="dashboard">
-  <h2>// INICIO — DASHBOARD</h2>
-  <div class="card" data-tags="dashboard rf cc1101">
-    <div class="card-header"><span class="card-title">RX 15s</span><span class="badge badge-cc1101">CC1101</span></div>
-    <div class="card-screen">INICIO → Acciones rápidas</div>
-    <div class="card-body">
-      <p>Captura señal Sub-GHz RAW durante 15 segundos en la frecuencia RF configurada.</p>
-      <div class="cmd">subghz setfrequency &lt;Hz&gt;<br>subghz rx raw 15</div>
-      <p class="tip">Requiere LINK OK. La señal se guarda en biblioteca con GPS si hay permiso.</p>
-    </div>
-  </div>
-  <div class="card" data-tags="dashboard rf cc1101">
-    <div class="card-header"><span class="card-title">TX ÚLTIMA / RETRANSMITIR</span><span class="badge badge-cc1101">CC1101 TX</span></div>
-    <div class="card-screen">INICIO → Última señal</div>
-    <div class="card-body">
-      <p>Abre preview y retransmite la última captura RF por el CC1101.</p>
-      <div class="cmd">subghz tx &lt;protocol&gt; …  ó  subghz tx_from_file &lt;file.sub&gt;</div>
-    </div>
-  </div>
-  <div class="card" data-tags="dashboard tembed">
-    <div class="card-header"><span class="card-title">INFO / Actualizar</span><span class="badge badge-tembed">T-Embed</span></div>
-    <div class="card-screen">INICIO → ESP32-S3 / CC1101</div>
-    <div class="card-body">
-      <div class="cmd">info<br>free<br>uptime</div>
-      <p>Muestra uptime, heap libre, batería y versión firmware Bruce.</p>
-    </div>
-  </div>
-  <div class="card" data-tags="dashboard campo cc1101">
-    <div class="card-header"><span class="card-title">INICIAR MODO CAMPO</span><span class="badge badge-cc1101">CC1101 + GPS</span></div>
-    <div class="card-screen">INICIO → Operación de campo</div>
-    <div class="card-body">
-      <p>Servicio en primer plano: loop RX cada ~20 s en MHz de Ajustes + tracking GPS.</p>
-      <div class="cmd">subghz setfrequency &lt;field MHz&gt;<br>subghz rx raw 15</div>
-      <p class="tip">Al detener: export JSON + reporte HTML automático.</p>
-    </div>
-  </div>
-  <div class="card" data-tags="dashboard">
-    <div class="card-header"><span class="card-title">REPORT HTML / PDF</span><span class="badge badge-phone">Local</span></div>
-    <div class="card-body"><p>Genera informe de sesión desde biblioteca local. Compartir vía Android share sheet.</p></div>
-  </div>
-</section>
+<h2>2. Dashboard</h2>
+<p>Muestra estado de enlace, batería, pantalla UI del T-Embed y accesos rápidos a plugins Xibalba (Sub-GHz, WiFi, NFC, IR, BLE, Wardriving).</p>
+<p>Si hay actualización Xibalba disponible, aparece banner OTA → Tools → Flash.</p>
 
-<section id="rf" data-section="rf">
-  <h2>// RF — CC1101 SUB-GHz</h2>
-  <h3>Spectrum</h3>
-  <div class="card" data-tags="rf cc1101">
-    <div class="card-header"><span class="card-title">Selector MHz (315 / 433.92 / 868.35 / 915)</span><span class="badge badge-cc1101">CC1101</span></div>
-    <div class="card-body"><div class="cmd">subghz setfrequency 433920000</div><p>Sintoniza el transceptor antes de capturar o transmitir.</p></div>
-  </div>
-  <div class="card" data-tags="rf cc1101">
-    <div class="card-header"><span class="card-title">CAPTURAR RAW / DETENER RAW</span><span class="badge badge-cc1101">CC1101 RX</span></div>
-    <div class="card-body"><div class="cmd">subghz rx raw 15  |  subghz rx 0</div></div>
-  </div>
-  <div class="card" data-tags="rf cc1101">
-    <div class="card-header"><span class="card-title">⚡ QUICK TX</span><span class="badge badge-cc1101">CC1101 TX</span></div>
-    <div class="card-body"><div class="cmd">subghz tx_from_file last.sub</div><p>Retransmite el último archivo .sub en SD Bruce.</p></div>
-  </div>
-  <h3>Biblioteca</h3>
-  <div class="card" data-tags="rf cc1101">
-    <div class="card-header"><span class="card-title">TX (por señal)</span><span class="badge badge-cc1101">CC1101 TX</span></div>
-    <div class="card-body"><p>Replay con protocolo decodificado o RAW desde .sub generado en el teléfono.</p></div>
-  </div>
-  <h3>Análisis</h3>
-  <div class="card" data-tags="rf phone">
-    <div class="card-header"><span class="card-title">COMPARAR A vs B</span><span class="badge badge-phone">Local</span></div>
-    <div class="card-body"><p>Comparación de similitud entre dos capturas — no transmite RF.</p></div>
-  </div>
-</section>
+<h2>3. Sub-GHz (plugin <code>subghz_analyzer</code>)</h2>
+<table>
+  <tr><th>Acción app</th><th>TEH-Link</th><th>Notas</th></tr>
+  <tr><td>Captura RX</td><td><code>capture_start</code> / <code>capture_stop</code></td><td>Parámetro <code>seconds</code> · USB recomendado</td></tr>
+  <tr><td>TX RAW</td><td><code>subghz_tx</code></td><td><code>raw</code>, <code>confirm:true</code></td></tr>
+  <tr><td>Replay .sub</td><td><code>subghz_replay</code></td><td>Ruta en SD del dispositivo</td></tr>
+  <tr><td>Estado</td><td><code>status</code></td><td>Estado del plugin</td></tr>
+</table>
+<p class="warn">Espectro/waterfall FFT no está en TEH-Link aún. Durante Captura TEH-Link la app muestra telemetría real (paquetes / segundos restantes) vía <code>get_action_state</code>.</p>
 
-<section id="wifi" data-section="wifi">
-  <h2>// WiFi / BLE — TELÉFONO</h2>
-  <p class="tip">Esta pestaña usa el WiFi y Bluetooth del <strong>Android</strong>, no el CC1101.</p>
-  <div class="card" data-tags="wifi phone">
-    <div class="card-header"><span class="card-title">WAR-DRIVE</span><span class="badge badge-phone">GPS</span></div>
-    <div class="card-body"><p>Escaneo continuo; guarda APs/BLE con coordenadas en biblioteca.</p></div>
-  </div>
-  <div class="card" data-tags="wifi phone">
-    <div class="card-header"><span class="card-title">CONECTAR GATT · R · W · N</span><span class="badge badge-phone">BT teléfono</span></div>
-    <div class="card-body"><p>Exploración BLE del entorno: read, write hex, notify/subscribe en características.</p></div>
-  </div>
-</section>
+<h2>4. WiFi (plugin <code>wifi_toolkit</code>)</h2>
+<div class="cmd">{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}</div>
+<p>Resultados se guardan en señales capturadas y mapa wardriving.</p>
 
-<section id="nfc" data-section="nfc">
-  <h2>// NFC / IR — PN532 + LED IR</h2>
-  <div class="card" data-tags="nfc nfc">
-    <div class="card-header"><span class="card-title">LEER TAG</span><span class="badge badge-nfc">PN532</span></div>
-    <div class="card-body"><div class="cmd">nfc read</div><p>Acerca tag 13.56 MHz al antena NFC del T-Embed.</p></div>
-  </div>
-  <div class="card" data-tags="nfc nfc">
-    <div class="card-header"><span class="card-title">EMULAR UID</span><span class="badge badge-nfc">PN532 TX</span></div>
-    <div class="card-body"><div class="cmd">nfc emulate &lt;uid&gt;</div></div>
-  </div>
-  <div class="card" data-tags="nfc tembed">
-    <div class="card-header"><span class="card-title">Botones IR (POWER, VOL…)</span><span class="badge badge-tembed">IR LED</span></div>
-    <div class="card-body"><div class="cmd">ir tx NEC 0x00FF 0x00FF</div><p>Apunta el T-Embed al receptor IR (TV, AC, etc.).</p></div>
-  </div>
-  <div class="card" data-tags="nfc tembed">
-    <div class="card-header"><span class="card-title">CAPTURAR COMANDO IR</span><span class="badge badge-tembed">IR RX</span></div>
-    <div class="card-body"><div class="cmd">ir rx raw 10</div></div>
-  </div>
-</section>
+<h2>5. NFC / IR</h2>
+<table>
+  <tr><th>Plugin</th><th>Acciones</th></tr>
+  <tr><td><code>nfc_toolkit</code></td><td><code>read</code>, <code>emulate</code>, <code>status</code></td></tr>
+  <tr><td><code>ir_toolkit</code></td><td><code>send</code>, <code>rx_start</code>, <code>status</code></td></tr>
+</table>
+<p>Botones IR locales usan payloads TEH-Link almacenados en Room (<code>ir_payload</code>).</p>
 
-<section id="cli" data-section="cli">
-  <h2>// CLI — TERMINAL BRUCE</h2>
-  <div class="card" data-tags="cli tembed">
-    <div class="card-header"><span class="card-title">Enviar comando</span><span class="badge badge-tembed">Serial</span></div>
-    <div class="card-body">
-      <p>Acceso directo al intérprete Bruce. Historial ↑↓ y autocompletado.</p>
-      <div class="cmd">info | subghz rx raw 15 | nfc read | storage ls | webui | i2c scan</div>
-    </div>
-  </div>
-  <div class="card" data-tags="cli">
-    <div class="card-header"><span class="card-title">Import .bruce / ▶ Macro</span><span class="badge badge-tembed">Secuencia</span></div>
-    <div class="card-body"><p>Script multilínea con <code>wait 1000ms</code> entre comandos.</p></div>
-  </div>
-</section>
+<h2>6. BLE (plugin <code>ble_toolkit</code>)</h2>
+<p>Escaneo con <code>scan_start</code> / <code>scan_stop</code>. Perfiles BLE se guardan en la biblioteca local.</p>
 
-<section id="ai" data-section="ai">
-  <h2>// AI ASSISTANT</h2>
-  <div class="card" data-tags="ai">
-    <div class="card-header"><span class="card-title">Modos LOCAL / GEMINI / OLLAMA</span></div>
-    <div class="card-body">
-      <p>Traduce lenguaje natural a comandos Bruce. Con <strong>auto-ejecutar</strong> activo envía al T-Embed.</p>
-      <p class="tip">OLLAMA: servidor LAN en Ajustes AI (ej. http://192.168.1.100:11434).</p>
-    </div>
-  </div>
-  <div class="card" data-tags="ai rf">
-    <div class="card-header"><span class="card-title">Captura RF · Analizar · Reporte</span></div>
-    <div class="card-body"><p>Atajos: captura 15 s, análisis última señal, informe de sesión.</p></div>
-  </div>
-</section>
+<h2>7. Wardriving (plugin <code>wardriving</code>)</h2>
+<ul>
+  <li><code>start</code> — opcional <code>lat</code>, <code>lon</code></li>
+  <li><code>gps_update</code> — actualización GPS desde el teléfono</li>
+  <li><code>stop</code>, <code>status</code></li>
+</ul>
+<p>MapTools muestra puntos WiFi/BLE georreferenciados y panel Link Debug (200 líneas serial).</p>
 
-<section id="tools" data-section="tools">
-  <h2>// TOOLS</h2>
-  <div class="card" data-tags="tools tembed">
-    <div class="card-header"><span class="card-title">CONECTAR / DESCONECTAR</span><span class="badge badge-tembed">LINK</span></div>
-    <div class="card-body"><p>Selecciona USB, WIFI o BLE. WiFi: host IP del T-Embed (default 192.168.4.1).</p></div>
-  </div>
-  <div class="card" data-tags="tools tembed">
-    <div class="card-header"><span class="card-title">SYNC SD — IMPORT</span><span class="badge badge-tembed">SD card</span></div>
-    <div class="card-body"><div class="cmd">storage ls<br>storage cat /ruta/archivo.sub</div><p>Importa .sub / .ir / .nfc desde SD del T-Embed a biblioteca Android.</p></div>
-  </div>
-  <div class="card" data-tags="tools rf">
-    <div class="card-header"><span class="card-title">Automatizaciones RF</span><span class="badge badge-cc1101">Reglas</span></div>
-    <div class="card-body"><p>Si protocolo/freq coincide → Notify, Tag, Alert o ejecutar Macro Bruce.</p></div>
-  </div>
-  <div class="card" data-tags="tools tembed">
-    <div class="card-header"><span class="card-title">Bruce Debug (200 líneas)</span><span class="badge badge-tembed">Serial log</span></div>
-    <div class="card-body"><p>Stream RX/TX del T-Embed. Filtros RF/SYSTEM/STORAGE. Copiar al portapapeles.</p></div>
-  </div>
-  <div class="card" data-tags="tools phone">
-    <div class="card-header"><span class="card-title">PRECACHEAR ZONA (mapas offline)</span><span class="badge badge-phone">GPS</span></div>
-    <div class="card-body"><p>Descarga tiles osmdroid ~8 km — war-driving sin datos móviles.</p></div>
-  </div>
-  <div class="card" data-tags="tools tembed">
-    <div class="card-header"><span class="card-title">OTA WiFi / USB Flash</span><span class="badge badge-tembed">Firmware</span></div>
-    <div class="card-body">
-      <p><strong>OTA:</strong> requiere WiFi BruceNet conectado. Sube .bin a /update.</p>
-      <p><strong>USB Flash:</strong> esptool por OTG — T-Embed en modo bootloader.</p>
-    </div>
-  </div>
-  <div class="card" data-tags="tools">
-    <div class="card-header"><span class="card-title">Export JSON/CSV/KML/Backup</span><span class="badge badge-phone">Local</span></div>
-    <div class="card-body"><p>Exporta biblioteca completa incl. reglas RF y macros.</p></div>
-  </div>
-</section>
+<h2>8. Consola TEH-Link</h2>
+<p>Envía JSON crudo con historial ↑↓. Chips rápidos: ping, get_info, subghz_tx, ir rx_start, nfc read.</p>
+<p>Macros y perfiles usan pasos JSON TEH-Link (no CLI legacy).</p>
 
-<section id="widget" data-section="widget">
-  <h2>// WIDGET &amp; QUICK SETTINGS TILE</h2>
-  <div class="card" data-tags="widget cc1101">
-    <div class="card-header"><span class="card-title">Widget — RX 15s</span><span class="badge badge-cc1101">CC1101</span></div>
-    <div class="card-body"><div class="cmd">subghz rx raw 15</div><p>Muestra LINK, conteo señales y última freq capturada.</p></div>
-  </div>
-  <div class="card" data-tags="widget">
-    <div class="card-header"><span class="card-title">Quick Settings Tile</span><span class="badge badge-tembed">LINK</span></div>
-    <div class="card-body"><p>Tap: conectar/desconectar transporte por defecto (Ajustes).</p></div>
-  </div>
-</section>
+<h2>9. Firmware Flash</h2>
+<div class="card">
+  <h3>Sección Xibalba oficial <span class="badge">RECOMENDADO</span></h3>
+  <p>Buscar releases GitHub → OTA USB (TEH-Link) o USB Flash con bootloader.</p>
+  <h3>Sección Custom .bin</h3>
+  <p>Solo USB Flash. Requiere aceptar disclaimer. Riesgo de brick.</p>
+</div>
 
-<section id="campo">
-  <h2>// MODO CAMPO — FLUJO COMPLETO</h2>
-  <ol>
-    <li>Ajustes → MHz modo campo (433.92 típico portones EU/Americas)</li>
-    <li>Conectar T-Embed (USB recomendado en vehículo)</li>
-    <li>Dashboard → INICIAR MODO CAMPO</li>
-    <li>Notificación persistente — botón Detener</li>
-    <li>Señales RF + GPS → mapa war-driving en Tools</li>
-  </ol>
-</section>
+<h2>10. Backup y ajustes</h2>
+<ul>
+  <li>Backup JSON: señales, IR, macros, perfiles (sin datos RF/GPS sensibles por defecto).</li>
+  <li>Ajustes: idioma, transporte USB/WiFi, re-emparejar TEH-Link, Hardware Bringup.</li>
+</ul>
 
-<section id="troubleshoot">
-  <h2>// SOLUCIÓN DE PROBLEMAS</h2>
-  <table>
-    <tr><th>Síntoma</th><th>Acción</th></tr>
-    <tr><td>OFFLINE / timeout 5s</td><td>Reconectar USB; revisar Bruce Debug; <code>subghz rx 0</code></td></tr>
-    <tr><td>OTA falla</td><td>Usar transporte WiFi; unirse a BruceNet; comando <code>webui</code> previo</td></tr>
-    <tr><td>NFC no lee</td><td>Tag en antena PN532; probar <code>nfc read</code> en CLI</td></tr>
-    <tr><td>Sin mapa GPS</td><td>Permiso ubicación; iniciar tracking en Tools</td></tr>
-    <tr><td>Idioma no cambia</td><td>Ajustes → Idioma → la app se reinicia sola</td></tr>
-  </table>
-</section>
+<h2>11. Solución de problemas</h2>
+<table>
+  <tr><th>Síntoma</th><th>Acción</th></tr>
+  <tr><td>OFFLINE / timeout</td><td>Reconectar USB; Re-emparejar TEH-Link (long-press GPIO6); revisar Link Debug</td></tr>
+  <tr><td>OTA falla</td><td>Verificar emparejamiento; cable USB datos; espacio flash; reintentar o USB Flash</td></tr>
+  <tr><td>TX bloqueado</td><td>Confirmar USB conectado; token anti-broadcast en widget; <code>confirm:true</code> en subghz_tx</td></tr>
+  <tr><td>Plugin no disponible</td><td>Firmware sin CC1101 real → modo simulación; revisar <code>get_status</code> capabilities</td></tr>
+</table>
 
-</main>
+<p class="sub" style="margin-top:24px">EMBED SUITE 4.0.7 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS / Cursor</p>
 
-<div id="stats">Mostrando <span id="count">0</span> acciones · Click en tarjeta para expandir</div>
-
-<script>
-  const cards = document.querySelectorAll('.card');
-  const search = document.getElementById('search');
-  const countEl = document.getElementById('count');
-  let activeFilter = 'all';
-
-  cards.forEach(card => {
-    card.querySelector('.card-header')?.addEventListener('click', () => card.classList.toggle('open'));
-    card.querySelector('.card-body')?.addEventListener('click', e => e.stopPropagation());
-  });
-
-  document.getElementById('filters').addEventListener('click', e => {
-    if (!e.target.matches('.filter-btn')) return;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    activeFilter = e.target.dataset.filter;
-    filterCards();
-  });
-
-  search.addEventListener('input', filterCards);
-
-  function filterCards() {
-    const q = search.value.toLowerCase().trim();
-    let visible = 0;
-    cards.forEach(card => {
-      const section = card.closest('section')?.dataset.section || '';
-      const text = card.textContent.toLowerCase();
-      const tags = (card.dataset.tags || '').toLowerCase();
-      const matchFilter = activeFilter === 'all' || section === activeFilter || tags.includes(activeFilter);
-      const matchSearch = !q || text.includes(q) || tags.includes(q);
-      const show = matchFilter && matchSearch;
-      card.classList.toggle('hidden', !show);
-      if (show) visible++;
-    });
-    countEl.textContent = visible;
-  }
-
-  filterCards();
-</script>
 </body>
 </html>

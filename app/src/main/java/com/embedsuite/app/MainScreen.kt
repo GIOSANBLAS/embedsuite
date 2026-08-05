@@ -23,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.FirmwareProfile
+import com.embedsuite.app.connection.TransportType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embedsuite.app.notifications.EmbedNotificationHelper
 import com.embedsuite.app.field.FieldOperationManager
@@ -161,7 +162,8 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         val state = container.connectionManager.connectionState.value
         if (state is ConnectionState.Disconnected || state is ConnectionState.Error) {
-            container.connectionManager.connect(container.appPreferences.defaultTransport.value)
+            // Uso diario: USB primero; evita arrancar en WiFi/BLE experimental.
+            container.connectionManager.connect(TransportType.USB)
         }
     }
 

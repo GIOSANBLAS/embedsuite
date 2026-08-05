@@ -23,8 +23,8 @@ import com.embedsuite.app.ui.theme.*
 import kotlin.math.sin
 
 /**
- * Logo original EMBED SUITE: mascota + T-Embed LilyGO ([ic_launcher_image]).
- * Capa brutal: glow, brackets rojos, micro-glitch y wordmark LILYGO.
+ * Logo Xibalba / T-Embed (launcher artwork).
+ * Capa brutal: glow, brackets rojos, micro-glitch y wordmark TEH-Link.
  */
 @Composable
 fun LilyGoLogo(
@@ -90,7 +90,7 @@ fun LilyGoLogo(
 
             Image(
                 painter = painterResource(R.drawable.ic_launcher_image),
-                contentDescription = "LILYGO T-Embed EMBED SUITE",
+                contentDescription = "Xibalba T-Embed EMBED SUITE",
                 modifier = Modifier
                     .size(logoSize)
                     .graphicsLayer {
@@ -107,7 +107,7 @@ fun LilyGoLogo(
         if (showWordmark) {
             Spacer(Modifier.height(10.dp))
             Text(
-                "LILYGO",
+                "XIBALBA",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
@@ -118,7 +118,7 @@ fun LilyGoLogo(
 
         if (showSubtitle) {
             Text(
-                "T-EMBED CC1101 PLUS",
+                "TEH-LINK // T-EMBED CC1101",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -128,10 +128,10 @@ fun LilyGoLogo(
             )
             if (brutal) {
                 Text(
-                    "// SUB-GHz BRUTAL MODE",
+                    "// XIBALBA SYMBIOSIS CORE",
                     fontFamily = FontFamily.Monospace,
                     fontSize = 9.sp,
-                    color = NeonRed.copy(alpha = 0.8f + sin(pulse * 6f) * 0.2f),
+                color = NeonRed.copy(alpha = 0.8f + sin(pulse * 6f) * 0.2f),
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }

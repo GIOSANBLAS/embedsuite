@@ -1,14 +1,16 @@
 package com.embedsuite.app.macro
 
 import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.core.SessionStatsTracker
 import com.embedsuite.app.data.MacroEntity
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
 
 class MacroEngine(
     private val connectionManager: DeviceConnectionManager,
-    private val sessionStats: com.embedsuite.app.core.SessionStatsTracker? = null
+    private val sessionStats: SessionStatsTracker? = null
 ) {
 
     suspend fun execute(macro: MacroEntity): Result<Int> {
@@ -43,12 +45,34 @@ class MacroEngine(
                     Exception("Macros solo soportan pasos JSON TEH-Link o wait Nms. Línea inválida: $cmd")
                 )
             }
-            connectionManager.sendTehLinkRaw(cmd).fold(
+            dispatchTehLinkLine(cmd).fold(
                 onSuccess = { executed++ },
                 onFailure = { return Result.failure(Exception("Falló en '$cmd': ${it.message}")) }
             )
             delay(300)
         }
         return Result.success(executed).also { sessionStats?.incrementMacros() }
+    }
+
+    /**
+     * run_action pasa por Dashboard path (TehLinkActionPolicy);
+     * el resto usa consola (TehLinkCommandPolicy: solo lectura).
+     */
+    private suspend fun dispatchTehLinkLine(cmd: String): Result<String> {
+        val obj = runCatching { JSONObject(cmd) }.getOrElse {
+            return Result.failure(IllegalArgumentException("JSON inválido"))
+        }
+        if (obj.optString("cmd") == "run_action") {
+            val pluginId = obj.optString("plugin_id")
+            val action = obj.optString("action")
+            val params = obj.optJSONObject("params") ?: JSONObject()
+            if (pluginId.isBlank() || action.isBlank()) {
+                return Result.failure(IllegalArgumentException("run_action sin plugin_id/action"))
+            }
+            return connectionManager.tehLinkRunAction(pluginId, action, params).map {
+                it.state.message.ifBlank { "$pluginId/$action OK" }
+            }
+        }
+        return connectionManager.sendTehLinkRaw(cmd)
     }
 }

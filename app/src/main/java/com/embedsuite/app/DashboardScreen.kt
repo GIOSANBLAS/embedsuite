@@ -2,6 +2,7 @@ package com.embedsuite.app
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -131,7 +132,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextButton(onClick = { viewModel.clearTehLinkNotice() }) {
-                    Text("OK", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
+                    Text(stringResource(R.string.action_ok), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
                 }
             }
         }
@@ -150,6 +151,73 @@ fun DashboardScreen(
             }
             TextButton(onClick = { viewModel.refreshSystemInfo() }) {
                 Text(stringResource(R.string.action_refresh), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+            }
+        }
+
+        /* ====== XIBALBA HARDENING STATUS CARD ====== */
+        if (
+            uiState.systemInfo.profile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA &&
+            (uiState.systemInfo.hardening.twdtEnabled ||
+                uiState.systemInfo.hardening.bodEnabled ||
+                uiState.systemInfo.hardening.secureBoot ||
+                uiState.systemInfo.hardening.stackCanaries ||
+                uiState.connectionState is ConnectionState.Connected)
+        ) {
+            val h = uiState.systemInfo.hardening
+            val anySecurityIssue = (!h.twdtEnabled || !h.bodEnabled || !h.secureBoot ||
+                !h.nvsEncryption || !h.stackCanaries || uiState.systemInfo.coredumpPending)
+            val accent = if (anySecurityIssue) NeonOrange else MatrixGreen
+
+            GlassCard(accent = accent, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Text(
+                    "🛡 XIBALBA HARDENING 0.17.1+",
+                    fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = accent, fontWeight = FontWeight.Bold
+                )
+                HardeningRow("Task Watchdog (TWDT ${h.twdtTimeoutSeconds}s)", h.twdtEnabled)
+                HardeningRow("Brownout detector 3.0V", h.bodEnabled)
+                HardeningRow("Secure Boot V2 (firmware signed)", h.secureBoot)
+                HardeningRow("Flash Encryption XTS-256", h.flashEncryption)
+                HardeningRow("NVS Encryption (WiFi/tokens)", h.nvsEncryption)
+                HardeningRow("Stack Canaries + Heap Poisoning", h.stackCanaries || h.heapPoisoning)
+
+                if (uiState.systemInfo.coredumpPending) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(NeonRed.copy(alpha = 0.12f)).padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "⚠️ COREDUMP EN FLASH: reinicio anormal pendiente (TWDT / BOD).",
+                            fontFamily = FontFamily.Monospace, fontSize = 9.sp,
+                            color = NeonRed, modifier = Modifier.weight(1f)
+                        )
+                    }
+                    TextButton(
+                        onClick = { scope.launch { runCatching { viewModel.clearCoredump() }.onFailure { Toast.makeText(context, "Clear: ${it.message}", Toast.LENGTH_LONG).show() } } }
+                    ) {
+                        Text("Borrar coredump", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen)
+                    }
+                }
+                uiState.systemInfo.wdtPanicReason?.let { reason ->
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Último reset: $reason",
+                        fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = NeonRed
+                    )
+                }
+                if (uiState.systemInfo.lastOta.sha256Verified) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "✅ Última OTA: SHA256 VERIFIED (${uiState.systemInfo.lastOta.totalBytes} B)",
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen
+                    )
+                } else if (uiState.systemInfo.lastOta.totalBytes > 0L && !uiState.systemInfo.lastOta.sha256Verified) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "❌ Última OTA: sha256 NOT VERIFIED (NO reinicies)",
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonRed
+                    )
+                }
             }
         }
 
@@ -176,7 +244,7 @@ fun DashboardScreen(
                     }
                 }
                 NeonButton(
-                    text = "MENU",
+                    text = stringResource(R.string.dashboard_menu),
                     onClick = { viewModel.backToXibalbaMenu() },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -191,13 +259,13 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     NeonButton(
-                        text = "Capture 15s",
+                        text = stringResource(R.string.dashboard_action_capture_15s),
                         onClick = { viewModel.runSubGhzCapture(15) },
                         modifier = Modifier.weight(1f)
                     )
                     if (!isXibalba) {
                         NeonOutlinedButton(
-                            text = "Run demo script",
+                            text = stringResource(R.string.dashboard_action_demo_script),
                             onClick = { viewModel.runBadUsbDemoScript() },
                             modifier = Modifier.weight(1f)
                         )
@@ -208,12 +276,12 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     NeonButton(
-                        text = "WiFi Scan 10s",
+                        text = stringResource(R.string.dashboard_action_wifi_scan),
                         onClick = { viewModel.runWifiScan(10) },
                         modifier = Modifier.weight(1f)
                     )
                     NeonButton(
-                        text = "BLE Scan 10s",
+                        text = stringResource(R.string.dashboard_action_ble_scan),
                         onClick = { viewModel.runBleScan(10) },
                         modifier = Modifier.weight(1f)
                     )
@@ -226,13 +294,13 @@ fun DashboardScreen(
                         it.pluginId == "wardriving" && (it.running || it.wardriving?.running == true)
                     } == true
                     NeonButton(
-                        text = "Wardriving Start",
+                        text = stringResource(R.string.dashboard_action_wardriving_start),
                         onClick = { viewModel.runWardrivingStart() },
                         enabled = !wardrivingActive,
                         modifier = Modifier.weight(1f)
                     )
                     NeonOutlinedButton(
-                        text = "Wardriving Stop",
+                        text = stringResource(R.string.dashboard_action_wardriving_stop),
                         onClick = { viewModel.runWardrivingStop() },
                         enabled = wardrivingActive,
                         modifier = Modifier.weight(1f)
@@ -252,12 +320,12 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     NeonButton(
-                        text = "Hash test",
+                        text = stringResource(R.string.dashboard_action_hash_test),
                         onClick = { viewModel.runCryptoHashTest() },
                         modifier = Modifier.weight(1f)
                     )
                     NeonOutlinedButton(
-                        text = "Gen password",
+                        text = stringResource(R.string.dashboard_action_gen_password),
                         onClick = { viewModel.runGenPassword() },
                         modifier = Modifier.weight(1f)
                     )
@@ -272,16 +340,16 @@ fun DashboardScreen(
                             if (actionState.progress > 0) append("${actionState.progress}%")
                             if (actionState.secondsRemaining > 0) {
                                 if (actionState.progress > 0) append(", ")
-                                append("${actionState.secondsRemaining}s left")
+                                append(context.getString(R.string.dashboard_action_seconds_left, actionState.secondsRemaining))
                             }
                         }
                         if (actionState.packets > 0) {
                             if (isNotEmpty()) append(" · ")
-                            append("${actionState.packets} pkts")
+                            append(context.getString(R.string.dashboard_action_pkts, actionState.packets))
                         }
                         actionState.wardriving?.let { wd ->
                             if (isNotEmpty()) append(" · ")
-                            append("${wd.apCount} APs")
+                            append(context.getString(R.string.dashboard_action_aps, wd.apCount))
                             if (wd.csvPath.isNotBlank()) append(" → ${wd.csvPath.substringAfterLast('/')}")
                             else if (wd.csvBasename.isNotBlank()) append(" → ${wd.csvBasename}")
                         }
@@ -305,7 +373,7 @@ fun DashboardScreen(
                                 }
                             } else if (crypto.result.isNotBlank() || crypto.digest.isNotBlank()) {
                                 if (isNotEmpty()) append(" · ")
-                                append("[secreto oculto]")
+                                append(context.getString(R.string.dashboard_secret_hidden))
                             }
                         }
                         if (actionState.message.isNotBlank()) {
@@ -323,7 +391,7 @@ fun DashboardScreen(
                         ?: "subghz_analyzer"
                     viewModel.refreshActionState(pluginId)
                 }) {
-                    Text("Refresh state", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                    Text(stringResource(R.string.action_refresh_state), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
                 }
             }
         }
@@ -586,6 +654,27 @@ private fun StatRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextMuted)
         Text(value, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+    }
+}
+
+@Composable
+private fun HardeningRow(label: String, enabled: Boolean) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            fontFamily = FontFamily.Monospace, fontSize = 9.sp,
+            color = if (enabled) TextGray else NeonOrange
+        )
+        Text(
+            if (enabled) "✅ OK" else "⚠️ OFF",
+            fontFamily = FontFamily.Monospace, fontSize = 9.sp,
+            color = if (enabled) MatrixGreen else NeonOrange,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

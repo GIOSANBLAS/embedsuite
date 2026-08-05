@@ -158,15 +158,35 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(stringResource(R.string.settings_default_transport), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)
+                Text(
+                    stringResource(R.string.settings_transport_usb_priority),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = MatrixGreen,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     TransportType.entries.forEach { type ->
                         GlassChip(
-                            label = type.name,
+                            label = when (type) {
+                                TransportType.USB -> "USB"
+                                TransportType.WIFI -> "WiFi*"
+                                TransportType.BLE -> "BLE*"
+                            },
                             selected = defaultTransport == type,
                             onClick = { preferences.setDefaultTransport(type) },
-                            accent = NeonOrange
+                            accent = if (type == TransportType.USB) NeonOrange else NeonCyan
                         )
                     }
+                }
+                if (defaultTransport != TransportType.USB) {
+                    Text(
+                        stringResource(R.string.transport_experimental_warning),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp,
+                        color = NeonOrange,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(stringResource(R.string.settings_firmware_profile), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = TextGray)

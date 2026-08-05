@@ -2,6 +2,7 @@ package com.embedsuite.app
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import com.embedsuite.app.ai.AiPreferences
 import com.embedsuite.app.ai.EmbedAiEngine
 import com.embedsuite.app.connection.DeviceConnectionManager
@@ -114,10 +115,16 @@ class AppContainer(context: Context) {
         SoundFeedback.init()
         SoundFeedback.setEnabled(appPreferences.soundEnabled.value)
         rfAutomationEngine.start()
-        scope.launch { profileRepository.seedDefaultsIfEmpty() }
+        scope.launch {
+            runCatching { profileRepository.seedDefaultsIfEmpty() }
+                .onFailure { e ->
+                    Log.e(TAG, "seedDefaultsIfEmpty failed", e)
+                }
+        }
     }
 
     companion object {
+        private const val TAG = "AppContainer"
         @Volatile
         var instance: AppContainer? = null
     }

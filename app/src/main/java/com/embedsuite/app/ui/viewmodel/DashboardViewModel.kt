@@ -98,6 +98,37 @@ class DashboardViewModel(
         viewModelScope.launch { connectionManager.refreshSystemInfo() }
     }
 
+    /** Xibalba: borra coredump pendiente tras reset anormal (TWDT / BOD). */
+    fun clearCoredump() {
+        viewModelScope.launch {
+            connectionManager.clearCoredump().onSuccess {
+                refreshSystemInfo()
+                _uiState.update { it.copy(tehLinkNotice = "✅ Coredump borrado (reset reason cleared)") }
+            }.onFailure {
+                _uiState.update { it.copy(tehLinkNotice = "❌ Clear coredump: ${it.message}") }
+            }
+        }
+    }
+
+    /** Xibalba: ejecuta soak/stress test desde la app (equivalente al test_suite PowerShell). */
+    fun runSoakStress(iterations: Int = 500, perStepSeconds: Int = 0) {
+        viewModelScope.launch {
+            connectionManager.runSoakStress(iterations, perStepSeconds).onSuccess { result ->
+                val pct = result.leakBytes
+                _uiState.update {
+                    it.copy(
+                        tehLinkNotice = if (result.isHealthy)
+                            "✅ Soak OK: ${result.iterations} iter · ${result.completed} completadas · LEAK: ${pct}B"
+                        else
+                            "⚠️ Soak FAIL (${result.failures} fallos · heap leak ${pct}B > 4KB)"
+                    )
+                }
+            }.onFailure {
+                _uiState.update { it.copy(tehLinkNotice = "❌ Soak stress: ${it.message}") }
+            }
+        }
+    }
+
     fun openXibalbaPlugin(pluginId: String) {
         viewModelScope.launch {
             connectionManager.tehLinkOpenPlugin(pluginId).onSuccess {

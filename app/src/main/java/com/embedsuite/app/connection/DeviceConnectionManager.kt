@@ -282,6 +282,20 @@ class DeviceConnectionManager(
         refreshTehLinkSystemInfo(transport)
     }
 
+    suspend fun clearCoredump(): Result<Boolean> {
+        val transport = activeTransport ?: return Result.failure(IllegalStateException("Not connected"))
+        val r = tehLinkClient.clearCoredump(transport)
+        if (r.isSuccess) refreshTehLinkSystemInfo(transport)
+        return r
+    }
+
+    suspend fun runSoakStress(iterations: Int, perStepSeconds: Int): Result<TehLinkSoakResult> {
+        val transport = activeTransport ?: return Result.failure(IllegalStateException("Not connected"))
+        val r = tehLinkClient.runSoakStress(transport, iterations, perStepSeconds)
+        if (r.isSuccess) refreshTehLinkSystemInfo(transport)
+        return r
+    }
+
     private suspend fun refreshTehLinkSystemInfo(transport: TEmbedTransport) {
         var info = _systemInfo.value
         tehLinkClient.getInfo(transport).onSuccess { device ->
@@ -290,10 +304,28 @@ class DeviceConnectionManager(
                 codename = device.codename,
                 channel = device.channel,
                 profile = FirmwareProfile.XIBALBA,
-                xibalbaPlugins = device.plugins
+                xibalbaPlugins = device.plugins,
+                hardening = device.hardening
             )
             _systemInfo.value = info
             _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
+
+            /* Alertas tempranas (no bloqueantes) cuando hay pánico previo o flags de seguridad desactivados. */
+            if (info.wdtPanicReason != null) {
+                _events.tryEmit(
+                    DeviceEvent.TehLinkNotice(
+                        "⚠️ Detectado RESET por Watchdog: ${info.wdtPanicReason}. " +
+                            "Revisa Tarea Diagnósticos > Coredump."
+                    )
+                )
+            }
+            if (info.hardening.run { !twdtEnabled || !bodEnabled || !secureBoot && !flashEncryption && !nvsEncryption }) {
+                _events.tryEmit(
+                    DeviceEvent.TehLinkNotice(
+                        "🛡 Hardening incompleto detectado. Abre Ajustes > Seguridad para ver flags."
+                    )
+                )
+            }
         }.onFailure {
             _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] get_info: ${it.message}"))
         }
@@ -303,6 +335,13 @@ class DeviceConnectionManager(
             val hours = uptimeSec / 3600
             val mins = (uptimeSec % 3600) / 60
             val secs = uptimeSec % 60
+            val heapLine = buildString {
+                status.heapFreeBytes?.let { append("${it / 1024} KB DRAM") }
+                status.psramFreeBytes?.let {
+                    if (this.isNotEmpty()) append(" · ")
+                    append("${it / 1024} KB PSRAM")
+                }
+            }
             info = info.copy(
                 uptime = String.format("%02d:%02d:%02d", hours, mins, secs),
                 uiScreen = status.uiScreen,
@@ -310,7 +349,12 @@ class DeviceConnectionManager(
                 profile = FirmwareProfile.XIBALBA,
                 simFlags = status.sim,
                 xibalbaCapabilities = status.capabilities,
-                battery = formatBatteryLine(status) ?: info.battery
+                battery = formatBatteryLine(status) ?: info.battery,
+                freeHeap = heapLine,
+                freeHeapBytes = status.heapFreeBytes,
+                freePsramBytes = status.psramFreeBytes,
+                coredumpPending = status.coredumpPresent,
+                wdtPanicReason = status.wdtPanicReason
             )
             _systemInfo.value = info
             _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
@@ -679,7 +723,33 @@ class DeviceConnectionManager(
                         return Result.failure(Exception("OTA Xibalba requiere conexión USB (TEH-Link)."))
                     }
                     ensureTehLinkAuth(transport)
-                    tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
+                    val result = tehLinkOtaUploader.upload(transport, binFile, sha256Hex, onProgress)
+                        .getOrThrow()
+
+                    /* Actualiza el systemInfo con el estado final de OTA para que el Dashboard
+                     * muestre inmediatamente el tick ✅ SHA256_VERIFIED si pasó. */
+                    val status = TehLinkOtaStatus(
+                        state = result.otaState,
+                        bytesWritten = result.totalBytes,
+                        totalSize = result.totalBytes,
+                        sha256Verified = result.sha256Verified
+                    )
+                    _systemInfo.value = _systemInfo.value.copy(lastOta = status)
+                    _events.tryEmit(DeviceEvent.OtaCompleted(status))
+
+                    if (result.sha256Verified) {
+                        Result.success(
+                            "OTA OK · ${result.totalBytes} B · SHA256 ✅ VERIFIED · " +
+                                "REINICIA el T-Embed para aplicar."
+                        )
+                    } else {
+                        Result.failure(
+                            Exception(
+                                "OTA completada pero SHA256 NO verificado " +
+                                    "⚠️ NO reinicies. Flasha de nuevo vía USB con esptool."
+                            )
+                        )
+                    }
                 }
                 else -> Result.failure(Exception("OTA requiere firmware Xibalba conectado por USB (TEH-Link)."))
             }

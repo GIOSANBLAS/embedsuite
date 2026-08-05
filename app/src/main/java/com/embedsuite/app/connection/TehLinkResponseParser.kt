@@ -34,13 +34,22 @@ object TehLinkResponseParser {
 
     fun parseHardeningInfo(data: JSONObject?): TehLinkHardeningInfo {
         if (data == null) return TehLinkHardeningInfo()
+        val twdtSeconds = data.optInt("twdt_timeout_seconds", -1).takeIf { it >= 0 }
+            ?: data.optInt("twdt_timeout_s", 0)
+        val bodVolts: Float? = when {
+            data.has("bod_voltage") -> data.optDouble("bod_voltage", Double.NaN)
+                .takeIf { !it.isNaN() && it > 0 }?.toFloat()
+            data.has("bod_v_mv") -> {
+                val mv = data.optDouble("bod_v_mv", 0.0)
+                if (mv > 0) (mv / 1000.0).toFloat() else null
+            }
+            else -> null
+        }
         return TehLinkHardeningInfo(
             twdtEnabled = data.optBoolean("twdt_enabled"),
-            twdtTimeoutSeconds = data.optInt("twdt_timeout_s", 0),
+            twdtTimeoutSeconds = twdtSeconds,
             bodEnabled = data.optBoolean("bod_enabled"),
-            bodVoltage = data.optDouble("bod_v_mv").let { mv ->
-                if (data.has("bod_v_mv") && mv > 0) (mv / 1000.0).toFloat() else null
-            },
+            bodVoltage = bodVolts,
             secureBoot = data.optBoolean("secure_boot"),
             flashEncryption = data.optBoolean("flash_encryption"),
             nvsEncryption = data.optBoolean("nvs_encryption"),
@@ -244,6 +253,10 @@ object TehLinkResponseParser {
                 capabilities[key] = obj.optBoolean(key)
             }
         }
+        val wdtPanic = runCatching {
+            data.optString("wdt_panic_reason").takeIf { it.isNotBlank() }
+                ?: data.optString("panic_reason").takeIf { it.isNotBlank() }
+        }.getOrDefault(null)
         return TehLinkDeviceStatus(
             sdMounted = data.optBoolean("sd_mounted"),
             flashMounted = data.optBoolean("flash_mounted"),
@@ -258,7 +271,7 @@ object TehLinkResponseParser {
             heapFreeBytes = data.optLong("heap_free_bytes").takeIf { data.has("heap_free_bytes") },
             psramFreeBytes = data.optLong("psram_free_bytes").takeIf { data.has("psram_free_bytes") },
             coredumpPresent = data.optBoolean("coredump_present"),
-            wdtPanicReason = data.optString("panic_reason").takeIf { data.has("panic_reason") && !data.optString("panic_reason").isNullOrBlank() }
+            wdtPanicReason = wdtPanic
         )
     }
 

@@ -246,7 +246,10 @@ private fun SignalLibraryCard(
                 fontSize = 10.sp
             )
             if (signal.decodedFields.isNotBlank()) {
-                Text(signal.decodedFields.lines().first(), fontFamily = FontFamily.Monospace, color = FlipperAccentCyan, fontSize = 9.sp)
+                Text(
+                    signal.decodedFields.lineSequence().firstOrNull() ?: signal.decodedFields.take(40),
+                    fontFamily = FontFamily.Monospace, color = FlipperAccentCyan, fontSize = 9.sp
+                )
             }
             Row(Modifier.padding(top = 6.dp)) {
                 IconButton(onClick = onToggleFavorite) {

@@ -57,7 +57,7 @@ fun RfHubScreen(
 
         lastDecoded?.let { decoded ->
             Text(
-                "DECODED: ${decoded.lines().first()}",
+                "DECODED: ${decoded.lineSequence().firstOrNull() ?: decoded.take(50)}",
                 fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )

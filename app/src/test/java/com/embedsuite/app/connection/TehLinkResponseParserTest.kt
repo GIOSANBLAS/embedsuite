@@ -434,6 +434,29 @@ class TehLinkResponseParserTest {
     }
 
     @Test
+    fun parseDeviceInfo_readsHardeningFlags_backwardCompatOldKeys() {
+        val info = TehLinkResponseParser.parseDeviceInfo(
+            JSONObject(
+                """
+                {
+                  "product": "T-Embed Xibalba",
+                  "version": "0.16",
+                  "hardening": {
+                    "twdt_enabled": true,
+                    "twdt_timeout_s": 10,
+                    "bod_enabled": true,
+                    "bod_v_mv": 2800
+                  },
+                  "plugins": []
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals(10, info.hardening.twdtTimeoutSeconds)
+        assertEquals(2.8f, info.hardening.bodVoltage ?: 0f, 0.01f)
+    }
+
+    @Test
     fun parseHardeningInfo_nullObject_producesAllFalse() {
         val h = TehLinkResponseParser.parseHardeningInfo(null)
         assertFalse(h.twdtEnabled)
@@ -464,6 +487,23 @@ class TehLinkResponseParserTest {
         assertEquals(8388608, status.psramFreeBytes)
         assertTrue(status.coredumpPresent)
         assertEquals("Task watchdog fired (ui_shell)", status.wdtPanicReason)
+    }
+
+    @Test
+    fun parseDeviceStatus_wdtPanic_backwardCompatOldKey() {
+        val status = TehLinkResponseParser.parseDeviceStatus(
+            JSONObject(
+                """
+                {
+                  "uptime_ms": 0,
+                  "ui_screen": "Home",
+                  "sd_mounted": false,
+                  "panic_reason": "TG0WDT_SYS_RESET"
+                }
+                """.trimIndent()
+            )
+        )
+        assertEquals("TG0WDT_SYS_RESET", status.wdtPanicReason)
     }
 
     @Test

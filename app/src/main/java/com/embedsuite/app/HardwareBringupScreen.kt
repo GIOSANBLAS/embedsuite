@@ -23,8 +23,12 @@ import com.embedsuite.app.ui.components.HackerSectionHeader
 import com.embedsuite.app.ui.components.NeonOutlinedButton
 import com.embedsuite.app.ui.theme.*
 
-private const val HARDWARE_TEST_LOG_URL =
-    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/HARDWARE_TEST_LOG.md"
+private const val HARDWARE_TEST_SUITE_DOC_URL =
+    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/docs/HARDWARE_TEST_SUITE.md"
+private const val HARDWARE_TEST_PS1_URL =
+    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/scripts/hardware_test_suite.ps1"
+private const val HARDWARE_CHECKLIST_CSV_URL =
+    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/examples/hardware_test_checklist.csv"
 
 @Composable
 fun HardwareBringupScreen(onBack: () -> Unit) {
@@ -107,17 +111,36 @@ fun HardwareBringupScreen(onBack: () -> Unit) {
                 text = stringResource(R.string.hardware_bringup_test_log),
                 onClick = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(HARDWARE_TEST_LOG_URL))
-                    )
+                        Intent(Intent.ACTION_VIEW, Uri.parse(HARDWARE_TEST_SUITE_DOC_URL))
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                stringResource(R.string.hardware_bringup_test_log_sub),
+                "Guía paso a paso del test suite 46 tests hardware (con soporte nativo en Xibalba 0.17+)",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 8.sp,
                 color = TextMuted,
-                modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
+                modifier = Modifier.padding(top = 6.dp)
+            )
+
+            NeonOutlinedButton(
+                text = "Descargar test_suite.ps1",
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(HARDWARE_TEST_PS1_URL))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+
+            NeonOutlinedButton(
+                text = "Checklist imprimible CSV",
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(HARDWARE_CHECKLIST_CSV_URL)))
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
             )
         }
     }

@@ -19,3 +19,9 @@ keystore.password.txt
 *.keystore
 *.apk
 crash_logs/
+
+# Build junk logs (Android Sandbox Gradle redirects)
+build_*.log
+gradle_stdout.log
+stderr.log
+stdout.log

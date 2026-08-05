@@ -319,7 +319,7 @@ class DeviceConnectionManager(
                     )
                 )
             }
-            if (info.hardening.run { !twdtEnabled || !bodEnabled || !secureBoot && !flashEncryption && !nvsEncryption }) {
+            if (info.hardening.run { !twdtEnabled || !bodEnabled || !secureBoot || !flashEncryption || !nvsEncryption }) {
                 _events.tryEmit(
                     DeviceEvent.TehLinkNotice(
                         "🛡 Hardening incompleto detectado. Abre Ajustes > Seguridad para ver flags."

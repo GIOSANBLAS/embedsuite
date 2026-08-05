@@ -61,7 +61,8 @@ class NfcIrViewModel(
 
     init {
         viewModelScope.launch {
-            if (irRepository.allButtons.first().isEmpty()) {
+            val buttons = irRepository.allButtons.first()
+            if (buttons.isEmpty()) {
                 listOf(
                     IrButtonEntity(buttonName = "POWER", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "00FF")),
                     IrButtonEntity(buttonName = "VOL+", irPayload = TehLinkIrUtils.irTx("NEC", "00FF", "807F")),

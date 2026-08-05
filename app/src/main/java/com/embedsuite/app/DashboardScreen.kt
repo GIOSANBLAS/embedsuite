@@ -442,7 +442,10 @@ fun DashboardScreen(
                 Text(s.label.ifBlank { s.protocol }, fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = MatrixGreen, fontWeight = FontWeight.Bold)
                 Text("${s.frequency} // ${s.protocol} // ${s.deviceId}", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
                 if (s.decodedFields.isNotBlank()) {
-                    Text(s.decodedFields.lines().first(), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
+                    Text(
+                        s.decodedFields.lineSequence().firstOrNull() ?: s.decodedFields.take(40),
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                     NeonButton(

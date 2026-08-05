@@ -41,7 +41,9 @@ class EsptoolFlasher(private val usbSerialManager: UsbSerialManager) {
             usbSerialManager.pauseForFlash()
             delay(200)
 
-            if (!usbSerialManager.openRawPort(devices.first(), 115200)) {
+            val device = devices.firstOrNull()
+                ?: return@withContext Result.failure(Exception("No hay dispositivo USB conectado (lista vacía)."))
+            if (!usbSerialManager.openRawPort(device, 115200)) {
                 return@withContext Result.failure(Exception("No se pudo abrir puerto raw para flasheo."))
             }
 

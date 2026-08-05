@@ -401,7 +401,11 @@ private fun MacroPanel(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(macro.name, fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = MatrixGreen)
-                        Text(macro.commands.lines().first(), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                        Text(
+                            macro.commands.lineSequence().firstOrNull()
+                                ?: "(macro vacía)",
+                            fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
+                        )
                     }
                     IconButton(
                         onClick = {

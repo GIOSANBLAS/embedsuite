@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -208,10 +209,10 @@ fun DashboardScreen(
                 if (uiState.systemInfo.lastOta.sha256Verified) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "✅ Última OTA: SHA256 VERIFIED (${uiState.systemInfo.lastOta.totalBytes} B)",
+                        "✅ Última OTA: SHA256 VERIFIED (${uiState.systemInfo.lastOta.totalSize} B)",
                         fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen
                     )
-                } else if (uiState.systemInfo.lastOta.totalBytes > 0L && !uiState.systemInfo.lastOta.sha256Verified) {
+                } else if (uiState.systemInfo.lastOta.totalSize > 0L && !uiState.systemInfo.lastOta.sha256Verified) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "❌ Última OTA: sha256 NOT VERIFIED (NO reinicies)",

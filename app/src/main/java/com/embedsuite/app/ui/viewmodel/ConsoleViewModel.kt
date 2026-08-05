@@ -50,6 +50,9 @@ class ConsoleViewModel(
                     is DeviceEvent.SubGhzSignalSaved -> appendLog("[RF] saved #${event.signalId} ${event.entry.protocol}")
                     is DeviceEvent.SystemInfoUpdate -> appendLog("[SYS] uptime=${event.info.uptime} heap=${event.info.freeHeap}")
                     is DeviceEvent.TehLinkNotice -> appendLog("[TEH-LINK] ${event.message}")
+                    is DeviceEvent.OtaCompleted -> appendLog(
+                        "[OTA] state=${event.status.state} sha256=${event.status.sha256Verified} total=${event.status.totalSize}B"
+                    )
                     is DeviceEvent.WaveformSample -> Unit
                 }
             }

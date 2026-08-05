@@ -1,9 +1,24 @@
 # EmbedSuite · Changelog App Android
 
 ## v4.1.0 — Simbiosis Firmware Xibalba v0.17 "Spark"
-> 📅 2026-03-18 · Complementa los hardening features integrados en `t-embed-xibalba`:
+> 📅 2026-08-04 · Complementa los hardening features integrados en `t-embed-xibalba`:
 > Task Watchdog 30s global, BOD 3.0V, SHA256 OTA verify en lado dispositivo,
 > flags Secure Boot V2 + Flash/NVS Encryption, soak/stress test y coredump remoto.
+
+### ✅ Correcciones de estabilidad y compatibilidad
+- **Parser TEH-Link alineado con Xibalba 0.17**: soporte para claves modernas
+  `twdt_timeout_seconds`, `bod_voltage` y `wdt_panic_reason`, manteniendo
+  compatibilidad hacia atrás con firmwares anteriores.
+- **Hardening dashboard corregido**: la UI ahora marca estado incompleto cuando
+  cualquier flag crítico de seguridad está desactivado.
+- **USB CDC más robusto**: `UsbTransport` ahora reconstruye líneas NDJSON parciales
+  y evita pérdida de paquetes durante OTA, coredumps y respuestas largas.
+- **Fixes anti-crash**: reemplazados varios usos inseguros de `.first()` y
+  `.lines().first()` por rutas seguras con `firstOrNull()` y fallback.
+- **Hardware Bringup** actualizado con enlaces válidos al test suite,
+  script PowerShell y checklist CSV del firmware.
+- **Compilación Android Studio estabilizada**: corregidos errores en
+  `HardwareBringupScreen`, `ConsoleViewModel` y `DashboardViewModel`.
 
 ### 🛡 Seguridad y Hardening Dashboard (nueva tarjeta)
 - **HardeningInfo** recibido por `get_info → data.hardening` se representa en `DashboardScreen`
@@ -51,17 +66,19 @@
 - **TehLinkSoakResult.isHealthy** devuelve falso si `failures > 0 || leakBytes ≥ 4096`.
 
 ### 🧪 Tests Unitarios (app/src/test/java)
-- **TehLinkResponseParserTest** añadidos 10 tests nuevos:
+- **TehLinkResponseParserTest** ampliado con tests para claves modernas y backward-compat:
   - `parseDeviceInfo_readsHardeningFlags` (9 flags)
   - `parseHardeningInfo_nullObject_producesAllFalse`
+  - `parseDeviceInfo_readsHardeningFlags_backwardCompatOldKeys`
   - `parseDeviceStatus_readsHeapCoredumpAndWdtReason`
+  - `parseDeviceStatus_wdtPanic_backwardCompatOldKey`
   - `parseOtaStatus_sha256Verified_producesProgressAndState` (100% OK)
   - `parseOtaStatus_inProgress_partialBytes` (10%)
   - `parseOtaStatus_errorState_hasErrorFlag` (sha256_mismatch)
   - `parseActionState_containsOtaAndSoakFields` (anidados)
   - `parseSoakResult_healthyWhenLeakUnderThreshold` (244 B leak)
   - `parseSoakResult_unhealthyWhenFailuresPresent` (3 fallos)
-- Total tests parser: 22.
+- Total tests parser: 24.
 
 ### 🆙 Metadatos
 - `versionCode`: 27 → **28**

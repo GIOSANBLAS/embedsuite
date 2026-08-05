@@ -1,0 +1,12 @@
+
+C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>cd /d c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE 
+
+c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr 
+
+c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>set ANDROID_SDK_ROOT=C:\Users\Administrator\AppData\Local\Android\Sdk 
+
+c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>set ANDROID_HOME=C:\Users\Administrator\AppData\Local\Android\Sdk 
+
+c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>set GRADLE_OPTS=-Xmx2g -Dorg.gradle.logging.level=lifecycle 
+
+c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE>call gradlew.bat :app:assembleDebug --rerun-tasks --no-daemon  1>GRADLE_BG.log 2>&1 

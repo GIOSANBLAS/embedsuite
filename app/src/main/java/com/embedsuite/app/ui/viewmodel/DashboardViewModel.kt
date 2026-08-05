@@ -104,8 +104,10 @@ class DashboardViewModel(
             connectionManager.clearCoredump().onSuccess {
                 refreshSystemInfo()
                 _uiState.update { it.copy(tehLinkNotice = "✅ Coredump borrado (reset reason cleared)") }
-            }.onFailure {
-                _uiState.update { it.copy(tehLinkNotice = "❌ Clear coredump: ${it.message}") }
+            }.onFailure { error ->
+                _uiState.update { state ->
+                    state.copy(tehLinkNotice = "❌ Clear coredump: ${error.message}")
+                }
             }
         }
     }
@@ -123,8 +125,10 @@ class DashboardViewModel(
                             "⚠️ Soak FAIL (${result.failures} fallos · heap leak ${pct}B > 4KB)"
                     )
                 }
-            }.onFailure {
-                _uiState.update { it.copy(tehLinkNotice = "❌ Soak stress: ${it.message}") }
+            }.onFailure { error ->
+                _uiState.update { state ->
+                    state.copy(tehLinkNotice = "❌ Soak stress: ${error.message}")
+                }
             }
         }
     }

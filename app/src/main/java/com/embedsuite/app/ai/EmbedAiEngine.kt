@@ -69,7 +69,11 @@ class EmbedAiEngine(
         }
 
         val analysis = signals.firstOrNull()?.let { SignalAnalyzer.analyzeEntity(it) }
-            ?: return Result.failure(Exception("No hay señales recientes para analizar"))
+            ?: run {
+                val msg = "No hay señales recientes para analizar"
+                addMessage("assistant", msg)
+                return msg
+            }
         val report = buildString {
             appendLine("ANÁLISIS DE SEÑAL — EMBED AI")
             appendLine("Protocolo: ${analysis.protocol}")

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EMBED SUITE 4.0 — Manual Xibalba / TEH-Link</title>
+  <title>EMBED SUITE 4.1.0 — Manual Xibalba / TEH-Link</title>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -71,7 +71,7 @@
 </head>
 <body>
 
-<h1>EMBED SUITE 4.0</h1>
+<h1>EMBED SUITE 4.1.0</h1>
 <p class="sub">Xibalba Native · T-Embed CC1101 Plus · Protocolo TEH-Link (JSON NDJSON por USB CDC)</p>
 
 <div class="card">
@@ -93,6 +93,8 @@
 <h2>2. Dashboard</h2>
 <p>Muestra estado de enlace, batería, pantalla UI del T-Embed y accesos rápidos a plugins Xibalba (Sub-GHz, WiFi, NFC, IR, BLE, Wardriving).</p>
 <p>Si hay actualización Xibalba disponible, aparece banner OTA → Tools → Flash.</p>
+<p>La tarjeta de <strong>Hardening</strong> muestra TWDT, BOD, Secure Boot, Flash/NVS Encryption, Stack Canaries y Heap Poisoning reportados por el firmware.</p>
+<p>Si hubo reset anormal, la app puede mostrar <strong>coredump pendiente</strong> y la última razón WDT/BOD expuesta por Xibalba.</p>
 
 <h2>3. Sub-GHz (plugin <code>subghz_analyzer</code>)</h2>
 <table>
@@ -135,17 +137,21 @@
 <div class="card">
   <h3>Sección Xibalba oficial <span class="badge">RECOMENDADO</span></h3>
   <p>Buscar releases GitHub → OTA USB (TEH-Link) o USB Flash con bootloader.</p>
+  <p>Tras una OTA correcta, la app confirma si el dispositivo marcó <code>sha256_verified=true</code>.</p>
   <h3>Sección Custom .bin</h3>
   <p>Solo USB Flash. Requiere aceptar disclaimer. Riesgo de brick.</p>
 </div>
 
-<h2>10. Backup y ajustes</h2>
+<h2>10. Hardware Bringup</h2>
+<p>La app incluye accesos directos a la guía de pruebas de hardware, al script <code>hardware_test_suite.ps1</code> y al checklist CSV del firmware Xibalba.</p>
+
+<h2>11. Backup y ajustes</h2>
 <ul>
   <li>Backup JSON: señales, IR, macros, perfiles (sin datos RF/GPS sensibles por defecto).</li>
   <li>Ajustes: idioma, transporte USB/WiFi, re-emparejar TEH-Link, Hardware Bringup.</li>
 </ul>
 
-<h2>11. Solución de problemas</h2>
+<h2>12. Solución de problemas</h2>
 <table>
   <tr><th>Síntoma</th><th>Acción</th></tr>
   <tr><td>OFFLINE / timeout</td><td>Reconectar USB; Re-emparejar TEH-Link (long-press GPIO6); revisar Link Debug</td></tr>
@@ -154,7 +160,7 @@
   <tr><td>Plugin no disponible</td><td>Firmware sin CC1101 real → modo simulación; revisar <code>get_status</code> capabilities</td></tr>
 </table>
 
-<p class="sub" style="margin-top:24px">EMBED SUITE 4.0.7 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS / Cursor</p>
+<p class="sub" style="margin-top:24px">EMBED SUITE 4.1.0 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS</p>
 
 </body>
 </html>

@@ -27,15 +27,20 @@ object AppInfo {
             name = "GIOSÁNBLAS",
             role = "Desarrollador principal · Product Owner",
             detail = "Visión del producto, pruebas en campo y hardware LilyGO T-Embed CC1101 Plus"
-        ),
-        TeamMember(
-            name = "Cursor",
-            role = "IDE con IA · Socio de ingeniería",
-            detail = "cursor.com — Agente AI que co-desarrolló EMBED SUITE: arquitectura Kotlin/Compose, integración TEH-Link/Xibalba, RF/USB/BLE y releases"
         )
     )
 
     val changelog = listOf(
+        ChangelogEntry(
+            version = "4.1.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Hardening dashboard con TWDT, BOD, Secure Boot, Flash/NVS Encryption y coredump remoto",
+                "Parser TEH-Link alineado con Xibalba 0.17 y compatibilidad hacia atrás",
+                "OTA con confirmación SHA256 VERIFIED y USB CDC más robusto",
+                "Fixes de estabilidad en Android Studio, Hardware Bringup y prevención de crashes"
+            )
+        ),
         ChangelogEntry(
             version = "4.0.7",
             date = "Ago 2026",

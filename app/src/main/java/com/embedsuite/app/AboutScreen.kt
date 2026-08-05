@@ -122,7 +122,7 @@ private fun AboutMainContent(
 
         HackerSectionHeader("EQUIPO", accent = NeonCyan)
         Text(
-            "Proyecto desarrollado en conjunto por GIOSÁNBLAS y Cursor.",
+            "Proyecto desarrollado por GIOSÁNBLAS.",
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
             color = TextGray,
@@ -166,7 +166,7 @@ private fun AboutMainContent(
         }
 
         Text(
-            "© 2026 GIOSÁNBLAS & Cursor · EMBED SUITE",
+            "© 2026 GIOSÁNBLAS · EMBED SUITE",
             fontFamily = FontFamily.Monospace,
             fontSize = 8.sp,
             color = TextMuted,

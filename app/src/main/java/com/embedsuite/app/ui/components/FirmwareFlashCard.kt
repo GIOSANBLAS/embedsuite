@@ -204,7 +204,7 @@ fun FirmwareFlashCard(
                                 onClick = {},
                                 label = {
                                     Text(
-                                        "✅ SHA256 VERIFIED · ${lastOta.totalBytes} B · state=${lastOta.state}",
+                                        "✅ SHA256 VERIFIED · ${lastOta.totalSize} B · state=${lastOta.state}",
                                         fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = MatrixGreen
                                     )
                                 },
@@ -215,7 +215,7 @@ fun FirmwareFlashCard(
                             )
                             Spacer(Modifier.height(4.dp))
                         }
-                        otaProgress == 100 && !lastOta.sha256Verified && lastOta.totalBytes > 0L -> {
+                        otaProgress == 100 && !lastOta.sha256Verified && lastOta.totalSize > 0L -> {
                             AssistChip(
                                 onClick = {},
                                 label = {

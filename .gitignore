@@ -25,3 +25,6 @@ build_*.log
 gradle_stdout.log
 stderr.log
 stdout.log
+
+# Local one-click installer (GIOSANBLAS PC - device 8c00247c Redmi 14C 24115RA8EG)
+1_INSTALAR_A_REDMI.bat

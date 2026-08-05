@@ -1,7 +1,7 @@
 # EMBED SUITE — Manual de Usuario
 
-**Companion Android para LilyGO T-Embed CC1101 Plus · Firmware Xibalba (TEH-Link)**  
-Versión documentada: **4.0.7** · GIOSÁNBLAS + Cursor
+**Companion Android para LilyGO T-Embed CC1101 Plus · Firmware Xibalba (TEH-Link)**
+Versión documentada: **4.1.0** · GIOSÁNBLAS
 
 > 📘 **Fuente de verdad in-app:** Acerca de → Manual interactivo (`assets/manual/index.html`).  
 > Este archivo en `docs/` es un espejo resumido para revisión externa.
@@ -34,7 +34,7 @@ Al arrancar y al auto-reconnect, la app **prioriza USB**.
 
 | Tab | Función |
 |-----|---------|
-| INICIO | Dashboard, modo campo, favoritos TX, OTA banner |
+| INICIO | Dashboard, hardening, modo campo, favoritos TX, OTA banner |
 | RF | Captura TEH-Link, biblioteca ★, análisis |
 | WiFi | Scanner del **teléfono** + WAR-DRIVE (con aviso legal) |
 | NFC | NFC/IR vía plugins `nfc_toolkit` / `ir_toolkit` |
@@ -52,22 +52,30 @@ Al arrancar y al auto-reconnect, la app **prioriza USB**.
 
 ---
 
-## 4. NFC / IR / Wardriving / OTA
+## 4. Hardening, OTA y diagnóstico
+
+- **Hardening Dashboard:** muestra TWDT, BOD, Secure Boot, Flash/NVS Encryption,
+  Stack Canaries y Heap Poisoning reportados por el firmware.
+- **Coredump pendiente:** si el dispositivo sufrió un reset anormal, la app lo indica
+  y permite borrarlo desde la interfaz.
+- **Último reset WDT/BOD:** la app enseña la causa del reinicio cuando el firmware la expone.
+- **OTA verificada:** tras `ota_finish`, EmbedSuite consulta el estado OTA y muestra
+  si `sha256_verified` fue confirmado por el dispositivo.
+
+## 5. NFC / IR / Wardriving / OTA
 
 - NFC/IR: plugins TEH-Link (capabilities firmware).
 - Wardriving: plugin + GPS del teléfono.
 - **OTA:** solo **USB** TEH-Link + catálogo Xibalba / custom `.bin` con disclaimer.
+- **Hardware Bringup:** la app incluye acceso directo a la guía de pruebas,
+  script `hardware_test_suite.ps1` y checklist CSV del firmware.
 
----
-
-## 5. Widget
+## 6. Widget
 
 - RX 15s / TX ★ favorito: requieren app viva + LINK + token anti-broadcast.
 - Preferible USB conectado.
 
----
-
-## 6. Uso legal
+## 7. Uso legal
 
 Solo investigación autorizada / tus dispositivos. No interferir con comunicaciones ajenas.  
 Wardriving y TX RF pueden estar regulados en tu jurisdicción. Política de privacidad in-app (Acerca de).

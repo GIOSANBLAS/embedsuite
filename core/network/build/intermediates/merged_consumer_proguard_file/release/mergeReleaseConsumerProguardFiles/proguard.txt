@@ -1,0 +1,3 @@
+# TEH-Link core:network consumer ProGuard/R8 rules
+-keep class com.embedsuite.app.connection.** { *; }
+-keep class com.embedsuite.app.security.** { *; }

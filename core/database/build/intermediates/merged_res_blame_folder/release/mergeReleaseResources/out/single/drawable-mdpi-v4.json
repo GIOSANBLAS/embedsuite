@@ -1,0 +1,226 @@
+[
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/marker_default.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/marker_default.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/person.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/person.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/googleg_disabled_color_18.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/googleg_disabled_color_18.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\twotone_navigation_black_48.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\twotone_navigation_black_48.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\sharp_add_black_36.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\sharp_add_black_36.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/marker_default_focused_base.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/marker_default_focused_base.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/osm_ic_follow_me_on.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/osm_ic_follow_me_on.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\notification_bg_low_pressed.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\notification_bg_low_pressed.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/sharp_add_black_36.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/sharp_add_black_36.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_decline_low.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_decline_low.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_answer_video_low.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_answer_video_low.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\round_navigation_white_48.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\round_navigation_white_48.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_decline.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_decline.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_decline_low.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_decline_low.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/common_google_signin_btn_icon_light_normal_background.9.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/common_google_signin_btn_icon_light_normal_background.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_answer_low.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_answer_low.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\googleg_standard_color_18.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\googleg_standard_color_18.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\sharp_remove_black_36.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\sharp_remove_black_36.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/common_google_signin_btn_text_light_normal_background.9.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/common_google_signin_btn_text_light_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\marker_default_focused_base.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\marker_default_focused_base.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_answer.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_answer.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/common_google_signin_btn_text_dark_normal_background.9.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/common_google_signin_btn_text_dark_normal_background.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/common_google_signin_btn_icon_dark_normal_background.9.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/common_google_signin_btn_icon_dark_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\common_google_signin_btn_icon_dark_normal_background.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\common_google_signin_btn_icon_dark_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\googleg_disabled_color_18.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\googleg_disabled_color_18.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_answer_video_low.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_answer_video_low.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\notify_panel_notification_icon_bg.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\notify_panel_notification_icon_bg.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\common_google_signin_btn_text_dark_normal_background.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\common_google_signin_btn_text_dark_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\notification_bg_low_normal.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\notification_bg_low_normal.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/notification_bg_normal.9.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/notification_bg_normal.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\marker_default.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\marker_default.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/osm_ic_follow_me.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/osm_ic_follow_me.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/notify_panel_notification_icon_bg.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/notify_panel_notification_icon_bg.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/notification_bg_low_pressed.9.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/notification_bg_low_pressed.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_answer_video.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_answer_video.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/notification_bg_normal_pressed.9.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/notification_bg_normal_pressed.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\notification_bg_normal.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\notification_bg_normal.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\common_google_signin_btn_text_light_normal_background.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\common_google_signin_btn_text_light_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_answer_video.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_answer_video.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/osm_ic_center_map.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/osm_ic_center_map.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/round_navigation_white_48.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/round_navigation_white_48.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\notification_bg_normal_pressed.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\notification_bg_normal_pressed.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\osm_ic_follow_me_on.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\osm_ic_follow_me_on.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/googleg_standard_color_18.png",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable-mdpi-v4/googleg_standard_color_18.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/notification_bg_low_normal.9.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/notification_bg_low_normal.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_decline.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_decline.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/osm_ic_ic_map_ortho.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/osm_ic_ic_map_ortho.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\osm_ic_center_map.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\osm_ic_center_map.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\common_google_signin_btn_icon_light_normal_background.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable-mdpi-v4\\common_google_signin_btn_icon_light_normal_background.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\ic_call_answer_low.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable-mdpi-v4\\ic_call_answer_low.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\osm_ic_ic_map_ortho.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\osm_ic_ic_map_ortho.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\person.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\person.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable-mdpi-v4\\osm_ic_follow_me.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable-mdpi-v4\\osm_ic_follow_me.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/twotone_navigation_black_48.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/twotone_navigation_black_48.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/ic_call_answer.png",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable-mdpi-v4/ic_call_answer.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable-mdpi-v4/sharp_remove_black_36.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable-mdpi-v4/sharp_remove_black_36.png"
+    }
+]

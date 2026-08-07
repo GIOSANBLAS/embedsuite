@@ -1,0 +1,34 @@
+[
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/layout/custom_dialog.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/layout/notification_template_part_time.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/layout/notification_template_part_time.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\layout\\notification_template_part_chronometer.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\layout\\notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\layout\\notification_template_part_time.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\layout\\notification_template_part_time.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\layout\\bonuspack_bubble.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\layout\\bonuspack_bubble.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/layout/notification_template_part_chronometer.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/layout/notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\layout\\custom_dialog.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\layout\\custom_dialog.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/layout/bonuspack_bubble.xml",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/layout/bonuspack_bubble.xml"
+    }
+]

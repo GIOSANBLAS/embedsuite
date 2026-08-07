@@ -1,0 +1,258 @@
+[
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/ic_menu_compass.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/ic_menu_compass.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\moreinfo_arrow_pressed.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\moreinfo_arrow_pressed.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/moreinfo_arrow.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/moreinfo_arrow.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_disabled.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_disabled.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_light.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_light.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_light_normal.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_light_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_dark_focused.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_dark_focused.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/ic_menu_offline.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/ic_menu_offline.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/moreinfo_arrow_pressed.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/moreinfo_arrow_pressed.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\notification_bg.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable\\notification_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_light_focused.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_light_focused.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\notification_tile_bg.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable\\notification_tile_bg.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/bonuspack_bubble.9.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/bonuspack_bubble.9.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_light_focused.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_light_focused.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_light_focused.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_light_focused.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_light.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_light.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_disabled.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_disabled.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_light_normal.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_light_normal.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_dark_normal.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_dark_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_dark_focused.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_dark_focused.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/ic_menu_mylocation.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/ic_menu_mylocation.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_dark_normal.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_dark_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_dark.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_dark.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/notification_icon_background.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable/notification_icon_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\next.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\next.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/btn_moreinfo.xml",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/btn_moreinfo.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\notification_icon_background.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable\\notification_icon_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_disabled.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_disabled.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/ic_menu_mapmode.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/ic_menu_mapmode.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\ic_menu_compass.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\ic_menu_compass.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/notification_tile_bg.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable/notification_tile_bg.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/notification_bg_low.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable/notification_bg_low.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\btn_moreinfo.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\btn_moreinfo.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_light.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_light.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_light_normal.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_light_normal.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_dark_focused.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_dark_focused.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\zoom_out.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\zoom_out.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/previous.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/previous.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\moreinfo_arrow.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\moreinfo_arrow.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_dark_normal.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_dark_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\center.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\center.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/navto_small.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/navto_small.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\navto_small.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\navto_small.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\previous.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\previous.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_disabled.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_disabled.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_text_dark_normal.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_text_dark_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\ic_menu_mapmode.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\ic_menu_mapmode.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_dark.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_dark.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/zoom_in.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/zoom_in.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\common_google_signin_btn_icon_dark.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\drawable\\common_google_signin_btn_icon_dark.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_light_focused.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_light_focused.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\bonuspack_bubble.9.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\bonuspack_bubble.9.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\zoom_in.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\zoom_in.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_light_normal.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_light_normal.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\ic_menu_offline.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\ic_menu_offline.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_text_dark_focused.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_text_dark_focused.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_light.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_light.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\ic_menu_mylocation.png",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:\\drawable\\ic_menu_mylocation.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/zoom_out.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/zoom_out.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/next.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/next.png"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/notification_bg.xml",
+        "source": "com.embedsuite.app.core.database-core-1.10.1-2:/drawable/notification_bg.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/center.png",
+        "source": "com.embedsuite.app.core.database-osmdroid-android-6.1.20-7:/drawable/center.png"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\drawable\\notification_bg_low.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-core-1.10.1-2:\\drawable\\notification_bg_low.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/drawable/common_google_signin_btn_icon_dark.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/drawable/common_google_signin_btn_icon_dark.xml"
+    }
+]

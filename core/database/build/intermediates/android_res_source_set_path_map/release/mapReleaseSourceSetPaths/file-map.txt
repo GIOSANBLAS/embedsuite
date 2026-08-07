@@ -1,0 +1,9 @@
+com.embedsuite.app.core.database-pngs-0 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\generated\res\pngs\release
+com.embedsuite.app.core.database-updated_navigation_xml-1 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\generated\updated_navigation_xml\release
+com.embedsuite.app.core.database-mergeReleaseResources-2 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
+com.embedsuite.app.core.database-mergeReleaseResources-3 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+com.embedsuite.app.core.database-release-4 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\intermediates\merged_res\release\mergeReleaseResources
+com.embedsuite.app.core.database-release-5 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\build\intermediates\packaged_res\release\packageReleaseResources
+com.embedsuite.app.core.database-main-6 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\src\main\res
+com.embedsuite.app.core.database-release-7 C:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE\core\database\src\release\res
+gradleHome-0 C:\Users\Administrator\.gradle

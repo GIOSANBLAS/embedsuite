@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\color\\common_google_signin_btn_text_light.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\color\\common_google_signin_btn_text_light.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/color/common_google_signin_btn_text_dark.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/color/common_google_signin_btn_text_dark.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\color\\common_google_signin_btn_text_dark.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\color\\common_google_signin_btn_text_dark.xml"
+    },
+    {
+        "merged": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-release-23:\\color\\common_google_signin_btn_tint.xml",
+        "source": "C:\\Users\\Administrator\\.gradle\\daemon\\9.6.1\\com.embedsuite.app.core.database-play-services-base-18.5.0-5:\\color\\common_google_signin_btn_tint.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/color/common_google_signin_btn_text_light.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/color/common_google_signin_btn_text_light.xml"
+    },
+    {
+        "merged": "com.embedsuite.app.core.database-release-23:/color/common_google_signin_btn_tint.xml",
+        "source": "com.embedsuite.app.core.database-play-services-base-18.5.0-5:/color/common_google_signin_btn_tint.xml"
+    }
+]

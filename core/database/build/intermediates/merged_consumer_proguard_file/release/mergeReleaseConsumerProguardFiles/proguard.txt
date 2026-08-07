@@ -1,0 +1,4 @@
+# Room + SQLCipher core:database consumer ProGuard/R8 rules
+-keep class com.embedsuite.app.data.** { *; }
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *

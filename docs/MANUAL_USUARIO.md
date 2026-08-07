@@ -1,7 +1,7 @@
 # EMBED SUITE — Manual de Usuario
 
 **Companion Android para LilyGO T-Embed CC1101 Plus · Firmware Xibalba (TEH-Link)**
-Versión documentada: **4.1.0** · GIOSÁNBLAS
+Versión documentada: **4.3.0** · Firmware: **0.18.0** · GIOSÁNBLAS
 
 > 📘 **Fuente de verdad in-app:** Acerca de → Manual interactivo (`assets/manual/index.html`).  
 > Este archivo en `docs/` es un espejo resumido para revisión externa.

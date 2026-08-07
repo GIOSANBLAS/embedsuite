@@ -24,8 +24,8 @@ android {
         applicationId = "com.embedsuite.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 28
-        versionName = "4.1.0"
+        versionCode = 31
+        versionName = "4.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

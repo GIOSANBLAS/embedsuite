@@ -32,6 +32,27 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "4.3.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Evil Portal: captura y auditoría de portales maliciosos WiFi",
+                "Beacon Spam: detección y registro de envío masivo de beacons",
+                "Modo Auditoría: vista en tiempo real con filtros y búsqueda",
+                "Integración Xibalba v0.18.0 completa",
+                "Corrección plugins Gradle AGP9 y optimizaciones KSP/Compose"
+            )
+        ),
+        ChangelogEntry(
+            version = "4.2.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Documentación completa actualizada para v4.3.0",
+                "Sincronización con Xibalba v0.18.0",
+                "Preparación de modelos de datos para Evil Portal y Beacon Spam",
+                "Nuevas estructuras de parseo para eventos de auditoría"
+            )
+        ),
+        ChangelogEntry(
             version = "4.1.0",
             date = "Ago 2026",
             highlights = listOf(

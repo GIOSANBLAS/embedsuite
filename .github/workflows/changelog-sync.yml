@@ -1,0 +1,103 @@
+name: Changelog Sync & Validation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/build.gradle.kts'
+      - 'gradle.properties'
+      - 'libs.versions.toml'
+      - 'CHANGELOG_APP.md'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/build.gradle.kts'
+      - 'gradle.properties'
+      - 'libs.versions.toml'
+      - 'CHANGELOG_APP.md'
+
+jobs:
+  validate-changelog:
+    name: Validate Changelog
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from build.gradle.kts
+        id: version
+        run: |
+          VERSION_NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          VERSION_CODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Version detected: $VERSION_NAME (code: $VERSION_CODE)"
+
+      - name: Check if changelog has current version
+        id: changelog_check
+        run: |
+          VERSION=${{ steps.version.outputs.version_name }}
+          if grep -q "^## v$VERSION" CHANGELOG_APP.md; then
+            echo "changelog_updated=true" >> $GITHUB_OUTPUT
+            echo "✅ Changelog tiene la versión $VERSION"
+          else
+            echo "changelog_updated=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Changelog NO tiene la versión $VERSION"
+          fi
+
+      - name: Validate changelog format
+        run: |
+          if grep -qE "^## v[0-9]+\.[0-9]+\.[0-9]+" CHANGELOG_APP.md; then
+            echo "✅ Formato de changelog válido (v X.Y.Z)"
+          else
+            echo "❌ Formato incorrecto. Usa '## v X.Y.Z — Descripción'"
+            exit 1
+          fi
+
+      - name: Comment on PR if changelog missing
+        if: github.event_name == 'pull_request' && steps.changelog_check.outputs.changelog_updated == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version_name }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `⚠️ **Changelog no actualizado**\n\nDetectamos que \`build.gradle.kts\` tiene versión \`${version}\` pero el \`CHANGELOG_APP.md\` no menciona esta versión.\n\n📝 Por favor, actualiza el changelog agregando una entrada para v${version}:\n\n\`\`\`markdown\n## v${version} — [Descripción de cambios]\n> 📅 $(date '+%Y-%m-%d') · [Resumen]\n\n### ✨ Cambios\n- [Tu cambio aquí]\n\`\`\`\n\nFormato esperado:\n- Encabezado: \`## vX.Y.Z — Descripción\`\n- Fecha: \`> 📅 YYYY-MM-DD\`\n- Secciones con emojis: \`### ✨ Cambios\``
+            });
+
+      - name: Fail if changelog is out of sync
+        if: steps.changelog_check.outputs.changelog_updated == 'false'
+        run: |
+          echo "::error::Changelog out of sync. Version in build.gradle.kts does not match CHANGELOG_APP.md"
+          exit 1
+
+  check-conventional-commits:
+    name: Validate Conventional Commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          COMMITS=$(git log origin/main..HEAD --format=%B)
+          if echo "$COMMITS" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|chore)(\(.+\))?!?: "; then
+            echo "✅ Commits siguen formato Conventional Commits"
+          else
+            echo "⚠️  Algunos commits no siguen Conventional Commits"
+            echo "Formato esperado: type(scope): description"
+            echo "Ejemplos: feat(auth): add login, fix(parser): handle null"
+          fi

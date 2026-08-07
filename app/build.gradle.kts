@@ -102,3 +102,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// Changelog validation task dependency
+tasks.named("preBuild").configure {
+    dependsOn(rootProject.tasks.named("validateChangelog"))
+}

@@ -1,5 +1,48 @@
 # EmbedSuite · Changelog App Android
 
+## v4.3.0 — Evil Portal, Beacon Spam & Modo Auditoría con Xibalba v0.18.0
+> 📅 2026-08-06 · Integración completa con firmware Xibalba v0.18.0 con soporte
+> para Evil Portal, Beacon Spam, auditoría en tiempo real, fix de plugins Gradle AGP9.
+
+### 🆕 Nuevas Funcionalidades · Evil Portal & Beacon Spam
+- **Evil Portal**: Captura y auditoría de portales maliciosos WiFi (EvilPortal)
+- **Beacon Spam**: Detección y registro de envío masivo de beacons WiFi
+- **Modo Auditoría**: Nueva vista de auditoría en tiempo real con filtros y búsqueda
+- **Integración Xibalba v0.18.0**: API firmware totalmente sincronizada
+
+### 🔧 Correcciones Build & Gradle
+- **Gradle Plugin AGP9**: Corrección de compatibilidad con AGP 9.0+
+- **libs.versions.toml**: Actualización de versiones y dependencias
+- **KSP/Compose**: Optimizaciones en compilación Kotlin Symbol Processor
+- `versionCode`: 28 → **31**
+- `versionName`: "4.1.0" → **"4.3.0"**
+
+### 🧪 Estabilidad & Testing
+- Auditoría de eventos de red en tiempo real desde la app
+- Dashboard mejorado con vistas de Evil Portal y Beacon Spam
+- Integración completa de datos con sistema de auditoría del firmware
+
+---
+
+## v4.2.0 — Documentación & Preparación v4.3.0
+> 📅 2026-08-06 · Actualización completa de documentación y sincronización
+> con Xibalba v0.18.0 en preparación para features de Evil Portal y Beacon Spam.
+
+### 📚 Documentación
+- Documentación completa actualizada para v4.3.0
+- Guías para Evil Portal, Beacon Spam y modo Auditoría
+- Integración Xibalba v0.18.0 documentada
+- Changelog actualizado con changelog del firmware
+
+### 🔀 Sincronización con Firmware
+- Alineación con Xibalba v0.18.0 compatible con v4.3.0
+- Preparación de modelos de datos para Evil Portal
+- Nuevas estructuras de parseo para eventos de auditoría
+- `versionCode`: 28 (sin cambio en APK, solo docs)
+- `versionName`: "4.1.0" (sin cambio en APK, solo docs)
+
+---
+
 ## v4.1.0 — Simbiosis Firmware Xibalba v0.17 "Spark"
 > 📅 2026-08-04 · Complementa los hardening features integrados en `t-embed-xibalba`:
 > Task Watchdog 30s global, BOD 3.0V, SHA256 OTA verify en lado dispositivo,

@@ -50,16 +50,3 @@ tasks.register("validateChangelog") {
         println("✅ Changelog is up to date (v$versionName - code: $versionCode)")
     }
 }
-
-// Hook preBuild para validar changelog
-tasks.register("checkChangelogBeforeBuild") {
-    dependsOn("validateChangelog")
-    description = "Pre-build changelog validation"
-}
-
-// Ejecutar validación antes del build
-project(":app").tasks.whenTaskAdded { task ->
-    if (task.name == "preBuild") {
-        task.dependsOn("checkChangelogBeforeBuild")
-    }
-}

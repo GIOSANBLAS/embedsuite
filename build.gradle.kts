@@ -6,9 +6,13 @@ plugins {
 }
 
 // ==================== CHANGELOG VALIDATION TASK ====================
-tasks.register("validateChangelog") {
-    description = "Validates that CHANGELOG_APP.md is updated with current version"
-    doLast {
+abstract class ValidateChangelogTask : org.gradle.api.DefaultTask() {
+    @get:org.gradle.api.tasks.Input
+    abstract val rootDirectory: org.gradle.api.provider.Property<File>
+    
+    @org.gradle.api.tasks.TaskAction
+    fun validate() {
+        val rootDir = rootDirectory.get()
         val changelogFile = File(rootDir, "CHANGELOG_APP.md")
         val buildGradleFile = File(rootDir, "app/build.gradle.kts")
         
@@ -49,4 +53,9 @@ tasks.register("validateChangelog") {
         
         println("✅ Changelog is up to date (v$versionName - code: $versionCode)")
     }
+}
+
+tasks.register<ValidateChangelogTask>("validateChangelog") {
+    description = "Validates that CHANGELOG_APP.md is updated with current version"
+    rootDirectory.set(rootDir)
 }

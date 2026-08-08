@@ -30,6 +30,7 @@ import com.embedsuite.app.data.TxHistoryEntity
 import com.embedsuite.app.field.FieldOperationManager
 import com.embedsuite.app.rf.RfReplayEngine
 import com.embedsuite.app.ui.components.*
+import com.embedsuite.app.ui.screen.RadarHardeningSection
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.DashboardViewModel
 import kotlinx.coroutines.launch
@@ -161,6 +162,11 @@ fun DashboardScreen(
                 Text(stringResource(R.string.action_refresh), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
             }
         }
+
+        RadarHardeningSection(
+            systemInfo = uiState.systemInfo,
+            connectionState = uiState.connectionState
+        )
 
         /* ====== XIBALBA HARDENING STATUS CARD ====== */
         if (

@@ -1,245 +1,207 @@
-# 🏗️ EmbedSuite — Documentación Técnica / Arquitectura
+# EmbedSuite — Architecture
 
-**EmbedSuite v4.5.0 · Firmware Xibalba-0.19.0 Maya (Bruce + TEH-Link v3) · GIOSÁNBLAS**
+**EmbedSuite v1.0.0 · TEH-Link v3 · Xibalba firmware companion**
 
-Este documento describe la arquitectura de la app Android **EmbedSuite**, su integración con el firmware **Xibalba** del T-Embed CC1101 Plus, el protocolo **TEH-Link v3** y el flujo de detección de firmwares.
+Technical reference for the Android control platform. User-facing docs are in Spanish under `docs/`.
 
 ---
 
-## 1. Visión general
+## 1. Overview
+
+EmbedSuite is a four-layer Android application that controls the **LilyGO T-Embed CC1101 Plus** exclusively through **TEH-Link v3** (newline-delimited JSON over USB CDC).
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        EMBED SUITE (Android)                     │
-│                                                                  │
-│  ┌──────────────┐   ┌──────────────┐   ┌─────────────────────┐  │
-│  │    UI (Compose)│   │  ViewModels  │   │  DeviceConnection   │  │
-│  │  Screens/Widget│◄─►│  (StateFlow) │◄─►│  Manager (corrutinas)│  │
-│  └──────────────┘   └──────────────┘   └──────────┬──────────┘  │
-│                                                   │             │
-│  ┌────────────────────────────────────────────────▼──────────┐  │
-│  │            Transportes (USB / WiFi / BLE / Mock)           │  │
-│  │            TEmbedTransport + X Transport                    │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                               │ TEH-Link v3 (NDJSON)
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│     FIRMWARE XIBALBA-0.19.0 MAYA (T-Embed CC1101 Plus)          │
-│     Runtime Bruce + parche TEH-Link · UI español Maya/cyber     │
-│  ┌────────────┐  ┌────────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │ plugin_mgr │  │  teh_link  │  │  Bruce   │  │  subghz/wi- │  │
-│  │  (gating)  │  │  (v3 API)  │  │  menus   │  │  fi/nfc/ir  │  │
-│  └────────────┘  └────────────┘  └──────────┘  └─────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                         UI Layer (Compose)                        │
+│   Screens · ViewModels · Theme · Widgets · Radar / Dashboard      │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼────────────────────────────────────┐
+│                        Engine Layer                               │
+│   workflow/ — scripted TEH-Link sequences, macros, .ewf (future)  │
+│   autopilot/ — field automation, scheduled actions (future)       │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+┌─────────────────────────────▼────────────────────────────────────┐
+│                         Core Layer                                  │
+│   device/ — profiles, connection manager, transports              │
+│   tehlink/ — client, parser, OTA uploader, action/command policy  │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │ TEH-Link v3 (NDJSON)
+┌─────────────────────────────▼────────────────────────────────────┐
+│                        Data Layer                                   │
+│   Room + SQLCipher · repositories · export · backup               │
+└──────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              Xibalba firmware (T-Embed CC1101 Plus)               │
+│   Bruce runtime + TEH-Link v3 + Maya/cyber Spanish UI             │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Capas de la app
+## 2. Layer responsibilities
 
-### 2.1 Capa UI (Compose)
+### 2.1 Core (`core/device`, `core/tehlink`)
 
-- **Screens** (`app/ui/screen/`): `NfcCloneScreen`, `ProbeSnifferScreen`, `SpectrumScreen`, `ScriptExplorerScreen`, etc.
-- **Components** (`app/ui/components/`): `GlassCard`, `NeonButton`, `FirmwareFlashCard`, `HardeningRow`, etc.
-- **Theme** (`app/ui/theme/`): colores hacker (MatrixGreen, NeonCyan, NeonRed, KaliBlue).
+| Package / module | Responsibility |
+|------------------|----------------|
+| `core/device` | `DeviceConnectionManager`, transport abstraction, firmware profile detection |
+| `core/tehlink` | `TehLinkClient`, `TehLinkResponseParser`, `TehLinkOtaUploader`, policies |
+| `connection/` *(current)* | USB / WiFi / BLE / Mock transports, firmware catalog |
+| `flash/` | USB esptool path, image analysis, flash coordinator |
+| `security/` | `SecureStore`, TEH-Link pairing token (Android Keystore) |
 
-### 2.2 Capa ViewModel
+**Device profiles**
 
-- Exponen `StateFlow` para la UI.
-- `DashboardViewModel`, `ConsoleViewModel`, `NfcCloneViewModel`, `ProbeSnifferViewModel`, `SpectrumViewModel`, `ScriptExplorerViewModel`.
-- Se crean mediante `EmbedViewModelFactory` con inyección manual.
+| Profile | Condition | TEH-Link | Capability |
+|---------|-----------|----------|------------|
+| **XIBALBA** | Xibalba firmware responds to `ping` | ✅ Full | Dashboard, plugins, OTA, hardening, terminal |
+| **UNKNOWN** | Stock Bruce or third-party firmware without TEH-Link | ❌ None / limited | Phone-side scan only; flash Xibalba for full symbiosis |
 
-### 2.3 Capa de conexión (`app/connection/`)
+Detection flow:
 
-| Clase | Responsabilidad |
-|-------|-----------------|
-| `DeviceConnectionManager` | Orquesta transporte, estado, eventos, TEH-Link, OTA |
-| `TEmbedTransport` (interfaz) | Contrato común de transporte |
-| `UsbTransport` / `WifiTransport` / `BleTransport` / `MockTransport` | Implementaciones de transporte |
-| `TehLinkClient` | Cliente del protocolo TEH-Link v3 |
-| `TehLinkResponseParser` | Parsea respuestas NDJSON |
-| `TehLinkOtaUploader` | Sube firmware OTA con verificación SHA256 |
-| `FirmwareCatalog` / `FirmwareRepository` | Catálogo de releases |
-| `OtaUpdateChecker` | Comprueba actualizaciones OTA |
-| `TehLinkActionPolicy` / `TehLinkCommandPolicy` | Políticas de seguridad (gating) |
+1. Transport connects (USB preferred).
+2. `TehLinkClient.ping()` over NDJSON.
+3. Valid TEH-Link response → `FirmwareProfile.XIBALBA`.
+4. Timeout / invalid → `FirmwareProfile.UNKNOWN`.
 
-### 2.4 Capa de datos (`app/data/`)
+Official firmware: [GIOSANBLAS/xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce) — merged binary `xibalba-t-embed-cc1101.bin` @ flash offset `0x0`.
 
-- **Room** (`EmbedDatabase`, `Daos.kt`, `Entities.kt`).
-- **SQLCipher** para cifrado de la base de datos.
-- Repositorios: `SignalRepository`, `MacroRepository`, `ProfileRepository`, `TxHistoryRepository`, `NfcDumpRepository`, `BleProfileRepository`, `RfAutomationRepository`.
-- `BackupManager`, `ExportHelper`, `SessionReportGenerator`.
+### 2.2 Engine (`engine/workflow`, `engine/autopilot`)
 
-### 2.5 Capas de dominio / utilidades
+| Package | Status | Purpose |
+|---------|--------|---------|
+| `engine/workflow` | Foundation in v1.0.0 (`macro/`, `scripting/`) | Multi-step TEH-Link sequences, macro engine, future `.ewf` workflows |
+| `engine/autopilot` | Planned | Unattended field operations, conditional triggers |
 
-- `rf/` — análisis RF, decodificadores, replay.
-- `nfc/` — lógica NFC.
-- `macro/` — motor de macros TEH-Link.
-- `scripting/` — scripts built-in.
-- `security/` — `SecureStore` (tokens cifrados).
-- `field/` — modo campo.
-- `map/` — mapas (osmdroid).
-- `scan/` — escaneo WiFi/BLE del teléfono + GPS.
-- `widget/` — widget de escritorio.
+v1.0.0 ships macro/script execution; full workflow and autopilot engines are Phase 2+ (see [ROADMAP](docs/ROADMAP.md)).
+
+### 2.3 UI (`ui/`)
+
+- **Screens** — Dashboard, Sub-GHz, WiFi, NFC/IR, Console, Map & Tools, Settings.
+- **ViewModels** — `StateFlow` exposure; factory injection via `EmbedViewModelFactory`.
+- **Components** — `GlassCard`, radar widgets, hardening rows, firmware flash card, link debug panel.
+- **Theme** — Matrix green / neon cyan cyber palette aligned with Xibalba device UI.
+
+Radar dashboard aggregates link state, battery, device screen mirror, plugin shortcuts, and OTA banners.
+
+### 2.4 Data (`data/`)
+
+- **Room** + **SQLCipher** — encrypted local store.
+- **Entities** — signals, macros, profiles, TX history, NFC dumps, BLE profiles, IR payloads.
+- **Repositories** — domain access for UI and Engine.
+- **Export** — `ExportHelper`, `SessionReportGenerator`, `BackupManager`.
 
 ---
 
-## 3. Protocolo TEH-Link v3
+## 3. TEH-Link v3 protocol
 
-TEH-Link v3 es un protocolo **JSON NDJSON** (una línea = un mensaje) sobre USB CDC / WiFi / BLE.
+Single transport protocol. No alternate serial CLI.
 
-### 3.1 Comandos principales
+### 3.1 Wire format
 
-| Comando | Descripción |
-|---------|-------------|
-| `ping` | Comprobación de vida |
-| `get_info` | Info del dispositivo + plugins + hardening |
-| `get_status` | Estado (SD, UI, batería, heap, coredump, sim, capabilities) |
-| `get_screen` | Pantalla actual |
-| `list_actions` | Lista acciones de plugins |
-| `run_action` | Ejecuta una acción de plugin |
-| `get_action_state` | Estado de una acción |
-| `ota_status` / `ota_finish` | Gestión OTA |
-| `clear_coredump` | Borra coredump |
-| `pair` | Emparejamiento TEH-Link |
-
-### 3.2 Formato
+One JSON object per line (NDJSON). Default baud: 115200 on USB CDC.
 
 ```json
-// Request
-{"cmd":"run_action","id":1,"plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":15}}
-
-// Response (NDJSON)
+{"cmd":"run_action","id":1,"plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30}}
 {"type":"response","id":1,"ok":true,"data":{...}}
 ```
 
-### 3.3 Eventos streaming
+### 3.2 Core commands
 
-El firmware emite eventos NDJSON que la app parsea en `DeviceEvent`:
+| Command | Purpose |
+|---------|---------|
+| `ping` | Liveness |
+| `pair` | TEH-Link pairing (GPIO6 long-press on device) |
+| `get_info` | Device info, plugins, hardening flags |
+| `get_status` | Battery, heap, SD, capabilities, coredump |
+| `get_screen` | Current device UI frame |
+| `list_actions` / `run_action` / `get_action_state` | Plugin execution |
+| `ota_begin` / `ota_chunk` / `ota_finish` / `ota_status` | USB OTA with SHA256 verify |
+| `clear_coredump` | Post-crash cleanup |
 
-| Evento | Uso |
-|--------|-----|
-| `RawLine` | Línea cruda |
-| `SubGhzSignal` | Señal Sub-GHz capturada |
-| `SystemInfoUpdate` | Info del sistema |
-| `OtaCompleted` | OTA completada (+ `sha256Verified`) |
-| `BleAdSpamProgress` | Progreso BLE spam |
-| `WifiProbe` | Probe WiFi detectado |
-| `MousejackDongle` | Dongle Mousejack detectado |
-| `SubGhzSample` / `SubGhzDecodedFrame` | Muestras RF |
-| `NfcCloneProgress` | Progreso clonado NFC |
-| `TehLinkNotice` | Avisos (pairing, seguridad) |
+### 3.3 Streaming events
+
+Firmware emits NDJSON events parsed into `DeviceEvent`: `SubGhzSignal`, `WifiProbe`, `OtaCompleted`, `TehLinkNotice`, etc.
+
+### 3.4 Security policies
+
+- `TehLinkActionPolicy` — plugin/action whitelist, audit-mode gating for offensive tools.
+- `TehLinkCommandPolicy` — raw JSON validation in terminal.
+- `TehLinkResponseParser.redactSensitiveResponse` — redacts secrets in logs/UI.
 
 ---
 
-## 4. Detección automática de firmware
+## 4. Connection & OTA flow
 
-`DeviceConnectionManager` detecta el perfil del firmware conectado:
+### USB (primary)
 
-1. Al conectar un transporte, se ejecuta `detectFirmwareProfile(transport)`.
-2. Se envía `ping` TEH-Link.
-3. Si responde con protocolo TEH-Link → `FirmwareProfile.XIBALBA`.
-4. Si no responde → `FirmwareProfile.UNKNOWN`.
+1. `UsbTransport.connect()` → permission + serial open.
+2. Profile detection + TEH-Link pair if needed.
+3. `get_info` / `get_status` → dashboard refresh.
 
-```kotlin
-private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareProfile {
-    val pingOk = tehLinkClient.ping(transport).getOrElse { false }
-    return if (pingOk) FirmwareProfile.XIBALBA else FirmwareProfile.UNKNOWN
-}
+### OTA
+
+1. Resolve firmware from GitHub catalog or embedded asset.
+2. Verify SHA256 locally.
+3. Stream chunks via TEH-Link OTA commands.
+4. Confirm `sha256_verified` on device before reboot.
+
+---
+
+## 5. Package layout (target)
+
+```
+app/src/main/java/com/embedsuite/app/
+├── core/
+│   ├── device/          # connection manager, profiles (evolving from connection/)
+│   └── tehlink/         # protocol client (evolving from connection/)
+├── engine/
+│   ├── workflow/        # macros, scripts, .ewf (Phase 2)
+│   └── autopilot/       # field automation (Phase 3)
+├── ui/
+│   ├── screen/
+│   ├── viewmodel/
+│   ├── components/
+│   └── theme/
+├── data/
+│   ├── Entities.kt, Daos.kt, EmbedDatabase.kt
+│   └── Repositories.kt, ExportHelper.kt, BackupManager.kt
+├── rf/, nfc/, macro/, scripting/, scan/, field/, map/, widget/
+└── flash/, security/
 ```
 
-### Perfiles soportados
-
-| Perfil | Condición | TEH-Link | Uso |
-|--------|-----------|----------|-----|
-| **`XIBALBA`** | Xibalba-0.19.0 Maya (Bruce runtime + TEH-Link v3) o legacy ESP-IDF con TEH-Link | ✅ | Simbiosis completa: dashboard, RF, plugins, OTA, hardening |
-| **`UNKNOWN`** | **Stock Bruce** sin parche TEH-Link, o VARSYS / otro firmware sin `ping` TEH-Link | ❌ | Solo escaneo del teléfono; flashear `xibalba-t-embed-cc1101.bin` para simbiosis |
-
-> **Importante:** El runtime oficial **Xibalba-0.19.0 Maya** ([GIOSANBLAS/xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce)) es **Bruce + TEH-Link v3**, no ESP-IDF. La UI del dispositivo está **100 % en español** (tema Maya/cyber). El legacy **v0.18.0 Iron Shield** (te-embed-xibalba, ESP-IDF) sigue siendo perfil XIBALBA si responde TEH-Link, pero queda como rollback — la app recomienda v0.19.0.
+v1.0.0 maps most Core logic to `connection/` and `flash/`; refactor into `core/device` and `core/tehlink` is incremental.
 
 ---
 
-## 5. Sistema de plugins y gating (Modo Auditoría)
+## 6. Build stack
 
-### 5.1 Registro de plugins
-
-Los plugins ofensivos se registran en el firmware con `TRY_REGISTER(is_tx_path=true)`:
-
-- `ble_ad_spam`
-- `wifi_offensive`
-- `mousejack`
-- `subghz_tools`
-- `nfc_clone`
-
-### 5.2 Gating por plugin
-
-Cada acción TX verifica `action_supported()` y `settings_plugin_is_allowed`:
-
-```kotlin
-// En la app (TehLinkActionPolicy)
-TehLinkActionPolicy.validate(pluginId, action).getOrElse {
-    return Result.failure(it)
-}
-```
-
-- Si el plugin no está en la whitelist → rechazado.
-- Si `requiresAuditUnlock` y el modo auditoría está desactivado → bloqueado.
-- El desbloqueo es por plugin y se revoca al desactivar el modo.
-
-### 5.3 Modo Auditoría
-
-- Se activa en **Ajustes → Seguridad**.
-- Gestiona el acceso a las 5 herramientas ofensivas.
-- La UI muestra la sección **OFENSIVE TOOLS · AUDIT MODE** cuando está activo.
-
----
-
-## 6. Flujo de conexión y OTA
-
-### 6.1 Conexión USB
-
-1. `UsbTransport.connect()` → `UsbSerialManager.conectar()`.
-2. Se solicita permiso USB (con `FLAG_IMMUTABLE` para Android 14+).
-3. Se abre el puerto serie a 115200 baud.
-4. `DeviceConnectionManager` detecta firmware y empareja TEH-Link.
-5. Se refresca `get_info` / `get_status` → `SystemInfo`.
-
-### 6.2 OTA con verificación SHA256
-
-1. `uploadFirmwareOta()` verifica SHA256 del `.bin` local.
-2. Uploader envía chunks por TEH-Link.
-3. Tras `ota_finish`, consulta `getOtaStatus()`.
-4. Si `sha256Verified == true` → UI muestra ✅ VERIFIED.
-5. Si no → **NO reinicies**, flashea por USB.
-
-**Firmware recomendado:** `xibalba-t-embed-cc1101.bin` desde [xibalba-bruce v0.19.0](https://github.com/GIOSANBLAS/xibalba-bruce/releases/tag/v0.19.0), merged @ 0x0. SHA256 catálogo: `f19a06cb8491edbe7c267f03a91be1649e0ed4dc214da102995cf6325c9f58c9`.
-
----
-
-## 7. Seguridad
-
-| Mecanismo | Detalle |
-|-----------|---------|
-| **SQLCipher** | Base de datos cifrada AES-256 |
-| **SecureStore** | Token TEH-Link cifrado (Android Keystore / EncryptedSharedPreferences) |
-| **Redacción** | `TehLinkResponseParser.redactSensitiveResponse` oculta contraseñas/llaves |
-| **Gating** | `TehLinkActionPolicy` + `TehLinkCommandPolicy` validan acciones/JSON |
-| **Hardening** | Dashboard muestra 6 flags de seguridad del firmware |
-| **PendingIntent** | `FLAG_IMMUTABLE` para compatibilidad Android 14+ |
-
----
-
-## 8. Build
-
-- **AGP**: 9.3.1 · **Kotlin**: 2.3.10 · **KSP**: 2.3.10
-- **Compose BOM**: 2026.02.01
-- Ver `gradle/libs.versions.toml` y `app/build.gradle.kts`.
+| Tool | Version (reference) |
+|------|---------------------|
+| AGP | 9.x |
+| Kotlin | 2.3.x |
+| Compose BOM | 2026.x |
+| minSdk | 31 (Android 12) |
 
 ```bash
-./gradlew clean assembleDebug
+./gradlew clean assembleDebug   # debug
+./gradlew assembleRelease       # release (signed)
 ```
 
 ---
 
-*Documentación técnica v4.5.0 · EmbedSuite · GIOSÁNBLAS*
+## 7. Firmware compatibility matrix
+
+| Firmware | Profile | EmbedSuite v1.0.0 |
+|----------|---------|-------------------|
+| **Xibalba** (xibalba-bruce) | XIBALBA | Full symbiosis |
+| **Stock Bruce** (no TEH-Link patch) | UNKNOWN | Limited — phone tools only |
+| **Other / VARSYS** | UNKNOWN | Limited |
+
+---
+
+*Architecture doc · EmbedSuite v1.0.0 · GIOSANBLAS*

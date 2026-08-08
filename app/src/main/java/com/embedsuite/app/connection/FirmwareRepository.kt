@@ -165,7 +165,6 @@ class FirmwareRepository(
                         
                         if (fileName.endsWith(".bin", ignoreCase = true) &&
                             (fileName.contains("xibalba", ignoreCase = true) ||
-                                fileName.contains("te-embed", ignoreCase = true) ||
                                 fileName.contains("bruce", ignoreCase = true) ||
                                 fileName.contains("lilygo-t-embed", ignoreCase = true))
                         ) {

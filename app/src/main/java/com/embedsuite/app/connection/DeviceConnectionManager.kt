@@ -6,6 +6,9 @@ import com.embedsuite.app.UsbSerialManager
 import com.embedsuite.app.data.CapturedSignalEntity
 import com.embedsuite.app.core.AppPreferences
 import com.embedsuite.app.core.SoundFeedback
+import com.embedsuite.app.core.device.DeviceProfile
+import com.embedsuite.app.core.device.DeviceProfileResolver
+import com.embedsuite.app.core.device.DeviceProfileStore
 import com.embedsuite.app.security.SecureStore
 import com.embedsuite.app.rf.RfFrequencyPresets
 import com.embedsuite.app.rf.RfLiveEngine
@@ -59,11 +62,21 @@ class DeviceConnectionManager(
 
     private val tehLinkClient = TehLinkClient(scope)
     private val tehLinkOtaUploader = TehLinkOtaUploader(tehLinkClient)
+    private val deviceProfileStore = DeviceProfileStore(appContext)
 
     private var activeTransport: TEmbedTransport? = null
 
     private val _detectedProfile = MutableStateFlow(FirmwareProfile.UNKNOWN)
     val detectedProfile: StateFlow<FirmwareProfile> = _detectedProfile.asStateFlow()
+
+    private val _activeDeviceProfile = MutableStateFlow<DeviceProfile?>(deviceProfileStore.getActive())
+    val activeDeviceProfile: StateFlow<DeviceProfile?> = _activeDeviceProfile.asStateFlow()
+    val savedDeviceProfiles: List<DeviceProfile> get() = deviceProfileStore.list()
+
+    fun setActiveDeviceProfile(id: String) {
+        deviceProfileStore.setActive(id)
+        _activeDeviceProfile.value = deviceProfileStore.getActive()
+    }
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -374,6 +387,16 @@ class DeviceConnectionManager(
             )
             _systemInfo.value = info
             _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
+
+            val profile = DeviceProfileResolver.resolve(device)
+            deviceProfileStore.upsert(profile)
+            deviceProfileStore.setActive(profile.id)
+            _activeDeviceProfile.value = profile
+            _events.tryEmit(
+                DeviceEvent.RawLine(
+                    "[perfil] ${profile.name} · ${profile.hardwareKind} · caps=${profile.capabilities.size}"
+                )
+            )
 
             /* Alertas tempranas (no bloqueantes) cuando hay pánico previo o flags de seguridad desactivados. */
             if (info.wdtPanicReason != null) {

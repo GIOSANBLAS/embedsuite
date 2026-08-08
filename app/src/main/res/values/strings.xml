@@ -108,7 +108,7 @@
     <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
     <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s — o ventana auto al boot sin token\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
     <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
-    <string name="hardware_bringup_checklist_body">□ Dashboard: LINK verde, firmware Xibalba-0.19.0+\n□ ping / get_info (product T-Embed Xibalba, proto teh-link)\n□ Captura Sub-GHz TEH-Link (RX 15 s)\n□ WiFi scan + Wardriving (GPS teléfono)\n□ NFC / IR en dispositivo o vía TEH-Link según capabilities\n□ Tools ofensivas: preferir menú del T-Embed si la acción remota es parcial\n□ OTA: no debe ofrecer downgrade a ESP-IDF legacy</string>
+    <string name="hardware_bringup_checklist_body">□ Dashboard: LINK verde, firmware Xibalba\n□ ping / get_info (product T-Embed Xibalba, proto teh-link)\n□ Captura Sub-GHz TEH-Link (RX 15 s)\n□ WiFi scan + Wardriving (GPS teléfono)\n□ NFC / IR en dispositivo o vía TEH-Link según capabilities\n□ Tools ofensivas: preferir menú del T-Embed si la acción remota es parcial\n□ OTA: solo catálogo oficial xibalba-bruce</string>
     <string name="hardware_bringup_test_log">ABRIR DOCS HARDWARE</string>
     <string name="hardware_bringup_test_log_sub">Registro / guía en GitHub (xibalba-bruce + EmbedSuite)</string>
     <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>

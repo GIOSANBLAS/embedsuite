@@ -61,68 +61,8 @@ object FirmwareCatalog {
         bundledAssetPath = "firmware/xibalba-t-embed-cc1101.bin"
     )
 
-    /** Histórico ESP-IDF (rollback / comparación). */
-    val XIBALBA_LEGACY_V0180: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.18.0",
-        name = "v0.18.0 Iron Shield (legacy ESP-IDF)",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.18.0/te-embed-xibalba.bin",
-        fileName = "te-embed-xibalba.bin",
-        isPrerelease = true,
-        source = FirmwareSource.OFFICIAL_XIBALBA,
-        isRecommended = false,
-        description = "Legado ESP-IDF v0.18.0 Iron Shield — usar solo si necesitas rollback; runtime oficial es xibalba-bruce",
-        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd",
-        bundledAssetPath = null
-    )
-
-    // Compat alias para código/tests que aún referencian el símbolo viejo
-    @Deprecated("Use XIBALBA_V0190", ReplaceWith("XIBALBA_V0190"))
-    val XIBALBA_V0180: FirmwareRelease = XIBALBA_V0190
-
-    val XIBALBA_FALLBACK_V0170: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.17.1",
-        name = "v0.17.1 Spark (legacy)",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.17.1/te-embed-xibalba.bin",
-        fileName = "te-embed-xibalba.bin",
-        isPrerelease = true,
-        source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "Legado ESP-IDF v0.17.1 Spark",
-        sha256Hex = null
-    )
-
-    val XIBALBA_FALLBACK_V0165: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.16.5",
-        name = "v0.16.5 Glow (legacy)",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.5/te-embed-xibalba.bin",
-        fileName = "te-embed-xibalba.bin",
-        isPrerelease = true,
-        source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "Legado ESP-IDF v0.16.5 Glow"
-    )
-
-    val XIBALBA_FALLBACK_V0162: FirmwareRelease = FirmwareRelease(
-        tagName = "v0.16.2",
-        name = "v0.16.2 Glow (legacy)",
-        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.16.2/te-embed-xibalba.bin",
-        fileName = "te-embed-xibalba.bin",
-        isPrerelease = true,
-        source = FirmwareSource.OFFICIAL_XIBALBA,
-        description = "Legado ESP-IDF v0.16.2 Glow",
-        sha256Hex = null
-    )
-
-    val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0170
-    val XIBALBA_FALLBACK_V016: FirmwareRelease = XIBALBA_FALLBACK_V0170
-    val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0170
-    val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0170
-    val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0170
-
     /** Catálogo embebido — siempre disponible sin GitHub API (repo privado / sin red). */
-    fun embeddedReleases(): List<FirmwareRelease> = listOf(
-        XIBALBA_V0190,
-        XIBALBA_LEGACY_V0180,
-        XIBALBA_FALLBACK_V0170.copy(isPrerelease = true, isRecommended = false)
-    )
+    fun embeddedReleases(): List<FirmwareRelease> = listOf(XIBALBA_V0190)
 
     fun fallbackReleases(): List<FirmwareRelease> =
         markRecommended(embeddedReleases(), FirmwareProfile.XIBALBA)

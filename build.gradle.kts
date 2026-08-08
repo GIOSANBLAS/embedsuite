@@ -6,11 +6,11 @@ plugins {
 }
 
 // ==================== CHANGELOG VALIDATION TASK ====================
-abstract class ValidateChangelogTask : org.gradle.api.DefaultTask() {
-    @get:org.gradle.api.tasks.Input
-    abstract val rootDirectory: org.gradle.api.provider.Property<File>
+abstract class ValidateChangelogTask : DefaultTask() {
+    @get:Input
+    abstract val rootDirectory: Property<File>
     
-    @org.gradle.api.tasks.TaskAction
+    @TaskAction
     fun validate() {
         val rootDir = rootDirectory.get()
         val changelogFile = File(rootDir, "CHANGELOG_APP.md")

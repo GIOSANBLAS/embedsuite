@@ -43,7 +43,7 @@ private const val HARDWARE_TEST_SUITE_DOC_URL =
 private const val HARDWARE_TEST_PS1_URL =
     "https://github.com/GIOSANBLAS/embedsuite/blob/main/docs/GUIA_HARDWARE.md"
 private const val HARDWARE_CHECKLIST_CSV_URL =
-    "https://github.com/GIOSANBLAS/embedsuite/blob/main/docs/GUIA_DIA_1.md"
+    "https://github.com/GIOSANBLAS/embedsuite/blob/main/docs/MANUAL_USUARIO.md"
 
 @Composable
 fun HardwareBringupScreen(onBack: () -> Unit) {

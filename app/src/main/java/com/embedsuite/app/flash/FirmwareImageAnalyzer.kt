@@ -4,15 +4,15 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 
 /**
- * Detecta si un .bin es imagen merged (bootloader+partitions+app @ 0x0, estilo Bruce)
- * o solo aplicación ESP-IDF (flash @ 0x10000 sobre partición ota_0 existente).
+ * Detecta si un .bin es imagen merged (bootloader+partitions+app @ 0x0, estilo Xibalba/Bruce)
+ * o solo aplicación (flash @ 0x10000 sobre partición ota_0 existente).
  */
 object FirmwareImageAnalyzer {
 
     enum class ImageKind {
         /** merge-bin de esptool: tabla de particiones en offset 0x8000 del archivo. */
         MERGED_FULL,
-        /** Solo firmware.bin / te-embed-xibalba.bin de release (app ESP-IDF). */
+        /** Solo firmware.bin de aplicación (offset 0x10000). */
         APP_ONLY
     }
 

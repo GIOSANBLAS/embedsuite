@@ -1,29 +1,53 @@
-# Instrucciones de Compilación - EmbedSuite v4.5.0
+# Instrucciones de compilación — EmbedSuite v1.0.0
 
-## Requisitos previos
+Compilación desde cero del companion Android para Xibalba.
 
-1. **Android Studio Hedgehog** (2023.1.1) o superior
-2. **JDK 17** (OpenJDK o Oracle)
-3. **Gradle 8.2+** (incluido en el proyecto)
-4. **Git** (para clonar el repositorio)
+---
 
-## Pasos para compilar
+## 1. Requisitos
 
-### Opción 1: Compilación Debug (recomendada para pruebas)
+| Herramienta | Versión |
+|-------------|---------|
+| Android Studio | Hedgehog (2023.1.1) o superior |
+| JDK | 17 |
+| Gradle | 8.2+ (wrapper incluido) |
+| Git | Cualquier versión reciente |
+
+**Target device:** Android 12 o superior (API 31+).
+
+---
+
+## 2. Clonar e importar
 
 ```bash
-# Navega al directorio del proyecto
-cd c:\Users\Administrator\AndroidStudioProjects\EMBEDSUITE
-
-# Compila el APK debug
-.\gradlew.bat assembleDebug
+git clone https://github.com/GIOSANBLAS/embedsuite.git
+cd embedsuite
 ```
 
-El APK se generará en: `app/build/outputs/apk/debug/app-debug.apk`
+Abre la carpeta raíz en Android Studio. Espera sync de Gradle.
 
-### Opción 2: Compilación Release (firmada)
+---
 
-1. Crea un archivo `keystore.properties` en la raíz del proyecto:
+## 3. Build debug
+
+```bash
+# Windows
+.\gradlew.bat clean assembleDebug
+
+# Linux / macOS
+./gradlew clean assembleDebug
+```
+
+**Salida:** `app/build/outputs/apk/debug/app-debug.apk`
+
+---
+
+## 4. Build release
+
+### 4.1 Keystore
+
+Crea `keystore.properties` en la raíz del proyecto:
+
 ```properties
 storeFile=../ruta/a/tu/keystore.jks
 storePassword=tu_password
@@ -31,72 +55,69 @@ keyAlias=tu_alias
 keyPassword=tu_password
 ```
 
-2. Compila:
+### 4.2 Compilar
+
 ```bash
 .\gradlew.bat assembleRelease
 ```
 
-El APK se generará en: `app/build/outputs/apk/release/app-release.apk`
+**Salida:** `app/build/outputs/apk/release/app-release.apk`
 
-## Instalación en dispositivo
+---
 
-### Con ADB (recomendado)
+## 5. Instalación
+
+### ADB
+
 ```bash
-# Instala la app
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-
-# O para release
-adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-### Sin ADB
-1. Transfiere el APK al teléfono
-2. En Android: Ajustes → Seguridad → Fuentes desconocidas → Activar
-3. Toca el APK para instalar
+### Manual
 
-## Verificación de la versión
+Transfiere el APK al teléfono e instala desde el gestor de archivos (fuentes desconocidas habilitadas).
 
-1. Abre la app
-2. Ve a **Ajustes → Acerca de**
-3. Debería mostrar **EmbedSuite v4.5.0**
+---
 
-## Solución de problemas
+## 6. Verificación
 
-### Error: "No se reconoce gradlew.bat"
-- Verifica que estás en el directorio correcto: `cd EMBEDSUITE`
-- Usa `.\gradlew.bat` (con punto y barra invertida)
+1. Abre EmbedSuite.
+2. **Ajustes → Acerca de** → confirma **v1.0.0**.
+3. Conecta T-Embed con Xibalba v1.0.0.
+4. Dashboard debe mostrar perfil **XIBALBA**.
 
-### Error: "Fallo en la compilación"
+---
+
+## 7. Tests
+
 ```bash
-# Limpia y recompila
-.\gradlew.bat clean assembleDebug
+.\gradlew.bat test
+.\gradlew.bat connectedAndroidTest   # requiere dispositivo/emulador API 31+
 ```
 
-### La app no detecta v0.19.0 Maya
-- Verifica que el dispositivo tenga internet
-- Revisa los logs en Logcat con el filtro: `FirmwareRepository`
-- Deberías ver líneas como:
-  ```
-  D/FirmwareRepository: Fetching releases from GitHub...
-  D/FirmwareRepository: GitHub API response code: 200
-  D/FirmwareRepository: Processing release: v0.19.0 (prerelease=false)
-  D/FirmwareRepository:   Asset: xibalba-t-embed-cc1101.bin
-  D/FirmwareRepository:   ✓ Added: v0.19.0, SHA256: f19a06cb...
-  ```
-- Si GitHub falla, el catálogo embebido sigue mostrando **Xibalba-0.19.0 Maya** como recomendado.
+Plan completo: [docs/TESTING.md](docs/TESTING.md)
 
-## Características de v4.5.0
+---
 
-- ✅ Resync con firmware **Xibalba-0.19.0 Maya** ([xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce))
-- ✅ Catálogo OTA / assets: `xibalba-t-embed-cc1101.bin` merged @ 0x0
-- ✅ Detección perfil **XIBALBA** (Bruce + TEH-Link) vs **UNKNOWN** (stock Bruce)
-- ✅ Legacy v0.18.0 Iron Shield (te-embed-xibalba) como rollback, no recomendado
-- ✅ Guías y strings alineados con UI español del dispositivo
-- ✅ Flasheo USB robusto con múltiples intentos de sync
-- ✅ Integración TEH-Link v3 (Evil Portal, Beacon Spam, Offensive Toolkit)
+## 8. Solución de problemas
 
-## Soporte
+| Error | Solución |
+|-------|----------|
+| `gradlew` no reconocido | Ejecuta desde la raíz del repo; usa `.\gradlew.bat` en Windows |
+| Sync falla | `./gradlew --stop`; invalidar caché en Android Studio |
+| compileSdk mismatch | Actualiza Android Studio y SDK Platform 34+ |
+| USB permission en runtime | Normal en dispositivo físico; no aplica en emulador sin OTG |
 
-- GitHub app: https://github.com/GIOSANBLAS/EmbedSuite
-- Firmware (recomendado): https://github.com/GIOSANBLAS/xibalba-bruce/releases/tag/v0.19.0
-- Firmware legacy (rollback): https://github.com/GIOSANBLAS/te-embed-xibalba/releases/tag/v0.18.0
+---
+
+## 9. Referencias
+
+| Documento | Contenido |
+|-----------|-----------|
+| [README.md](README.md) | Visión general v1.0.0 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Capas y TEH-Link |
+| [docs/GUIA_HARDWARE.md](docs/GUIA_HARDWARE.md) | Hardware y flasheo |
+
+---
+
+*Build instructions · EmbedSuite v1.0.0*

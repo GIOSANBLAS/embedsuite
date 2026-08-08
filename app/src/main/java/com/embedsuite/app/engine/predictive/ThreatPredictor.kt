@@ -11,11 +11,12 @@ enum class ThreatKind {
 data class ThreatGuess(
     val kind: ThreatKind,
     val confidence: Float,
-    val rationale: String
+    val rationale: String,
+    val countermeasure: String
 )
 
 /**
- * Placeholder decision-tree predictor — heuristic stub for v1.0.0 foundation.
+ * Heuristic threat predictor with Spanish countermeasure recommendations.
  */
 class ThreatPredictor {
 
@@ -57,7 +58,25 @@ class ThreatPredictor {
             if (label.isNotBlank()) append(" ($label)")
             rssi?.let { append(" @ ${it}dBm") }
         }
+        val countermeasure = countermeasureFor(kind, rssi)
 
-        return ThreatGuess(kind = kind, confidence = confidence, rationale = rationale)
+        return ThreatGuess(
+            kind = kind,
+            confidence = confidence,
+            rationale = rationale,
+            countermeasure = countermeasure
+        )
+    }
+
+    private fun countermeasureFor(kind: ThreatKind, rssi: Int?): String = when (kind) {
+        ThreatKind.WIFI_AP -> if (rssi != null && rssi >= -60) {
+            "Evita conectar a APs desconocidos; ejecuta escaneo pasivo y documenta BSSID."
+        } else {
+            "Monitoriza el AP desde distancia segura; verifica cifrado y canal."
+        }
+        ThreatKind.BLE_DEVICE -> "Desactiva emparejamientos no solicitados; escanea BLE periódicamente y filtra trackers."
+        ThreatKind.SUBGHZ_SIGNAL -> "Captura la señal sin retransmitir; analiza protocolo antes de cualquier TX."
+        ThreatKind.NFC_TAG -> "No acerques tarjetas sensibles; lee UID en modo pasivo y evita emulación."
+        ThreatKind.UNKNOWN -> "Mantén modo observación; registra metadatos antes de actuar."
     }
 }

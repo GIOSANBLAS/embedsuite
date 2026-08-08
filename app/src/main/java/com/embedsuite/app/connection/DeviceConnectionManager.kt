@@ -6,6 +6,8 @@ import com.embedsuite.app.UsbSerialManager
 import com.embedsuite.app.data.CapturedSignalEntity
 import com.embedsuite.app.core.AppPreferences
 import com.embedsuite.app.core.SoundFeedback
+import com.embedsuite.app.core.connection.PendingCommandQueue
+import com.embedsuite.app.core.connection.ReconnectPolicy
 import com.embedsuite.app.core.device.DeviceProfile
 import com.embedsuite.app.core.device.DeviceProfileResolver
 import com.embedsuite.app.core.device.DeviceProfileStore
@@ -51,6 +53,9 @@ class DeviceConnectionManager(
     private val sessionStats: com.embedsuite.app.core.SessionStatsTracker? = null
 ) {
     private val appContext = context.applicationContext
+    val pendingCommandQueue = PendingCommandQueue()
+
+    fun applicationContext(): Context = appContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val signalLogDeque = ArrayDeque<SignalEntry>(501)
@@ -121,6 +126,8 @@ class DeviceConnectionManager(
         observeTransportPreferenceChanges()
     }
 
+    private var reconnectAttempt = 0
+
     private fun observeReconnectPolicy() {
         val prefs = appPreferences ?: return
         scope.launch {
@@ -128,12 +135,24 @@ class DeviceConnectionManager(
                 autoReconnect to state
             }.collect { (autoReconnect, state) ->
                 if (autoReconnect && state is ConnectionState.Disconnected) {
-                    delay(3000)
+                    reconnectAttempt++
+                    delay(ReconnectPolicy.delayMs(reconnectAttempt))
                     if (_connectionState.value is ConnectionState.Disconnected) {
-                        // USB primero (estable); solo si falla se intenta el transporte preferido.
                         reconnectPreferringUsb(prefs.defaultTransport.value)
                     }
+                } else if (state is ConnectionState.Connected) {
+                    reconnectAttempt = 0
+                    flushPendingCommands()
                 }
+            }
+        }
+    }
+
+    private fun flushPendingCommands() {
+        scope.launch {
+            val queued = pendingCommandQueue.drain()
+            for (json in queued) {
+                sendTehLinkRaw(json)
             }
         }
     }
@@ -318,7 +337,10 @@ class DeviceConnectionManager(
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
         val transport = activeTransport
-            ?: return Result.failure(Exception("Sin transporte activo. Conecta USB, WiFi o BLE."))
+        if (transport == null || _connectionState.value !is ConnectionState.Connected) {
+            pendingCommandQueue.enqueue(json)
+            return Result.failure(Exception("Sin transporte activo — comando en cola (${pendingCommandQueue.size})."))
+        }
 
         TehLinkCommandPolicy.validateConsoleRequest(json).getOrElse {
             return Result.failure(it)

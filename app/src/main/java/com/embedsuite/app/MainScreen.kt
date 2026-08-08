@@ -46,6 +46,7 @@ private fun mainTabs() = listOf(
     NavTab("nfc_ir", R.string.nav_nfc, Icons.Default.Nfc),
     NavTab("terminal", R.string.nav_cli, Icons.Default.Terminal),
     NavTab("scripts", R.string.nav_scripts, Icons.Default.Code),
+    NavTab("ops", R.string.nav_ops, Icons.Default.SettingsApplications),
     NavTab("ai", R.string.nav_ai, Icons.Default.Psychology),
     NavTab("map_tools", R.string.nav_tools, Icons.Default.Map)
 )
@@ -351,6 +352,43 @@ fun MainScreen(
                             launchSingleTop = true
                             restoreState = true
                         } }
+                    )
+                }
+                composable("ops") {
+                    OpsCenterScreen(onNavigate = { route ->
+                        navController.navigate(route) { launchSingleTop = true }
+                    })
+                }
+                composable("workflow") {
+                    WorkflowScreen(
+                        workflowStore = container.workflowStore,
+                        workflowEngine = container.workflowEngine,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("autopilot") {
+                    AutopilotScreen(
+                        connectionManager = container.connectionManager,
+                        appScope = container.appScope,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("bruce_config") {
+                    BruceConfigScreen(
+                        bruceConfigSync = container.bruceConfigSync,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("firmware_customizer") {
+                    FirmwareCustomizerScreen(
+                        firmwareCustomizer = container.firmwareCustomizer,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("fleet") {
+                    FleetScreen(
+                        fleetRegistry = container.fleetRegistry,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("ai") {

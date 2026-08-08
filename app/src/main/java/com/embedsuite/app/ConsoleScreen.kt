@@ -25,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.res.stringResource
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.TehLinkConsoleChips
+import com.embedsuite.app.engine.terminal.NaturalLanguageTranslator
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.ConsoleViewModel
 
@@ -73,11 +74,16 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
     val suggestions = remember(uiState.inputText) {
         if (uiState.inputText.isBlank()) emptyList()
         else {
-            tehLinkChips
+            val chipMatches = tehLinkChips
                 .filter { it.label.contains(uiState.inputText, ignoreCase = true) ||
                     it.json.contains(uiState.inputText, ignoreCase = true) }
-                .take(6)
+                .take(4)
                 .map { it.json }
+            val nlMatches = NaturalLanguageTranslator.suggestionPhrases
+                .filter { it.contains(uiState.inputText, ignoreCase = true) ||
+                    uiState.inputText.contains(it, ignoreCase = true) }
+                .take(4)
+            (nlMatches + chipMatches).distinct().take(6)
         }
     }
 
@@ -137,7 +143,12 @@ fun ConsoleScreen(viewModel: ConsoleViewModel) {
         if (uiState.showSuggestions && suggestions.isNotEmpty()) {
             suggestions.forEach { s ->
                 TextButton(onClick = { viewModel.setInput(s, false) }, modifier = Modifier.fillMaxWidth()) {
-                    Text(s, fontFamily = FontFamily.Monospace, color = NeonCyan, fontSize = 10.sp)
+                    Text(
+                        if (s.startsWith("{")) s else "NL · $s",
+                        fontFamily = FontFamily.Monospace,
+                        color = NeonCyan,
+                        fontSize = 10.sp
+                    )
                 }
             }
         }

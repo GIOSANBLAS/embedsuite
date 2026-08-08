@@ -4,16 +4,20 @@ import android.content.Context
 import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareRelease
 import com.embedsuite.app.connection.FirmwareRepository
+import com.embedsuite.app.engine.ota.RollbackResult
+import com.embedsuite.app.engine.ota.SmartOtaGuard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import kotlin.coroutines.resume
 
 class FirmwareFlashCoordinator(
     private val appScope: CoroutineScope,
-    private val connectionManager: DeviceConnectionManager,
+    val connectionManager: DeviceConnectionManager,
     private val esptoolFlasher: EsptoolFlasher,
     private val firmwareRepository: FirmwareRepository
 ) {
@@ -132,6 +136,47 @@ class FirmwareFlashCoordinator(
             }
         }
     }
+
+    /**
+     * Suspend OTA flash for [SmartOtaGuard] rollback flow.
+     * Requires [context] from application — uses cache dir only.
+     */
+    suspend fun flashOtaAndAwait(release: FirmwareRelease): Result<String> =
+        suspendCancellableCoroutine { cont ->
+            if (_isFlashing.value) {
+                cont.resume(Result.failure(IllegalStateException("Flasheo OTA ya en curso.")))
+                return@suspendCancellableCoroutine
+            }
+            val ctx = connectionManager.applicationContext()
+            appScope.launch {
+                _isFlashing.value = true
+                try {
+                    setStatus(ctx, release, ota = true)
+                    _otaProgress.value = 5
+                    val cacheDir = File(ctx.cacheDir, "firmware")
+                    val outcome = firmwareRepository.resolveFlashFile(ctx, release, cacheDir).fold(
+                        onSuccess = { file ->
+                            _flashStatus.value = "Subiendo OTA ${release.fileName}…"
+                            val sha256 = release.sha256Hex?.trim()?.lowercase()
+                                ?: FirmwareRepository.computeFileSha256Hex(file)
+                            connectionManager.uploadFirmwareOta(file, sha256) { _otaProgress.value = it }
+                        },
+                        onFailure = { Result.failure(it) }
+                    )
+                    cont.resume(outcome)
+                } catch (e: Exception) {
+                    cont.resume(Result.failure(e))
+                } finally {
+                    _isFlashing.value = false
+                }
+            }
+        }
+
+    /** OTA with post-flash health check and optional rollback to [previousRelease]. */
+    suspend fun flashWithRollback(
+        release: FirmwareRelease,
+        previousRelease: FirmwareRelease?
+    ): RollbackResult = SmartOtaGuard.flashWithRollback(this, release, previousRelease)
 
     private fun setStatus(context: Context, release: FirmwareRelease, ota: Boolean) {
         _flashStatus.value = when {

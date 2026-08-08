@@ -322,7 +322,16 @@ fun MapToolsScreen(
             onSelectRelease = { viewModel.selectRelease(it) },
             onPickCustomBin = { customFirmwareLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
             onClearCustom = { viewModel.clearCustomFirmware() },
-            onFlashOta = { release -> flashCoordinator.flashOta(context, release) },
+            onFlashOta = { release ->
+                val previous = uiState.recommendedRelease ?: uiState.releases.firstOrNull()
+                scope.launch {
+                    val result = flashCoordinator.flashWithRollback(
+                        release = release,
+                        previousRelease = if (release.identityKey() != previous?.identityKey()) previous else null
+                    )
+                    flashCoordinator.setStatusMessage(result.message)
+                }
+            },
             onFlashUsb = { release -> flashCoordinator.flashUsb(context, release) }
         )
     }

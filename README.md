@@ -2,23 +2,24 @@
 
 **Plataforma de control Android para LilyGO T-Embed CC1101 Plus y firmware [Xibalba](https://github.com/GIOSANBLAS/xibalba-bruce)** (derivado de Bruce, AGPL-3.0).
 
-**Versión:** 1.0.0 · **Package:** `com.embedsuite.app`
+**Versión:** 2.0.0 · **Package:** `com.embedsuite.app`
 
 EmbedSuite es el companion oficial del ecosistema Xibalba. Comunicación exclusiva vía **TEH-Link v3** (JSON NDJSON sobre USB OTG). Sin protocolos legacy.
 
 ---
 
-## Capacidades (v1.0.0)
+## Capacidades (v2.0.0)
 
 | Módulo | Función |
 |--------|---------|
-| **Dashboard** | Estado de enlace, radar operativo, hardening, OTA |
-| **Sub-GHz** | Captura, TX, replay, biblioteca RF |
-| **WiFi / BLE / NFC / IR** | Toolkit vía plugins TEH-Link + escaneo del teléfono |
-| **Terminal TEH-Link** | Consola JSON directa al firmware |
-| **OTA** | Actualización USB con verificación SHA256 |
+| **Dashboard** | Radar, hardening, OTA, perfiles |
+| **Ops Center** | Workflows `.ewf`, Autopilot, bruce.json, Fleet, FW Customizer |
+| **Sub-GHz / WiFi / BLE / NFC / IR** | Toolkit TEH-Link + escaneo teléfono |
+| **Terminal avanzada** | JSON + lenguaje natural (ES/EN) + historial |
+| **OTA inteligente** | SHA256 + health check + rollback |
+| **Autopilot** | Perfiles Auditoría / Defensivo / Sigiloso |
 | **Wardriving** | Mapa GPS con sesiones de campo |
-| **Perfiles de dispositivo** | Detección automática XIBALBA vs UNKNOWN |
+| **Fleet** | Múltiples perfiles de dispositivo |
 
 ---
 

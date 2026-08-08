@@ -1,5 +1,6 @@
 package com.embedsuite.app.engine.workflow
 
+import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -17,7 +18,9 @@ data class WorkflowRunResult(
     val message: String = ""
 )
 
-class SequentialWorkflowEngine : WorkflowEngine {
+class SequentialWorkflowEngine(
+    private val actionRunner: WorkflowActionRunner
+) : WorkflowEngine {
 
     override fun serialize(workflow: Workflow): String {
         val root = JSONObject().apply {
@@ -56,14 +59,93 @@ class SequentialWorkflowEngine : WorkflowEngine {
     }.getOrNull()
 
     override suspend fun run(workflow: Workflow): WorkflowRunResult {
-        // Stub: sequential no-op pass-through until TEH-Link action runner is wired.
+        if (workflow.steps.isEmpty()) {
+            return WorkflowRunResult(
+                workflowId = workflow.id,
+                completedSteps = 0,
+                totalSteps = 0,
+                success = true,
+                message = "Workflow vacío."
+            )
+        }
+
+        var index = 0
+        var completed = 0
+        val visited = mutableSetOf<Int>()
+
+        while (index in workflow.steps.indices) {
+            if (!visited.add(index)) {
+                return WorkflowRunResult(
+                    workflowId = workflow.id,
+                    completedSteps = completed,
+                    totalSteps = workflow.steps.size,
+                    success = false,
+                    message = "Bucle detectado en paso ${workflow.steps[index].id}."
+                )
+            }
+
+            when (val step = workflow.steps[index]) {
+                is WorkflowStep.Action -> {
+                    val result = actionRunner.runAction(step.pluginId, step.action, step.params)
+                    completed++
+                    if (result.isFailure) {
+                        return WorkflowRunResult(
+                            workflowId = workflow.id,
+                            completedSteps = completed,
+                            totalSteps = workflow.steps.size,
+                            success = false,
+                            message = "Acción ${step.pluginId}/${step.action} falló: " +
+                                (result.exceptionOrNull()?.message ?: "?")
+                        )
+                    }
+                    index++
+                }
+
+                is WorkflowStep.Delay -> {
+                    delay(step.delayMs.coerceAtLeast(0L))
+                    completed++
+                    index++
+                }
+
+                is WorkflowStep.Condition -> {
+                    val passed = evaluateCondition(step.expression)
+                    completed++
+                    val targetId = if (passed) step.onTrueStepId else step.onFalseStepId
+                    index = if (targetId != null) {
+                        workflow.steps.indexOfFirst { it.id == targetId }
+                            .takeIf { it >= 0 } ?: (index + 1)
+                    } else if (passed) {
+                        index + 1
+                    } else {
+                        index + 1
+                    }
+                }
+            }
+        }
+
         return WorkflowRunResult(
             workflowId = workflow.id,
-            completedSteps = workflow.steps.size,
+            completedSteps = completed,
             totalSteps = workflow.steps.size,
             success = true,
-            message = "Sequential stub completed"
+            message = "Workflow completado."
         )
+    }
+
+    private suspend fun evaluateCondition(expression: String): Boolean {
+        val expr = expression.trim().lowercase()
+        return when {
+            expr == "always_true" -> true
+            expr == "always_false" -> false
+            expr == "connected" -> actionRunner.isConnected()
+            expr == "profile_xibalba" -> actionRunner.isXibalbaProfile()
+            expr.startsWith("ble_count_gte:") -> {
+                val threshold = expr.removePrefix("ble_count_gte:").toIntOrNull() ?: return false
+                val count = actionRunner.bleDeviceCount() ?: return false
+                count >= threshold
+            }
+            else -> false
+        }
     }
 
     private fun stepToJson(step: WorkflowStep): JSONObject = JSONObject().apply {

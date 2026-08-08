@@ -10,6 +10,8 @@ import com.embedsuite.app.connection.DeviceConnectionManager
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
 import com.embedsuite.app.core.AppVersion
+import com.embedsuite.app.core.error.HumanErrorMapper
+import com.embedsuite.app.engine.terminal.NaturalLanguageTranslator
 import com.embedsuite.app.data.MacroEntity
 import com.embedsuite.app.data.MacroRepository
 import com.embedsuite.app.macro.MacroEngine
@@ -88,17 +90,24 @@ class ConsoleViewModel(
     fun sendCommand(cmd: String) {
         if (cmd.isBlank()) return
         val trimmed = cmd.trim()
-        if (!trimmed.startsWith("{")) {
-            appendLog("[ERROR] Solo JSON TEH-Link. Ej: {\"cmd\":\"ping\"}")
-            return
+        val payload = if (!trimmed.startsWith("{")) {
+            val translated = NaturalLanguageTranslator.translate(trimmed)
+            if (translated == null) {
+                appendLog("[ERROR] ${HumanErrorMapper.mapMessage("nl_not_understood: $trimmed")}")
+                return
+            }
+            appendLog("[NL] ${translated.explanation}")
+            translated.json
+        } else {
+            trimmed
         }
-        val display = TehLinkResponseParser.redactSensitiveRequest(trimmed)
+        val display = TehLinkResponseParser.redactSensitiveRequest(payload)
         appendLog("> $display")
         val history = _uiState.value.commandHistory + cmd
         _uiState.update { it.copy(commandHistory = history, historyIndex = history.size, inputText = "", showSuggestions = false) }
         viewModelScope.launch {
-            connectionManager.sendTehLinkRaw(trimmed)
-                .onFailure { appendLog("[ERROR] ${it.message}") }
+            connectionManager.sendTehLinkRaw(payload)
+                .onFailure { appendLog("[ERROR] ${HumanErrorMapper.map(it)}") }
         }
     }
 

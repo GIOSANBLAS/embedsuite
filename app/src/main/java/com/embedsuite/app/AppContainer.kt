@@ -13,7 +13,17 @@ import com.embedsuite.app.core.CrashLogger
 import com.embedsuite.app.core.SessionStatsTracker
 import com.embedsuite.app.core.SoundFeedback
 import com.embedsuite.app.data.*
-import com.embedsuite.app.field.FieldOperationManager
+import com.embedsuite.app.core.device.DeviceProfileStore
+import com.embedsuite.app.engine.autopilot.AutopilotEngine
+import com.embedsuite.app.engine.autopilot.AutopilotProfile
+import com.embedsuite.app.engine.autopilot.TehLinkAutopilotEngine
+import com.embedsuite.app.engine.config.BruceConfigSync
+import com.embedsuite.app.engine.customizer.FirmwareCustomizer
+import com.embedsuite.app.engine.fleet.FleetRegistry
+import com.embedsuite.app.engine.workflow.DeviceConnectionWorkflowRunner
+import com.embedsuite.app.engine.workflow.SequentialWorkflowEngine
+import com.embedsuite.app.engine.workflow.WorkflowEngine
+import com.embedsuite.app.engine.workflow.WorkflowStore
 import com.embedsuite.app.flash.EsptoolFlasher
 import com.embedsuite.app.flash.FirmwareFlashCoordinator
 import com.embedsuite.app.macro.MacroEngine
@@ -112,6 +122,20 @@ class AppContainer(context: Context) {
         connectionManager = connectionManager,
         signalRepository = signalRepository
     )
+
+    val deviceProfileStore = DeviceProfileStore(appContext)
+    val workflowEngine: WorkflowEngine = SequentialWorkflowEngine(
+        DeviceConnectionWorkflowRunner(connectionManager)
+    )
+    val workflowStore = WorkflowStore(appContext, workflowEngine)
+    val autopilotEngine: AutopilotEngine = TehLinkAutopilotEngine(
+        connectionManager = connectionManager,
+        scope = appScope,
+        profile = AutopilotProfile.AUDIT
+    )
+    val bruceConfigSync = BruceConfigSync(appContext, connectionManager)
+    val firmwareCustomizer = FirmwareCustomizer
+    val fleetRegistry = FleetRegistry(deviceProfileStore)
 
     init {
         instance = this

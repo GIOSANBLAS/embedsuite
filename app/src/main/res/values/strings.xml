@@ -17,6 +17,7 @@
     <string name="nav_nfc">NFC</string>
     <string name="nav_cli">CLI</string>
     <string name="nav_scripts">SCRIPTS</string>
+    <string name="nav_ops">Ops</string>
     <string name="nav_ai">AI</string>
     <string name="nav_tools">Tools</string>
     <string name="topbar_subtitle">Xibalba Maya // TEH-Link · T-Embed CC1101</string>

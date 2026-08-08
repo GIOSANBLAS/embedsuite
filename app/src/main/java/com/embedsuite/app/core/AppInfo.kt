@@ -32,6 +32,20 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "2.0.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Phase 2: Workflows (.ewf) — store, built-ins, run/import/export UI",
+                "Phase 2: Natural language console — Spanish/English → TEH-Link JSON",
+                "Phase 2: Bruce config sync — pull/push/backup/restore bruce.json",
+                "Phase 3: Autopilot profiles AUDIT/DEFENSIVE/STEALTH with event log",
+                "Phase 3: Smart OTA guard — flash with rollback in Map Tools",
+                "Phase 4: Firmware customizer — module manifest + local build queue",
+                "Phase 4: Fleet registry — device profiles, active selection, nicknames",
+                "Ops Center hub tab — unified access to phases 2–4 tooling"
+            )
+        ),
+        ChangelogEntry(
             version = "1.0.0",
             date = "Ago 2026",
             highlights = listOf(

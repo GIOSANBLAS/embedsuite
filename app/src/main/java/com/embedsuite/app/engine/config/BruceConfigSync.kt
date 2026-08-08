@@ -25,12 +25,17 @@ class BruceConfigSync(
         viaAction.onSuccess { json ->
             saveShadow(json)
         }
-        return viaAction.map { it }.recoverCatching {
+        return viaAction.map { it }.recoverCatching { err ->
             val shadow = getLocalShadow()
             if (shadow.isNotBlank()) {
                 shadow
             } else {
-                throw Exception(HumanErrorMapper.map(it))
+                val empty = """{"note":"shadow_local","reason":"firmware_sin_bruce_json"}"""
+                saveShadow(empty)
+                throw Exception(
+                    "El firmware aún no expone get_config/export_bruce_json. " +
+                        "Se dejó una copia sombra local vacía. (${HumanErrorMapper.map(err)})"
+                )
             }
         }
     }
@@ -102,7 +107,7 @@ class BruceConfigSync(
                     put("params", jsonParams)
                 }
             }
-        return connectionManager.sendTehLinkRaw(raw.toString()).map { response ->
+        return connectionManager.executeTehLinkJson(raw.toString()).map { response ->
             runCatching { JSONObject(response).optString("json", response) }.getOrDefault(response)
         }
     }

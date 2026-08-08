@@ -333,6 +333,17 @@ class DeviceConnectionManager(
         activeTransport is UsbTransport && _connectionState.value is ConnectionState.Connected
 
     suspend fun sendTehLinkRaw(json: String): Result<String> {
+        TehLinkCommandPolicy.validateConsoleRequest(json).getOrElse {
+            return Result.failure(it)
+        }
+        return executeTehLinkJson(json)
+    }
+
+    /**
+     * Envío TEH-Link para motores internos (workflows, bruce sync, autopilot).
+     * No aplica la ACL de consola manual.
+     */
+    suspend fun executeTehLinkJson(json: String): Result<String> {
         ensureXibalbaProfile()
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
@@ -341,10 +352,6 @@ class DeviceConnectionManager(
         if (transport == null || _connectionState.value !is ConnectionState.Connected) {
             pendingCommandQueue.enqueue(json)
             return Result.failure(Exception("Sin transporte activo — comando en cola (${pendingCommandQueue.size})."))
-        }
-
-        TehLinkCommandPolicy.validateConsoleRequest(json).getOrElse {
-            return Result.failure(it)
         }
 
         return try {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EMBED SUITE 4.1.0 — Manual Xibalba / TEH-Link</title>
+  <title>EMBED SUITE 4.4.0 — Manual Xibalba / TEH-Link</title>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -12,6 +12,7 @@
       --cyan: #00e5ff;
       --orange: #ff6b00;
       --red: #ff0040;
+      --purple: #b026ff;
       --gray: #888;
       --text: #c8ffc8;
       --border: rgba(0,255,65,.25);
@@ -66,37 +67,68 @@
       color: var(--bg);
       margin-left: 6px;
     }
+    .badge-red {
+      display: inline-block;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--red);
+      color: var(--bg);
+      margin-left: 6px;
+    }
     .warn { color: var(--red); font-size: 11px; }
+    .audit { color: var(--purple); font-size: 11px; }
   </style>
 </head>
 <body>
 
-<h1>EMBED SUITE 4.1.0</h1>
-<p class="sub">Xibalba Native · T-Embed CC1101 Plus · Protocolo TEH-Link (JSON NDJSON por USB CDC)</p>
+<h1>EMBED SUITE 4.4.0</h1>
+<p class="sub">Xibalba Native · T-Embed CC1101 Plus · Protocolo TEH-Link v3 (JSON NDJSON por USB CDC)</p>
 
 <div class="card">
   <p><strong>Hardware:</strong> LilyGO T-Embed CC1101 Plus con firmware <strong>te-embed-xibalba</strong>.</p>
   <p><strong>Conexión:</strong> <strong>USB OTG (recomendado y prioritario)</strong>. WiFi/BLE TEH-Link son experimentales. Emparejamiento: mantén pulsado el botón lateral ~2 s (ventana 120 s).</p>
+  <p><strong>Multi-firmware:</strong> detección automática de Xibalba / Bruce / VARSYS al conectar.</p>
   <p class="warn">Uso RF/IR/NFC solo en entornos autorizados. Eres responsable del cumplimiento legal.</p>
 </div>
 
-<h2>1. Arquitectura TEH-Link</h2>
+<h2>1. Arquitectura TEH-Link v3</h2>
 <p>La app habla JSON línea a línea con el firmware. Comandos base:</p>
 <ul>
   <li><code>ping</code>, <code>pair</code>, <code>get_info</code>, <code>get_status</code></li>
   <li><code>open_plugin</code>, <code>back_to_menu</code>, <code>list_actions</code></li>
   <li><code>run_action</code> — ejecuta acciones de plugins Xibalba</li>
   <li><code>ota_begin</code> / <code>ota_chunk</code> / <code>ota_finish</code> — actualización USB</li>
+  <li><code>clear_coredump</code> — borra coredump tras reset anormal</li>
 </ul>
 <div class="cmd">{"cmd":"run_action","id":1,"plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30}}</div>
 
 <h2>2. Dashboard</h2>
 <p>Muestra estado de enlace, batería, pantalla UI del T-Embed y accesos rápidos a plugins Xibalba (Sub-GHz, WiFi, NFC, IR, BLE, Wardriving).</p>
 <p>Si hay actualización Xibalba disponible, aparece banner OTA → Tools → Flash.</p>
-<p>La tarjeta de <strong>Hardening</strong> muestra TWDT, BOD, Secure Boot, Flash/NVS Encryption, Stack Canaries y Heap Poisoning reportados por el firmware.</p>
+<p>La tarjeta de <strong>Hardening</strong> muestra 6 flags de seguridad: TWDT, BOD, Secure Boot, Flash/NVS Encryption, Stack Canaries y Heap Poisoning reportados por el firmware.</p>
 <p>Si hubo reset anormal, la app puede mostrar <strong>coredump pendiente</strong> y la última razón WDT/BOD expuesta por Xibalba.</p>
+<p>La sección <strong>OFENSIVE TOOLS · AUDIT MODE</strong> aparece cuando el Modo Auditoría está activo.</p>
 
-<h2>3. Sub-GHz (plugin <code>subghz_analyzer</code>)</h2>
+<h2>3. Modo Auditoría <span class="badge-red">GATING</span></h2>
+<div class="card">
+  <p class="audit">🔒 Las 5 herramientas ofensivas requieren <strong>Modo Auditoría</strong> activo (Ajustes → Seguridad).</p>
+  <p>Cada plugin verifica <code>settings_plugin_is_allowed</code> en el firmware. Si el modo está desactivado, la acción se bloquea.</p>
+  <p>El desbloqueo es <strong>por plugin</strong> y se revoca al quitar el modo.</p>
+</div>
+
+<h2>4. Offensive Toolkit (5 herramientas)</h2>
+<table>
+  <tr><th>Herramienta</th><th>Plugin</th><th>Acciones</th></tr>
+  <tr><td>BLE AD Spam</td><td><code>ble_ad_spam</code></td><td>AppleJuice, SwiftPair, FindMy, HomeKit</td></tr>
+  <tr><td>WiFi Offensive</td><td><code>wifi_offensive</code></td><td>Deauth Broadcast, Probe Sniffer</td></tr>
+  <tr><td>Mousejack NRF24</td><td><code>mousejack</code></td><td>Scan dongles, inyección DuckyScript</td></tr>
+  <tr><td>SubGHz Tools</td><td><code>subghz_tools</code></td><td>Spectrum analyzer, auto-decoder</td></tr>
+  <tr><td>NFC Clone</td><td><code>nfc_clone</code></td><td>Mifare read/write, NTAG URL/WiFi</td></tr>
+</table>
+<p class="warn">Uso exclusivo en entornos autorizados (tus dispositivos o pentest con contrato).</p>
+
+<h2>5. Sub-GHz (plugin <code>subghz_analyzer</code>)</h2>
 <table>
   <tr><th>Acción app</th><th>TEH-Link</th><th>Notas</th></tr>
   <tr><td>Captura RX</td><td><code>capture_start</code> / <code>capture_stop</code></td><td>Parámetro <code>seconds</code> · USB recomendado</td></tr>
@@ -106,11 +138,11 @@
 </table>
 <p class="warn">Espectro/waterfall FFT no está en TEH-Link aún. Durante Captura TEH-Link la app muestra telemetría real (paquetes / segundos restantes) vía <code>get_action_state</code>.</p>
 
-<h2>4. WiFi (plugin <code>wifi_toolkit</code>)</h2>
+<h2>6. WiFi (plugin <code>wifi_toolkit</code>)</h2>
 <div class="cmd">{"cmd":"run_action","plugin_id":"wifi_toolkit","action":"scan_start","params":{"seconds":30}}</div>
 <p>Resultados se guardan en señales capturadas y mapa wardriving.</p>
 
-<h2>5. NFC / IR</h2>
+<h2>7. NFC / IR</h2>
 <table>
   <tr><th>Plugin</th><th>Acciones</th></tr>
   <tr><td><code>nfc_toolkit</code></td><td><code>read</code>, <code>emulate</code>, <code>status</code></td></tr>
@@ -118,10 +150,10 @@
 </table>
 <p>Botones IR locales usan payloads TEH-Link almacenados en Room (<code>ir_payload</code>).</p>
 
-<h2>6. BLE (plugin <code>ble_toolkit</code>)</h2>
+<h2>8. BLE (plugin <code>ble_toolkit</code>)</h2>
 <p>Escaneo con <code>scan_start</code> / <code>scan_stop</code>. Perfiles BLE se guardan en la biblioteca local.</p>
 
-<h2>7. Wardriving (plugin <code>wardriving</code>)</h2>
+<h2>9. Wardriving (plugin <code>wardriving</code>)</h2>
 <ul>
   <li><code>start</code> — opcional <code>lat</code>, <code>lon</code></li>
   <li><code>gps_update</code> — actualización GPS desde el teléfono</li>
@@ -129,11 +161,11 @@
 </ul>
 <p>MapTools muestra puntos WiFi/BLE georreferenciados y panel Link Debug (200 líneas serial).</p>
 
-<h2>8. Consola TEH-Link</h2>
+<h2>10. Consola TEH-Link</h2>
 <p>Envía JSON crudo con historial ↑↓. Chips rápidos: ping, get_info, subghz_tx, ir rx_start, nfc read.</p>
 <p>Macros y perfiles usan pasos JSON TEH-Link (no CLI legacy).</p>
 
-<h2>9. Firmware Flash</h2>
+<h2>11. Firmware Flash</h2>
 <div class="card">
   <h3>Sección Xibalba oficial <span class="badge">RECOMENDADO</span></h3>
   <p>Buscar releases GitHub → OTA USB (TEH-Link) o USB Flash con bootloader.</p>
@@ -142,25 +174,26 @@
   <p>Solo USB Flash. Requiere aceptar disclaimer. Riesgo de brick.</p>
 </div>
 
-<h2>10. Hardware Bringup</h2>
+<h2>12. Hardware Bringup</h2>
 <p>La app incluye accesos directos a la guía de pruebas de hardware, al script <code>hardware_test_suite.ps1</code> y al checklist CSV del firmware Xibalba.</p>
 
-<h2>11. Backup y ajustes</h2>
+<h2>13. Backup y ajustes</h2>
 <ul>
   <li>Backup JSON: señales, IR, macros, perfiles (sin datos RF/GPS sensibles por defecto).</li>
-  <li>Ajustes: idioma, transporte USB/WiFi, re-emparejar TEH-Link, Hardware Bringup.</li>
+  <li>Ajustes: idioma, transporte USB/WiFi, re-emparejar TEH-Link, Modo Auditoría, Hardware Bringup.</li>
 </ul>
 
-<h2>12. Solución de problemas</h2>
+<h2>14. Solución de problemas</h2>
 <table>
   <tr><th>Síntoma</th><th>Acción</th></tr>
   <tr><td>OFFLINE / timeout</td><td>Reconectar USB; Re-emparejar TEH-Link (long-press GPIO6); revisar Link Debug</td></tr>
   <tr><td>OTA falla</td><td>Verificar emparejamiento; cable USB datos; espacio flash; reintentar o USB Flash</td></tr>
   <tr><td>TX bloqueado</td><td>Confirmar USB conectado; token anti-broadcast en widget; <code>confirm:true</code> en subghz_tx</td></tr>
   <tr><td>Plugin no disponible</td><td>Firmware sin CC1101 real → modo simulación; revisar <code>get_status</code> capabilities</td></tr>
+  <tr><td>Herramienta ofensiva bloqueada</td><td>Activar Modo Auditoría en Ajustes → Seguridad</td></tr>
 </table>
 
-<p class="sub" style="margin-top:24px">EMBED SUITE 4.1.0 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS</p>
+<p class="sub" style="margin-top:24px">EMBED SUITE 4.4.0 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS</p>
 
 </body>
 </html>

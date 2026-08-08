@@ -45,6 +45,18 @@ object FirmwareCatalog {
 
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
+    val XIBALBA_V0180: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.18.0",
+        name = "v0.18.0 Evil Portal, Beacon Spam & Modo Auditoría",
+        downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.18.0/te-embed-xibalba.bin",
+        fileName = "te-embed-xibalba.bin",
+        isPrerelease = false,
+        source = FirmwareSource.OFFICIAL_XIBALBA,
+        isRecommended = true,
+        description = "T-Embed Xibalba v0.18.0 — Evil Portal, Beacon Spam, Modo Auditoría, 5 plugins ofensivos, hardening avanzado",
+        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd"
+    )
+
     val XIBALBA_FALLBACK_V0170: FirmwareRelease = FirmwareRelease(
         tagName = "v0.17.1",
         name = "v0.17.1 Spark",

@@ -32,6 +32,20 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "4.4.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Offensive Toolkit: BLE AD Spam (AppleJuice/SwiftPair/FindMy/HomeKit)",
+                "WiFi Deauth Broadcast + Probe Sniffer con OUI vendor lookup",
+                "Mousejack NRF24: scan dongles + inyección DuckyScript",
+                "SubGHz Spectrum Analyzer con auto-decoder (Keeloq/Somfy/Nice/PT2262)",
+                "NFC Clone/Write: Mifare Classic 1K + NTAG URL/WiFi WSC QR",
+                "Modo Auditoría con gating por plugin (5 herramientas ofensivas)",
+                "Soporte multi-firmware con detección automática (Xibalba/Bruce/VARSYS)",
+                "Dashboard de hardening con 6 flags de seguridad"
+            )
+        ),
+        ChangelogEntry(
             version = "4.3.0",
             date = "Ago 2026",
             highlights = listOf(

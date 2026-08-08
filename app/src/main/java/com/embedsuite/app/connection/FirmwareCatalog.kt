@@ -22,7 +22,9 @@ data class FirmwareRelease(
     val localFilePath: String? = null,
     val isRecommended: Boolean = false,
     val description: String = "",
-    val sha256Hex: String? = null
+    val sha256Hex: String? = null,
+    /** Ruta en assets/ (p. ej. firmware/te-embed-xibalba.bin) — sin red ni token GitHub. */
+    val bundledAssetPath: String? = null
 ) {
     val riskLevel: FirmwareRiskLevel = when (source) {
         FirmwareSource.OFFICIAL_XIBALBA -> FirmwareRiskLevel.OFFICIAL
@@ -47,15 +49,21 @@ object FirmwareCatalog {
 
     val XIBALBA_V0180: FirmwareRelease = FirmwareRelease(
         tagName = "v0.18.0",
-        name = "v0.18.0 Evil Portal, Beacon Spam & Modo Auditoría",
+        name = "v0.18.0 Iron Shield",
         downloadUrl = "https://github.com/GIOSANBLAS/te-embed-xibalba/releases/download/v0.18.0/te-embed-xibalba.bin",
         fileName = "te-embed-xibalba.bin",
         isPrerelease = false,
         source = FirmwareSource.OFFICIAL_XIBALBA,
         isRecommended = true,
-        description = "T-Embed Xibalba v0.18.0 — Evil Portal, Beacon Spam, Modo Auditoría, 5 plugins ofensivos, hardening avanzado",
-        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd"
+        description = "T-Embed Xibalba v0.18.0 Iron Shield — Evil Portal, Beacon Spam, Modo Auditoría, TEH-Link v3",
+        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd",
+        bundledAssetPath = "firmware/te-embed-xibalba.bin"
     )
+
+    /**
+     * Nota: el asset embebido puede ser imagen APP (esptool @ 0x10000) si no hay merged en repo.
+     * Instalación limpia estilo Bruce (merged @ 0x0): importar .bin merged desde release oficial.
+     */
 
     val XIBALBA_FALLBACK_V0170: FirmwareRelease = FirmwareRelease(
         tagName = "v0.17.1",
@@ -65,7 +73,7 @@ object FirmwareCatalog {
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
         description = "T-Embed Xibalba v0.17.1 Spark (safe CDC hardware profile, OTA rollback, nRF24/NFC/EXFIL)",
-        sha256Hex = "76fa3ed1c215e6bf4d5f9b9105ae42f68ad047007265aa6ddc7c7287cc2a31dd"
+        sha256Hex = null
     )
 
     val XIBALBA_FALLBACK_V0165: FirmwareRelease = FirmwareRelease(
@@ -86,7 +94,7 @@ object FirmwareCatalog {
         isPrerelease = true,
         source = FirmwareSource.OFFICIAL_XIBALBA,
         description = "T-Embed Xibalba v0.16.2 Glow (embedded splash logo + LVGL polish)",
-        sha256Hex = "6fbdbaeeccfbd017bf71ffe1475e170c8b9970d5528f1c9466ed749fc404c512"
+        sha256Hex = null
     )
 
     val XIBALBA_FALLBACK_V0161: FirmwareRelease = XIBALBA_FALLBACK_V0170
@@ -94,6 +102,34 @@ object FirmwareCatalog {
     val XIBALBA_FALLBACK_V0141: FirmwareRelease = XIBALBA_FALLBACK_V0170
     val XIBALBA_FALLBACK_V014: FirmwareRelease = XIBALBA_FALLBACK_V0170
     val XIBALBA_FALLBACK_V013: FirmwareRelease = XIBALBA_FALLBACK_V0170
+
+    /** Catálogo embebido — siempre disponible sin GitHub API (repo privado / sin red). */
+    fun embeddedReleases(): List<FirmwareRelease> = listOf(
+        XIBALBA_V0180,
+        XIBALBA_FALLBACK_V0162.copy(isPrerelease = true, isRecommended = false),
+        XIBALBA_FALLBACK_V0165.copy(isPrerelease = true, isRecommended = false)
+    )
+
+    fun fallbackReleases(): List<FirmwareRelease> =
+        markRecommended(embeddedReleases(), FirmwareProfile.XIBALBA)
+
+    fun mergeWithEmbedded(remote: List<FirmwareRelease>): List<FirmwareRelease> {
+        val merged = linkedMapOf<String, FirmwareRelease>()
+        embeddedReleases().forEach { merged[it.tagName.lowercase()] = it }
+        remote.forEach { release ->
+            val embedded = merged[release.tagName.lowercase()]
+            merged[release.tagName.lowercase()] = if (embedded != null && release.sha256Hex.isNullOrBlank()) {
+                release.copy(
+                    sha256Hex = embedded.sha256Hex,
+                    description = embedded.description.ifBlank { release.description },
+                    isRecommended = embedded.isRecommended
+                )
+            } else {
+                release
+            }
+        }
+        return markRecommended(merged.values.toList(), FirmwareProfile.XIBALBA)
+    }
 
     fun markRecommended(
         releases: List<FirmwareRelease>,

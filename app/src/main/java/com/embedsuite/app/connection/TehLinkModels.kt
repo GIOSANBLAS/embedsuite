@@ -1,5 +1,7 @@
 package com.embedsuite.app.connection
 
+import org.json.JSONObject
+
 data class TehLinkPluginInfo(
     val id: String,
     val name: String,
@@ -117,6 +119,52 @@ data class TehLinkOtaStatus(
     val hasError: Boolean get() = state.equals("error", true) || state.equals("mismatch", true)
 }
 
+/** Estado Evil Portal (Xibalba v0.18.0+). */
+data class TehLinkEvilPortalStatus(
+    val running: Boolean = false,
+    val ssid: String = "",
+    val templateId: String = "",
+    val channel: Int = 1,
+    val credentialCount: Int = 0,
+    val clientCount: Int = 0
+) {
+    companion object {
+        fun fromJson(data: JSONObject): TehLinkEvilPortalStatus {
+            return TehLinkEvilPortalStatus(
+                running = data.optBoolean("running"),
+                ssid = data.optString("ssid"),
+                templateId = data.optString("template_id").ifBlank {
+                    data.optString("template")
+                },
+                channel = data.optInt("channel", 1),
+                credentialCount = data.optInt("credential_count", data.optInt("count")),
+                clientCount = data.optInt("client_count", 0)
+            )
+        }
+    }
+}
+
+/** Estado Beacon Spam (Xibalba v0.18.0+). */
+data class TehLinkBeaconSpamStatus(
+    val running: Boolean = false,
+    val spec: String = "",
+    val hz: Int = 10,
+    val channel: Int = 0,
+    val sentCount: Int = 0
+) {
+    companion object {
+        fun fromJson(data: JSONObject): TehLinkBeaconSpamStatus {
+            return TehLinkBeaconSpamStatus(
+                running = data.optBoolean("running"),
+                spec = data.optString("spec"),
+                hz = data.optInt("hz", 10),
+                channel = data.optInt("channel", 0),
+                sentCount = data.optInt("sent_count", data.optInt("sent"))
+            )
+        }
+    }
+}
+
 data class TehLinkActionState(
     val pluginId: String,
     val action: String = "",
@@ -135,15 +183,27 @@ data class TehLinkActionState(
     val nfc: TehLinkNfcResult? = null,
     val ir: TehLinkIrResult? = null,
     val ota: TehLinkOtaStatus? = null,
-    val soak: TehLinkSoakResult? = null
+    val soak: TehLinkSoakResult? = null,
+    /** Estado Evil Portal (Xibalba v0.18.0+). */
+    val evilPortal: TehLinkEvilPortalStatus? = null,
+    /** Estado Beacon Spam (Xibalba v0.18.0+). */
+    val beaconSpam: TehLinkBeaconSpamStatus? = null
 )
 
 data class TehLinkActionResult(
     val pluginId: String,
     val action: String,
     val state: TehLinkActionState,
-    val rawResponse: org.json.JSONObject? = null
-)
+    val rawResponse: JSONObject? = null
+) {
+    /** Helper para acceder rápido al estado Evil Portal (Xibalba v0.18.0+). */
+    val evilPortalStatus: TehLinkEvilPortalStatus?
+        get() = state.evilPortal
+    
+    /** Helper para acceder rápido al estado Beacon Spam (Xibalba v0.18.0+). */
+    val beaconSpamStatus: TehLinkBeaconSpamStatus?
+        get() = state.beaconSpam
+}
 
 /** Resultado de un soak test stress: detección de memory leaks / cuelgues. */
 data class TehLinkSoakResult(
@@ -170,7 +230,8 @@ object TehLinkConsoleChips {
         Chip("list_actions", """{"cmd":"list_actions","id":5}"""),
         Chip("ota_status", """{"cmd":"ota_status","id":6}"""),
         Chip("get_action_state", """{"cmd":"get_action_state","id":7,"plugin_id":"subghz_analyzer"}"""),
-        Chip("back_to_menu", """{"cmd":"back_to_menu","id":8}""")
+        Chip("back_to_menu", """{"cmd":"back_to_menu","id":8}"""),
+        Chip("evil_portal_status", """{"cmd":"get_action_state","id":9,"plugin_id":"evil_portal"}"""),
+        Chip("beacon_spam_status", """{"cmd":"get_action_state","id":10,"plugin_id":"beacon_spam"}""")
     )
 }
-

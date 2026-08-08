@@ -32,7 +32,8 @@ class OtaUpdateChecker(private val firmwareRepository: FirmwareRepository) {
 
         return firmwareRepository.fetchXibalbaReleases().fold(
             onSuccess = { releases ->
-                val latest = releases.firstOrNull { !it.isPrerelease }
+                val latest = FirmwareCatalog.pickRecommended(releases, profile)
+                    ?: releases.firstOrNull { !it.isPrerelease }
                     ?: releases.firstOrNull()
                 if (latest == null) {
                     cachedStatus = OtaUpdateStatus.UpToDate

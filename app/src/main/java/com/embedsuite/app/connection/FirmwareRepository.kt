@@ -2,6 +2,7 @@ package com.embedsuite.app.connection
 
 import android.content.Context
 import android.net.Uri
+import com.embedsuite.app.security.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -11,13 +12,14 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-class FirmwareRepository {
-
+class FirmwareRepository(
+    private val secureStore: SecureStore? = null
+) {
     companion object {
         private const val MAX_FIRMWARE_BYTES = 16 * 1024 * 1024L
 
         fun validateDownloadUrl(url: String): Result<String> {
-            val uri = android.net.Uri.parse(url)
+            val uri = Uri.parse(url)
             val host = uri.host.orEmpty()
             return if (uri.scheme == "https" && (host == "github.com" || host.endsWith(".githubusercontent.com"))) {
                 Result.success(url)
@@ -27,9 +29,18 @@ class FirmwareRepository {
         }
         fun extractVersion(text: String): String {
             val cleaned = text.trim()
+            // Match version patterns like v0.18.0, 0.17.1, v1.0.0, etc.
+            // Handles both with and without 'v' prefix
             Regex("""v?(\d+\.\d+(?:\.\d+)?(?:[-\w.]*)?)""", RegexOption.IGNORE_CASE)
                 .find(cleaned)?.groupValues?.get(1)?.let { return it.lowercase() }
             return cleaned.lowercase().take(32)
+        }
+
+        fun normalizeVersionForCompare(version: String): String {
+            // Normalize version strings for consistent comparison
+            return version.lowercase()
+                .replace(Regex("""^v+"""), "")
+                .trim()
         }
 
         fun isNewer(latest: String, current: String): Boolean {
@@ -61,10 +72,11 @@ class FirmwareRepository {
             }
         }
 
-        private fun parseVersionParts(v: String): List<Int> =
-            v.replace(Regex("""[^\d.]"""), "")
-                .split('.')
-                .mapNotNull { it.toIntOrNull() }
+    private fun parseVersionParts(v: String): List<Int> {
+        val normalized = normalizeVersionForCompare(v)
+        return normalized.split('.')
+            .mapNotNull { it.toIntOrNull() }
+    }
 
         fun computeFileSha256Hex(file: File): String {
             val digest = MessageDigest.getInstance("SHA-256")
@@ -95,6 +107,17 @@ class FirmwareRepository {
         }
     }
 
+    private fun githubAuthHeader(): String? {
+        val token = secureStore?.getGithubToken().orEmpty().trim()
+        return token.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
+    }
+
+    private fun Request.Builder.withGithubAuth(): Request.Builder {
+        githubAuthHeader()?.let { header("Authorization", it) }
+        return header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "EMBED-SUITE-Android")
+    }
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
@@ -104,17 +127,25 @@ class FirmwareRepository {
         try {
             val request = Request.Builder()
                 .url("https://api.github.com/repos/GIOSANBLAS/te-embed-xibalba/releases?per_page=10")
-                .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "EMBED-SUITE-Android")
+                .withGithubAuth()
                 .build()
 
+            android.util.Log.d("FirmwareRepository", "Fetching releases from GitHub...")
+            
             client.newCall(request).execute().use { response ->
+                android.util.Log.d("FirmwareRepository", "GitHub API response code: ${response.code}")
+                
                 if (!response.isSuccessful) {
-                    return@withContext Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
+                    android.util.Log.w("FirmwareRepository", "GitHub API failed (${response.code}), using embedded catalog")
+                    return@withContext Result.success(FirmwareCatalog.fallbackReleases())
                 }
 
                 val body = response.body?.string().orEmpty()
+                android.util.Log.d("FirmwareRepository", "GitHub response length: ${body.length}")
+                
                 val releases = JSONArray(body)
+                android.util.Log.d("FirmwareRepository", "Total releases found: ${releases.length()}")
+                
                 val results = mutableListOf<FirmwareRelease>()
 
                 for (i in 0 until releases.length()) {
@@ -123,18 +154,37 @@ class FirmwareRepository {
                     val tag = release.optString("tag_name", "unknown")
                     val name = release.optString("name", tag)
                     val prerelease = release.optBoolean("prerelease", false)
+                    val bodyText = release.optString("body", "")
+                    
+                    android.util.Log.d("FirmwareRepository", "Processing release: $tag (prerelease=$prerelease)")
 
                     for (j in 0 until assets.length()) {
                         val asset = assets.getJSONObject(j)
                         val fileName = asset.optString("name", "")
+                        android.util.Log.d("FirmwareRepository", "  Asset: $fileName")
+                        
                         if (fileName.endsWith(".bin", ignoreCase = true) &&
                             (fileName.contains("xibalba", ignoreCase = true) ||
                                 fileName.contains("te-embed", ignoreCase = true))
                         ) {
-                            val sha256 = release.optString("body", "")
-                                .let { bodyText ->
-                                    Regex("""SHA256:\s*([0-9a-fA-F]{64})""").find(bodyText)?.groupValues?.get(1)
-                                }
+                            // Buscar SHA256 con regex flexible
+                            val sha256 = Regex("""SHA256:\s*([0-9a-fA-F]{64})""", RegexOption.IGNORE_CASE)
+                                .find(bodyText)
+                                ?.groupValues
+                                ?.get(1)
+                                ?.lowercase()
+                            
+                            // Si no encuentra con regex, buscar en formato código markdown
+                            val sha256FromCode = if (sha256 == null) {
+                                Regex("""```[a-fA-F0-9]{64}```""")
+                                    .find(bodyText)
+                                    ?.value
+                                    ?.replace("```", "")
+                                    ?.lowercase()
+                            } else null
+                            
+                            val finalSha256 = sha256 ?: sha256FromCode
+                            
                             results.add(
                                 FirmwareRelease(
                                     tagName = tag,
@@ -143,29 +193,35 @@ class FirmwareRepository {
                                     fileName = fileName,
                                     isPrerelease = prerelease,
                                     source = FirmwareSource.OFFICIAL_XIBALBA,
-                                    sha256Hex = sha256?.lowercase()
+                                    sha256Hex = finalSha256
                                 )
                             )
+                            
+                            android.util.Log.d("FirmwareRepository", "  ✓ Added: $tag, SHA256: $finalSha256")
                         }
                     }
                 }
 
+                android.util.Log.d("FirmwareRepository", "Total valid releases: ${results.size}")
+                results.forEach { 
+                    android.util.Log.d("FirmwareRepository", "  - ${it.tagName}: ${it.sha256Hex ?: "NO SHA256"}") 
+                }
+                
                 if (results.isEmpty()) {
-                    Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
+                    android.util.Log.w("FirmwareRepository", "No valid releases from GitHub, using embedded catalog v0.18.0")
+                    Result.success(FirmwareCatalog.fallbackReleases())
                 } else {
-                    Result.success(results)
+                    Result.success(FirmwareCatalog.mergeWithEmbedded(results))
                 }
             }
-        } catch (_: Exception) {
-            Result.success(listOf(FirmwareCatalog.XIBALBA_FALLBACK_V0170))
+        } catch (e: Exception) {
+            android.util.Log.e("FirmwareRepository", "Error fetching releases", e)
+            Result.success(FirmwareCatalog.fallbackReleases())
         }
     }
 
     /** Releases oficiales Xibalba para el catálogo principal. */
-    suspend fun fetchDeviceFirmwares(): Result<List<FirmwareRelease>> =
-        fetchXibalbaReleases().map { list ->
-            FirmwareCatalog.markRecommended(list, FirmwareProfile.XIBALBA)
-        }
+    suspend fun fetchDeviceFirmwares(): Result<List<FirmwareRelease>> = fetchXibalbaReleases()
 
     suspend fun fetchAllReleases(profile: FirmwareProfile = FirmwareProfile.XIBALBA): Result<List<FirmwareRelease>> =
         fetchDeviceFirmwares()
@@ -175,7 +231,7 @@ class FirmwareRepository {
             runCatching {
                 if (!cacheDir.exists()) cacheDir.mkdirs()
                 val rawName = uri.lastPathSegment?.substringAfterLast('/') ?: "custom_firmware.bin"
-                val safeName = Companion.sanitizeFirmwareFileName(rawName)
+                val safeName = sanitizeFirmwareFileName(rawName)
                 val target = File(cacheDir, "custom_${System.currentTimeMillis()}_$safeName")
                 ensureInsideDir(cacheDir, target).getOrThrow()
                 context.contentResolver.openInputStream(uri)?.use { input ->
@@ -208,17 +264,77 @@ class FirmwareRepository {
             }
         }
 
-    suspend fun resolveFlashFile(release: FirmwareRelease, cacheDir: File): Result<File> =
-        withContext(Dispatchers.IO) {
-            release.localFilePath?.let { path ->
-                val file = File(path)
-                if (file.exists()) return@withContext Result.success(file)
-                return@withContext Result.failure(Exception("Archivo local no encontrado: $path"))
-            }
-            downloadFirmware(release, cacheDir)
+    suspend fun resolveFlashFile(
+        context: Context,
+        release: FirmwareRelease,
+        cacheDir: File
+    ): Result<File> = withContext(Dispatchers.IO) {
+        release.localFilePath?.let { path ->
+            val file = File(path)
+            if (file.exists()) return@withContext Result.success(file)
+            return@withContext Result.failure(Exception("Archivo local no encontrado: $path"))
         }
 
-    suspend fun downloadFirmware(release: FirmwareRelease, targetDir: File): Result<File> =
+        if (!cacheDir.exists()) cacheDir.mkdirs()
+        val safeName = sanitizeFirmwareFileName(release.fileName)
+        val targetFile = File(cacheDir, "${release.tagName.replace(Regex("[^a-zA-Z0-9._-]"), "_")}_$safeName")
+        ensureInsideDir(cacheDir, targetFile).getOrThrow()
+
+        if (targetFile.exists() && targetFile.length() >= 1024) {
+            release.sha256Hex?.let { expected ->
+                verifyFileSha256(targetFile, expected).onSuccess {
+                    return@withContext Result.success(targetFile)
+                }
+                targetFile.delete()
+            } ?: return@withContext Result.success(targetFile)
+        }
+
+        release.bundledAssetPath?.let { assetPath ->
+            copyBundledFirmware(context, assetPath, targetFile, release.sha256Hex).fold(
+                onSuccess = { return@withContext Result.success(it) },
+                onFailure = { android.util.Log.w("FirmwareRepository", "Bundled asset failed: ${it.message}") }
+            )
+        }
+
+        downloadFirmware(release, targetFile).fold(
+            onSuccess = { return@withContext Result.success(it) },
+            onFailure = { downloadErr ->
+                release.bundledAssetPath?.let { assetPath ->
+                    copyBundledFirmware(context, assetPath, targetFile, release.sha256Hex)
+                } ?: Result.failure(
+                    Exception(
+                        "${downloadErr.message}. Repo privado: importa .bin custom o configura token GitHub en Ajustes.",
+                        downloadErr
+                    )
+                )
+            }
+        )
+    }
+
+    private fun copyBundledFirmware(
+        context: Context,
+        assetPath: String,
+        targetFile: File,
+        expectedSha256: String?
+    ): Result<File> {
+        return runCatching {
+            context.assets.open(assetPath).use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            if (!targetFile.exists() || targetFile.length() < 1024) {
+                targetFile.delete()
+                throw IllegalStateException("Firmware embebido vacío o corrupto")
+            }
+            expectedSha256?.let { expected ->
+                verifyFileSha256(targetFile, expected).getOrThrow()
+            }
+            targetFile
+        }
+    }
+
+    suspend fun downloadFirmware(release: FirmwareRelease, targetFile: File): Result<File> =
         withContext(Dispatchers.IO) {
             try {
                 if (release.source == FirmwareSource.OFFICIAL_XIBALBA && release.sha256Hex.isNullOrBlank()) {
@@ -226,22 +342,32 @@ class FirmwareRepository {
                         Exception("Release Xibalba oficial sin SHA256 en notas — descarga rechazada")
                     )
                 }
+                val targetDir = targetFile.parentFile ?: return@withContext Result.failure(
+                    Exception("Directorio destino inválido")
+                )
                 if (!targetDir.exists()) targetDir.mkdirs()
-                val safeName = Companion.sanitizeFirmwareFileName(release.fileName)
-                val targetFile = File(targetDir, safeName)
                 ensureInsideDir(targetDir, targetFile).getOrThrow()
+
+                if (release.downloadUrl.isBlank()) {
+                    return@withContext Result.failure(Exception("URL de descarga no disponible"))
+                }
 
                 validateDownloadUrl(release.downloadUrl).getOrThrow()
 
                 val request = Request.Builder()
                     .url(release.downloadUrl)
-                    .header("User-Agent", "EMBED-SUITE-Android")
+                    .withGithubAuth()
                     .build()
 
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
+                        val hint = when (response.code) {
+                            404 -> " (repo privado o release inexistente)"
+                            401, 403 -> " (token GitHub inválido o sin permiso)"
+                            else -> ""
+                        }
                         return@withContext Result.failure(
-                            Exception("Descarga fallida: HTTP ${response.code}")
+                            Exception("Descarga fallida: HTTP ${response.code}$hint")
                         )
                     }
                     val body = response.body

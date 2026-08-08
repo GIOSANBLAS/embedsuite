@@ -1,6 +1,6 @@
 # 🚀 GUÍA DÍA 1 — Puesta en marcha de EmbedSuite + Xibalba
 
-**EmbedSuite v4.4.0 · Firmware Xibalba v0.18.0 / 0.17+ · T-Embed CC1101 Plus**
+**EmbedSuite v4.4.0 · Firmware Xibalba v0.18.0 Iron Shield · T-Embed CC1101 Plus**
 
 Esta guía te lleva desde cero hasta tener tu T-Embed funcionando con la app en menos de una hora.
 
@@ -13,106 +13,138 @@ Esta guía te lleva desde cero hasta tener tu T-Embed funcionando con la app en 
 | **Teléfono Android** | Android 8.0 (API 26) o superior, con soporte USB OTG |
 | **LilyGO T-Embed CC1101 Plus** | ESP32-S3 + CC1101 + PN532 + IR + microSD |
 | **Cable USB-C** | Con **datos + OTG** (no solo carga). Ver [GUIA_HARDWARE](./GUIA_HARDWARE.md) |
-| **microSD** | FAT32, máximo 32 GB (recomendado 8-16 GB) |
-| **EmbedSuite APK** | Compilado con `./gradlew assembleDebug` o release |
+| **microSD** | FAT32, máximo 32 GB (recomendado 8–16 GB) — **obligatoria** para plugins y wardriving |
+| **Firmware objetivo** | **Xibalba v0.18.0 Iron Shield** (TEH-Link v3) |
+| **EmbedSuite APK** | v4.4.0 — `./gradlew assembleDebug` o release |
 
 ---
 
-## 2. Flasheo del firmware Xibalba
+## 2. Flasheo del firmware Xibalba v0.18.0
 
-### Opción A — Desde el PC (recomendada la primera vez)
+> **Versión actual:** v0.18.0 Iron Shield — incluye Evil Portal, Beacon Spam, Modo Auditoría, 5 plugins ofensivos y hardening avanzado.
 
-1. Clona el firmware:
+### Opción A — Desde el PC (primera vez o recuperación)
+
+1. Obtén el `.bin` desde el release de [te-embed-xibalba](https://github.com/GIOSANBLAS/te-embed-xibalba).
+2. **Merged (instalación limpia, estilo Bruce Web Flasher):**
    ```bash
-   git clone https://github.com/GIOSANBLAS/te-embed-xibalba.git
-   cd te-embed-xibalba
+   esptool.py --chip esp32s3 -p COMx -b 460800 write_flash 0x0 te-embed-xibalba-merged.bin
    ```
-2. Compila y flashea:
+3. **Solo app** (si ya tienes bootloader/particiones Xibalba o Bruce compatibles):
    ```bash
-   idf.py build
-   idf.py -p COMx flash monitor
+   esptool.py --chip esp32s3 -p COMx -b 460800 write_flash 0x10000 te-embed-xibalba.bin
    ```
-3. Verifica que el dispositivo responda al puerto serie.
+4. Modo download (T-Embed CC1101): **Encoder + RST** (igual que [Bruce Flasher](https://bruce.computer/flasher)).
+5. Inserta microSD FAT32 antes del primer arranque completo.
 
-### Opción B — Desde la app (OTA USB)
-
-> ⚠️ Solo **después** de que el T-Embed tenga ya un firmware Xibalba operativo vía USB.
+### Opción B — Desde la app (OTA USB o Flash USB)
 
 1. Conecta el T-Embed por **USB OTG** al teléfono.
-2. Abre la app → **Tools → Firmware / OTA**.
-3. Pulsa **Buscar releases Xibalba** (o selecciona un `.bin` custom).
-4. Acepta el disclaimer y pulsa **Flash OTA (TEH-Link)**.
-5. Espera a que la app muestre **✅ SHA256 VERIFIED**.
-6. **Reinicia el T-Embed** para aplicar la actualización.
+2. Abre **Map & Tools** → sección **Firmware / OTA**.
+3. La app carga automáticamente el catálogo embebido; debe aparecer **v0.18.0 Iron Shield ★ RECOMENDADO**.
+4. Si GitHub no responde (repo privado / sin red): pulsa **Importar .bin custom** y selecciona `te-embed-xibalba.bin` descargado en PC.
+5. **OTA TEH-Link:** requiere Xibalba ya operativo + SHA256 verificado → pulsa **Flash OTA**.
+6. **Flash USB (bootloader):** mantén **Encoder + RST** al conectar (como Bruce) → pulsa **Flash USB**.
+   - La app detecta automáticamente **merged @ 0x0** vs **app @ 0x10000**.
+   - Instalación limpia desde Bruce/otro firmware: importa el **merged .bin** del release.
+7. Tras OTA exitosa: espera **✅ SHA256 VERIFIED** antes de reiniciar.
+
+> ⚠️ Builds anteriores (v0.17.1 Spark, v0.16.x) aparecen como **[BETA]** en el selector — no las uses salvo rollback explícito.
 
 ---
 
-## 3. Primeros pasos con el dashboard
+## 3. Primeros pasos con el Dashboard
 
-1. **Conecta el T-Embed** por USB OTG al teléfono.
-2. Abre **EmbedSuite**. Automáticamente la app:
-   - Detecta el firmware (Xibalba / Bruce / VARSYS).
-   - Inicia el emparejamiento TEH-Link (mantén pulsado el botón lateral ~2 s).
-   - Muestra el estado LINK en verde.
+1. **Conecta el T-Embed** por USB OTG.
+2. Abre **EmbedSuite**. La app:
+   - Detecta el firmware (Xibalba / Bruce / VARSYS / UNKNOWN).
+   - Inicia emparejamiento TEH-Link (mantén botón lateral GPIO6 ~2 s).
+   - Muestra **LINK** en verde.
 3. Revisa en el **Dashboard**:
-   - **LINK**: estado de la conexión (USB / WiFi / BLE).
-   - **SISTEMA**: uptime, memoria, batería, firmware.
-   - **HARDENING**: 6 flags de seguridad (TWDT, BOD, Secure Boot, Flash Enc, NVS Enc, Canarios).
-   - **Última señal**: capturas Sub-GHz recientes.
-4. Prueba una captura:
+   - **LINK / SISTEMA:** uptime, memoria, batería, versión firmware (debe ser **0.18.0+**).
+   - **HARDENING 0.18.0+:** TWDT, BOD, Secure Boot, Flash/NVS Encryption, Stack Canaries.
+   - **XIBALBA PLUGINS:** lista dinámica desde firmware.
+   - **Última señal:** capturas Sub-GHz recientes.
+4. Prueba captura básica:
    - Pulsa **RX 15s** en Acciones rápidas.
-   - Apunta el T-Embed hacia un mando de garage o puerta (solo en entorno autorizado).
-   - La señal aparecerá en **Última señal** y en la biblioteca.
+   - Apunta hacia un mando 433 MHz (solo en entorno autorizado).
+   - La señal aparece en **Última señal** y en la biblioteca RF.
 
 ---
 
-## 4. Activación del Modo Auditoría
+## 4. Modo Auditoría (herramientas ofensivas)
 
-> 🔒 Las herramientas ofensivas (BLE Spam, WiFi Deauth, Mousejack, etc.) requieren **Modo Auditoría**.
+> 🔒 BLE Spam, WiFi Deauth, Mousejack, Spectrum y NFC Clone requieren **Modo Auditoría** activo.
 
-1. Abre **Ajustes → Seguridad**.
-2. Activa **Modo Auditoría**.
-3. Vuelve al **Dashboard**; verás la sección **OFENSIVE TOOLS · AUDIT MODE**.
-4. Usa responsablemente: **solo en tus dispositivos o con autorización explícita**.
+1. **Ajustes → Seguridad → Modo Auditoría → ON**.
+2. Vuelve al **Dashboard** → sección **OFENSIVE TOOLS · AUDIT MODE**.
+3. También disponible en **Scripts** (categorías BLE_SPAM, WIFI_OFFENSIVE, etc.).
+4. Usa solo en tus dispositivos o con autorización explícita.
 
-**Qué hace el gating:**
-- Cada plugin ofensivo verifica `settings_plugin_is_allowed` en el firmware.
-- Si el modo está desactivado, la acción se bloquea y la app muestra el aviso.
-- El desbloqueo es **por plugin** y se revoca al quitar el modo.
+**Gating doble:**
+- App: bloquea scripts ofensivos si Modo Auditoría está OFF.
+- Firmware: `settings_plugin_is_allowed` por plugin TX.
 
 ---
 
-## 5. Consejos para la microSD
+## 5. Compatibilidad CC1101 Plus — qué funciona en hardware real
+
+| Función | Hardware | Firmware mín. | Transporte | Notas |
+|---------|----------|---------------|------------|-------|
+| TEH-Link USB + pairing | ✅ CC1101 Plus | v0.16+ | USB OTG | Prioritario |
+| Sub-GHz RX/TX/Replay | ✅ CC1101 | v0.16+ | TEH-Link | 315/433/868/915 MHz |
+| WiFi scan (T-Embed) | ✅ ESP32-S3 | v0.16+ | TEH-Link | Plugin `wifi_toolkit` |
+| BLE scan (T-Embed) | ✅ ESP32-S3 BLE | v0.16+ | TEH-Link | Plugin `ble_toolkit` |
+| Wardriving + GPS | ✅ CC1101 + teléfono GPS | v0.16+ | TEH-Link + Location | microSD recomendada |
+| NFC read/emulate | ✅ PN532 | v0.15+ | TEH-Link | Capability `nfc` |
+| IR RX/TX | ✅ IR LED/receiver | v0.15+ | TEH-Link | Capability `ir` |
+| OTA + SHA256 verify | ✅ CC1101 Plus | v0.17.1+ | TEH-Link USB | Obligatorio antes de reboot |
+| Evil Portal | ✅ ESP32-S3 WiFi | **v0.18.0** | TEH-Link | Plugin `evil_portal` + microSD |
+| Beacon Spam | ✅ ESP32-S3 WiFi | **v0.18.0** | TEH-Link | Plugin `beacon_spam` |
+| BLE AD Spam | ✅ ESP32-S3 BLE | **v0.18.0** | TEH-Link | Plugin `ble_ad_spam` + Auditoría |
+| WiFi Deauth + Probe | ✅ ESP32-S3 WiFi | **v0.18.0** | TEH-Link | Plugin `wifi_offensive` + Auditoría |
+| Mousejack NRF24 | ⚠️ Requiere módulo nRF24 | **v0.18.0** | TEH-Link | Plugin `mousejack` |
+| Sub-GHz Spectrum | ✅ CC1101 | **v0.18.0** | TEH-Link | Plugin `subghz_tools` |
+| NFC Clone/Write | ✅ PN532 | **v0.18.0** | TEH-Link | Plugin `nfc_clone` + Mifare/NTAG |
+| WiFi/BLE TEH-Link | ⚠️ Experimental | v0.17+ | WiFi/BLE | Usar USB para uso diario |
+| Espectro waterfall live | ❌ Pendiente firmware | — | — | Stub app listo |
+
+**Si el Dashboard muestra flags SIM:** el firmware no corresponde al perfil CC1101 Plus real — re-flashea v0.18.0 Iron Shield.
+
+---
+
+## 6. microSD
 
 | Aspecto | Recomendación |
 |---------|---------------|
-| **Formato** | FAT32 (obligatorio para Xibalba) |
-| **Tamaño máx.** | 32 GB (compatibilidad máxima con ESP32-S3 + FAT) |
-| **Etiqueta** | `XIBALBA` (opcional pero ayuda) |
-| **Estructura** | El firmware crea `/sdcard/plugins/`, `/sdcard/wardriving/` automáticamente |
-| **Extracción** | Siempre desmonta desde el menú del T-Embed antes de sacarla |
+| **Formato** | FAT32 (obligatorio) |
+| **Tamaño máx.** | 32 GB |
+| **Etiqueta** | `XIBALBA` (opcional) |
+| **Uso** | Plugins, wardriving, biblioteca Sub-GHz, Evil Portal templates |
+| **Extracción** | Desmonta desde menú T-Embed antes de sacarla |
 
 ---
 
-## 6. Solución de problemas rápidos
+## 7. Solución de problemas
 
 | Problema | Solución |
 |----------|----------|
-| La app no detecta el T-Embed | Verifica cable OTG con datos · Prueba otro cable puerto |
-| LINK en rojo / Error | Desconecta y reconecta USB · Reinicia la app |
-| Pairing TEH-Link falla | Mantén pulsado el botón lateral **2 s** y reconecta |
-| OTA no verifica SHA256 | **NO reinicies**. Flashea de nuevo por USB con `esptool.py` |
-| SD no montada | Revisa formato FAT32 · Reinicia el T-Embed |
-| Modo Auditoría no desbloquea | Reinicia la app tras activarlo · Verifica firmware 0.17+ |
+| Flash muestra v0.17.1 en lugar de v0.18.0 | Actualiza app a v4.4.0 · Abre Map & Tools (catálogo embebido) · Pulsa Buscar releases |
+| GitHub no lista releases | Importa `.bin` custom v0.18.0 · Catálogo embebido sigue mostrando v0.18.0 |
+| App no detecta USB | Cable solo carga → prueba OTG con datos |
+| LINK rojo | Reconecta USB · Re-empareja TEH-Link (GPIO6 2 s) |
+| Script ofensivo bloqueado | Activa Modo Auditoría en Ajustes |
+| OTA sin SHA256 | **NO reinicies** · Re-flashea OTA o USB |
+| Acción TEH-Link falla | Verifica plugin en Dashboard → XIBALBA PLUGINS · Firmware ≥ v0.18.0 para tools ofensivas |
 
 ---
 
-## 7. Siguientes pasos
+## 8. Siguientes pasos
 
-- Lee el [Manual de Usuario](./MANUAL_USUARIO.md) completo.
-- Revisa la [Guía de Hardware](./GUIA_HARDWARE.md) para cables/OTG.
-- Explora WAR-DRIVE, NFC/IR y el script explorer.
-- Únete al canal de GIOSÁNBLAS para el firmware.
+- [Manual de Usuario](./MANUAL_USUARIO.md) completo.
+- [Guía de Hardware](./GUIA_HARDWARE.md) — cables, OTG, checklist detallado.
+- Explora **Scripts**, **Spectrum**, **NFC Clone**, **Wardriving**.
+- Canal GIOSÁNBLAS para firmware y releases.
 
 ---
 

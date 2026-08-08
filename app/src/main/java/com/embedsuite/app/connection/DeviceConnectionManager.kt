@@ -1,6 +1,7 @@
 package com.embedsuite.app.connection
 
 import android.content.Context
+import android.hardware.usb.UsbDevice
 import com.embedsuite.app.UsbSerialManager
 import com.embedsuite.app.data.CapturedSignalEntity
 import com.embedsuite.app.core.AppPreferences
@@ -38,7 +39,7 @@ import com.embedsuite.app.BuildConfig
 import org.json.JSONObject
 
 class DeviceConnectionManager(
-    usbSerialManager: UsbSerialManager,
+    private val usbSerialManager: UsbSerialManager,
     context: Context,
     private val signalRepository: SignalRepository? = null,
     private val locationTracker: LocationTracker? = null,
@@ -172,25 +173,16 @@ class DeviceConnectionManager(
         _connectionState.value = ConnectionState.Connecting
         activeTransport?.disconnect()
 
-        if (BuildConfig.ENABLE_MOCK_TRANSPORT && appPreferences?.useMockTransport == true) {
-            val detail = mockTransport.connect().getOrElse { return Result.failure(it) }
-            activeTransport = mockTransport
-            _activeTransportType.value = TransportType.USB
-            _detectedProfile.value = FirmwareProfile.XIBALBA
-            _connectionState.value = ConnectionState.Connected(TransportType.USB, detail)
-            SoundFeedback.playConnect()
-            EmbedWidgetProvider.updateAllWidgets(appContext)
-            scope.launch {
-                mockTransport.openPairingWindow(120)
-                ensureTehLinkAuth(mockTransport)
-                setSubGhzFrequency(_subGhzFrequencyMhz.value)
-                refreshSystemInfo()
-            }
-            return Result.success(detail)
-        }
-
         val transport = when (type) {
-            TransportType.USB -> usbTransport
+            TransportType.USB -> {
+                val usbResult = requestUsbPermissionAndConnect()
+                if (usbResult.isFailure &&
+                    usbResult.exceptionOrNull()?.message?.contains("permiso", ignoreCase = true) == true
+                ) {
+                    _connectionState.value = ConnectionState.Disconnected
+                }
+                return usbResult
+            }
             TransportType.WIFI -> wifiTransport
             TransportType.BLE -> bleTransport
         }
@@ -223,6 +215,52 @@ class DeviceConnectionManager(
         return result
     }
 
+    /** Conecta por USB usando un dispositivo concreto (p. ej. tras conceder permiso OTG). */
+    suspend fun connectUsbDevice(device: UsbDevice): Result<String> {
+        _connectionState.value = ConnectionState.Connecting
+        activeTransport?.disconnect()
+
+        val transport = usbTransport
+        val result = transport.connect(device)
+        result.fold(
+            onSuccess = { detail ->
+                activeTransport = transport
+                _activeTransportType.value = TransportType.USB
+                _connectionState.value = ConnectionState.Connected(TransportType.USB, detail)
+                SoundFeedback.playConnect()
+                EmbedWidgetProvider.updateAllWidgets(appContext)
+                scope.launch {
+                    _detectedProfile.value = detectFirmwareProfile(transport)
+                    if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
+                        ensureTehLinkAuth(transport)
+                    }
+                    setSubGhzFrequency(_subGhzFrequencyMhz.value)
+                    refreshSystemInfo()
+                }
+            },
+            onFailure = { error ->
+                activeTransport = null
+                _detectedProfile.value = FirmwareProfile.UNKNOWN
+                _connectionState.value = ConnectionState.Error(error.message ?: "Error de conexión USB.")
+                SoundFeedback.playError()
+                EmbedWidgetProvider.updateAllWidgets(appContext)
+            }
+        )
+        return result
+    }
+
+    suspend fun requestUsbPermissionAndConnect(): Result<String> {
+        val device = usbSerialManager.mejorDispositivo()
+            ?: return Result.failure(Exception("No hay T-Embed USB conectado por OTG."))
+        if (!usbSerialManager.tienePermiso(device)) {
+            usbSerialManager.solicitarPermiso(device)
+            return Result.failure(
+                Exception("Acepta el permiso USB JTAG/Serial en el diálogo de Android.")
+            )
+        }
+        return connectUsbDevice(device)
+    }
+
     suspend fun disconnect() {
         activeTransport?.disconnect()
         activeTransport = null
@@ -230,6 +268,33 @@ class DeviceConnectionManager(
         _connectionState.value = ConnectionState.Disconnected
         SoundFeedback.playDisconnect()
         EmbedWidgetProvider.updateAllWidgets(appContext)
+    }
+
+    /**
+     * Libera el puerto CDC TEH-Link antes de esptool ROM.
+     * Intenta reboot a bootloader si Xibalba está conectado por USB; luego desconecta.
+     */
+    suspend fun prepareForUsbFlash(): Result<Unit> {
+        val transport = activeTransport
+        if (transport != null &&
+            _detectedProfile.value == FirmwareProfile.XIBALBA &&
+            _activeTransportType.value == TransportType.USB
+        ) {
+            runCatching {
+                ensureTehLinkAuth(transport)
+                tehLinkClient.runAction(transport, "device", "reboot_bootloader")
+            }
+            delay(1200)
+        }
+        disconnect()
+        delay(600)
+        return Result.success(Unit)
+    }
+
+    /** Reconecta TEH-Link tras flasheo USB (best-effort). */
+    suspend fun reconnectAfterUsbFlash() {
+        delay(2500)
+        connect(TransportType.USB)
     }
 
     fun isUsbActive(): Boolean =
@@ -600,6 +665,76 @@ class DeviceConnectionManager(
         )
     }
 
+    // ===== XIBALBA v0.18.0: Evil Portal =====
+    suspend fun tehLinkRunEvilPortalStart(
+        ssid: String,
+        templateId: String = "generic",
+        channel: Int = 6
+    ): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("Evil Portal solo disponible con firmware Xibalba."))
+        }
+        val params = JSONObject()
+            .put("ssid", ssid)
+            .put("template_id", templateId)
+            .put("channel", channel.coerceIn(1, 11))
+        return tehLinkClient.runAction(transport, "evil_portal", "start", params).onSuccess { result ->
+            _events.tryEmit(
+                DeviceEvent.RawLine(
+                    "[TEH-Link] evil_portal/start → ${result.state.message.ifBlank { result.state.state }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunEvilPortalStop(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "evil_portal", action = "stop")
+    }
+
+    suspend fun tehLinkRunEvilPortalCreds(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "evil_portal", action = "creds")
+    }
+
+    suspend fun tehLinkRunEvilPortalClearCreds(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "evil_portal", action = "clear_creds")
+    }
+
+    suspend fun tehLinkRunEvilPortalStatus(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "evil_portal", action = "status")
+    }
+
+    // ===== XIBALBA v0.18.0: Beacon Spam =====
+    suspend fun tehLinkRunBeaconSpamStart(
+        spec: String = "random:50",
+        hz: Int = 10,
+        channel: Int = 0
+    ): Result<TehLinkActionResult> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
+            return Result.failure(Exception("Beacon Spam solo disponible con firmware Xibalba."))
+        }
+        val params = JSONObject()
+            .put("spec", spec)
+            .put("hz", hz.coerceIn(1, 100))
+            .put("channel", channel.coerceIn(0, 11))
+        return tehLinkClient.runAction(transport, "beacon_spam", "start", params).onSuccess { result ->
+            _events.tryEmit(
+                DeviceEvent.RawLine(
+                    "[TEH-Link] beacon_spam/start → ${result.state.message.ifBlank { result.state.state }}"
+                )
+            )
+        }
+    }
+
+    suspend fun tehLinkRunBeaconSpamStop(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "beacon_spam", action = "stop")
+    }
+
+    suspend fun tehLinkRunBeaconSpamStatus(): Result<TehLinkActionResult> {
+        return tehLinkRunAction(pluginId = "beacon_spam", action = "status")
+    }
+
     suspend fun tehLinkRunCryptoHash(
         input: String,
         algo: String = "sha256"
@@ -655,7 +790,7 @@ class DeviceConnectionManager(
             return Result.failure(Exception("Captura TEH-Link solo disponible con firmware Xibalba."))
         }
         val freq = _subGhzFrequencyMhz.value.replace(Regex("[^0-9.]"), "").toDoubleOrNull()
-        val params = org.json.JSONObject().put("seconds", seconds.coerceIn(1, 120))
+        val params = JSONObject().put("seconds", seconds.coerceIn(1, 120))
         if (freq != null && freq > 100.0) {
             params.put("freq_mhz", freq)
         }

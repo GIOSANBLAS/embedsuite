@@ -210,6 +210,16 @@ object TehLinkResponseParser {
         } else {
             null
         }
+        val evilPortal = if (data.optString("plugin_id") == "evil_portal" || data.has("credential_count")) {
+            TehLinkEvilPortalStatus.fromJson(data)
+        } else {
+            null
+        }
+        val beaconSpam = if (data.optString("plugin_id") == "beacon_spam" || data.has("sent_count")) {
+            TehLinkBeaconSpamStatus.fromJson(data)
+        } else {
+            null
+        }
         return TehLinkActionState(
             pluginId = data.optString("plugin_id"),
             action = data.optString("action"),
@@ -228,7 +238,9 @@ object TehLinkResponseParser {
             nfc = nfc,
             ir = ir,
             ota = ota,
-            soak = soak
+            soak = soak,
+            evilPortal = evilPortal,
+            beaconSpam = beaconSpam
         )
     }
 
@@ -269,8 +281,10 @@ object TehLinkResponseParser {
             chargeStatus = data.optString("charge_status").takeIf { data.has("charge_status") },
             charging = data.optBoolean("charging").takeIf { data.has("charging") },
             vbusPresent = data.optBoolean("vbus_present").takeIf { data.has("vbus_present") },
-            heapFreeBytes = data.optLong("heap_free_bytes").takeIf { data.has("heap_free_bytes") },
-            psramFreeBytes = data.optLong("psram_free_bytes").takeIf { data.has("psram_free_bytes") },
+            heapFreeBytes = data.optLong("heap_free_bytes").takeIf { data.has("heap_free_bytes") }
+                ?: data.optLong("heap_free").takeIf { data.has("heap_free") },
+            psramFreeBytes = data.optLong("psram_free_bytes").takeIf { data.has("psram_free_bytes") }
+                ?: data.optLong("psram_free").takeIf { data.has("psram_free") },
             coredumpPresent = data.optBoolean("coredump_present"),
             wdtPanicReason = wdtPanic
         )
@@ -317,7 +331,7 @@ object TehLinkResponseParser {
             val key = keys.next()
             when (val value = obj.opt(key)) {
                 is JSONObject -> redactSensitiveFields(value)
-                is org.json.JSONArray -> {
+                is JSONArray -> {
                     for (i in 0 until value.length()) {
                         (value.opt(i) as? JSONObject)?.let { redactSensitiveFields(it) }
                     }

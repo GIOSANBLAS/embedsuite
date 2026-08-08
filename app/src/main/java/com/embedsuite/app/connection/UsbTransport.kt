@@ -21,14 +21,16 @@ class UsbTransport(
     override val isConnected: Boolean
         get() = connectedDevice != null
 
-    override suspend fun connect(): Result<String> {
+    override suspend fun connect(): Result<String> = connect(null)
+
+    suspend fun connect(preferredDevice: UsbDevice? = null): Result<String> {
         val devices = usbSerialManager.listarDispositivosConectados()
         if (devices.isEmpty()) {
             return Result.failure(Exception("No hay dispositivo USB conectado via OTG."))
         }
 
-        val device = devices.firstOrNull()
-            ?: return Result.failure(Exception("No hay dispositivo USB conectado via OTG (lista vacía)."))
+        val device = preferredDevice ?: usbSerialManager.mejorDispositivo()
+            ?: return Result.failure(Exception("No hay dispositivo USB compatible."))
         var connectError: String? = null
         lineBuffer.setLength(0)
 

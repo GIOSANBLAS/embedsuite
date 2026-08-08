@@ -95,7 +95,7 @@
 
     <string name="dash_command_center">COMMAND CENTER</string>
     <string name="dash_ota_title_xibalba">XIBALBA UPDATE AVAILABLE</string>
-    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.17.1 (real CC1101 Plus profile).</string>
+    <string name="plus_compat_sim_warning">⚠ SIMULATION build: %1$s. Flash Xibalba v0.18.0 Iron Shield (real CC1101 Plus profile).</string>
     <string name="plus_compat_subghz_xibalba_hint">Xibalba (USB): TEH-Link capture and TX/replay ready. Live spectrum/waterfall not yet exposed by firmware — use the T-Embed Sub-GHz menu if needed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="rf_live_unavailable_title">SPECTRUM / WATERFALL</string>
@@ -195,7 +195,7 @@
     <string name="firmware_section_official_xibalba">OFFICIAL XIBALBA</string>
     <string name="firmware_section_custom_bin">CUSTOM .bin — CC1101 Plus</string>
     <string name="firmware_recommended">RECOMMENDED</string>
-    <string name="firmware_recommended_reason_xibalba">Latest Xibalba for T-Embed CC1101 Plus — TEH-Link, plugins and native EMBED SUITE.</string>
+    <string name="firmware_recommended_reason_xibalba">v0.18.0 Iron Shield — TEH-Link v3, Evil Portal, Beacon Spam, Audit Mode and 5 offensive plugins for CC1101 Plus.</string>
     <string name="firmware_fetch_xibalba">FETCH XIBALBA FIRMWARE</string>
     <string name="firmware_available">Available</string>
     <string name="firmware_pick_custom">PICK CUSTOM .bin</string>
@@ -217,6 +217,8 @@
     <string name="firmware_status_using_local">Using %1$s…</string>
     <string name="firmware_status_downloading">Downloading %1$s…</string>
     <string name="firmware_status_preparing_usb">Preparing %1$s for USB…</string>
+    <string name="firmware_status_usb_merged">Full install (merged @ 0x0): %1$s…</string>
+    <string name="firmware_status_usb_app">App update @ 0x10000 (%1$s)…</string>
     <string name="firmware_status_ota_upload">Uploading USB OTA (TEH-Link)…</string>
     <string name="firmware_status_usb_flash">Flashing via USB (bootloader)…</string>
     <string name="firmware_status_ota_ok">OTA OK: %1$s</string>

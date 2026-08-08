@@ -265,6 +265,58 @@ class TehLinkClient(
         )
     }
 
+    // ===== XIBALBA v0.18.0: Evil Portal =====
+    suspend fun runEvilPortalStart(
+        transport: TEmbedTransport,
+        ssid: String,
+        templateId: String = "generic",
+        channel: Int = 6
+    ): Result<TehLinkActionResult> {
+        val params = JSONObject()
+            .put("ssid", ssid)
+            .put("template_id", templateId)
+            .put("channel", channel.coerceIn(1, 11))
+        return runAction(transport, "evil_portal", "start", params)
+    }
+
+    suspend fun runEvilPortalStop(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "evil_portal", "stop")
+    }
+
+    suspend fun runEvilPortalCreds(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "evil_portal", "creds")
+    }
+
+    suspend fun runEvilPortalClearCreds(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "evil_portal", "clear_creds")
+    }
+
+    suspend fun runEvilPortalStatus(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "evil_portal", "status")
+    }
+
+    // ===== XIBALBA v0.18.0: Beacon Spam =====
+    suspend fun runBeaconSpamStart(
+        transport: TEmbedTransport,
+        spec: String = "random:50",
+        hz: Int = 10,
+        channel: Int = 0
+    ): Result<TehLinkActionResult> {
+        val params = JSONObject()
+            .put("spec", spec)
+            .put("hz", hz.coerceIn(1, 100))
+            .put("channel", channel.coerceIn(0, 11))
+        return runAction(transport, "beacon_spam", "start", params)
+    }
+
+    suspend fun runBeaconSpamStop(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "beacon_spam", "stop")
+    }
+
+    suspend fun runBeaconSpamStatus(transport: TEmbedTransport): Result<TehLinkActionResult> {
+        return runAction(transport, "beacon_spam", "status")
+    }
+
     suspend fun runNrf24Status(transport: TEmbedTransport): Result<TehLinkActionResult> {
         return runAction(transport, pluginId = "nrf24_toolkit", action = "status")
     }

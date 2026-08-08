@@ -32,6 +32,16 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "4.4.1",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Simbiosis con firmware Xibalba-0.19.0 (runtime Bruce + TEH-Link v3)",
+                "Emparejamiento TEH-Link: GPIO6 ~2 s (igual que siempre)",
+                "Firmware del dispositivo 100 % en español; app ya en ES/PT-BR/EN",
+                "Ping proto teh-link detecta Xibalba aunque el binario venga de base Bruce"
+            )
+        ),
+        ChangelogEntry(
             version = "4.4.0",
             date = "Ago 2026",
             highlights = listOf(

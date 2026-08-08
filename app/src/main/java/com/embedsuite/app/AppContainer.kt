@@ -22,6 +22,8 @@ import com.embedsuite.app.rf.RfReplayEngine
 import com.embedsuite.app.scan.BleGattClient
 import com.embedsuite.app.scan.LocationTracker
 import com.embedsuite.app.scan.WirelessScanner
+import com.embedsuite.app.scripting.BuiltInScriptRepository
+import com.embedsuite.app.scripting.ScriptRepository
 import com.embedsuite.app.security.SecureStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +65,7 @@ class AppContainer(context: Context) {
     val nfcDumpRepository = NfcDumpRepository(database.nfcDumpDao())
     val bleProfileRepository = BleProfileRepository(database.bleProfileDao())
     val rfAutomationRepository = RfAutomationRepository(database.rfAutomationDao())
+    val scriptRepository: ScriptRepository = BuiltInScriptRepository()
 
     val locationTracker = LocationTracker(appContext)
     val wirelessScanner = WirelessScanner(appContext)

@@ -18,6 +18,7 @@ val NeonRed = Color(0xFFFF0033)
 val NeonPurple = Color(0xFFBB86FC)
 val TextGray = Color(0xFF889988)
 val TextMuted = Color(0xFF556655)
+val TextPrimary = Color(0xFFE6E6E6)
 
 // ── Liquid Glass surfaces ──
 val GlassWhite = Color(0x18FFFFFF)

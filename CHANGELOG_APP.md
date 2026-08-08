@@ -1,5 +1,37 @@
 # EmbedSuite · Changelog App Android
 
+## v4.4.0 — Offensive Toolkit: BLE Spam, WiFi Deauth+Probe, Mousejack, SubGHz Spectrum & NFC Clone
+> 📅 2026-08-06 · Integración de las 5 herramientas ofensivas top con firmware
+> Xibalba (TEH-Link v3 streaming NDJSON) y Modo Auditoría con gating por plugin.
+
+### 🆕 Nuevas 5 Herramientas Ofensivas (FIRMWARE ↔ APP)
+- **BLE AD SPAM**: Campañas AppleJuice, SwiftPair, FindMy, HomeKit sin reiniciar stack BLE. Widget Dashboard + ScriptCategory BLE_SPAM.
+- **WiFi OFFENSIVE**: Deauth Broadcast raw 802.11 + Probe Sniffer con OUI vendor lookup offline y auto-apagado 5 min. Nueva `ProbeSnifferScreen` con tarjetas RSSI coloreadas.
+- **MOUSEJACK NRF24**: Wrapper Logitech/MS 2.4 GHz (scan/inject ducky/clear) integrado en MapTools y Dashboard.
+- **SUBGHZ TOOLS**: Spectrum analyzer heatmap (rango/step/pps parametrizables) + auto-decoder (Keeloq/Somfy/Nice/PT2262) + export CSV. Nueva `SpectrumScreen`.
+- **NFC CLONE + WRITE**: Mifare Classic 1K read/write (6 keys default, protección UID block 0) + NTAG NDEF URL/WiFi WSC QR. Nueva `NfcCloneScreen` con 3 tabs + preview.
+
+### 🧭 App · Navegación & Pantallas
+- NavHost MainScreen rutas `probe_sniffer`, `spectrum_analyzer`, `nfc_clone` + factories ViewModel custom.
+- Dashboard sección **OFENSIVE TOOLS · AUDIT MODE**: 5 GlassCards (BLE Spam / WiFi Deauth / Mousejack / Spectrum / NFC Clone) con botón directo a pantalla y acciones TEH-Link inline.
+- `ScriptCategory`: 5 categorías nuevas (BLE_SPAM, WIFI_OFFENSIVE, MOUSEJACK, SUBGHZ_TOOLS, NFC_CLONE).
+- `BuiltInScriptRepository`: 30 scripts nuevos built-in con `requiresAuditUnlock` en acciones TX.
+- `DeviceEvent`: 6 eventos streaming nuevos `BleAdSpamProgress / WifiProbe / MousejackDongle / SubGhzSample / SubGhzDecodedFrame / NfcCloneProgress`.
+
+### 🔒 Modo Auditoría & Optimizations (Firmware)
+- 5 plugins Xibalba registrados con `TRY_REGISTER (is_tx_path=true)` respetando gating `settings_plugin_is_allowed`.
+- TEH-Link v3 whitelist `action_supported()` + handlers `run_action`/`get_action_state` para los 5 plugins.
+- REQUIRES CMake sincronizados en `teh_link` y `plugin_manager` (undefined reference prevenido).
+- Optimizaciones: `ensure_bluedroid_up()` sin restart stack, `WIFI_OFFENSIVE_AUTO_OFF_SEC=300`, NFC escritura por sectores de 4 bloques, UID block 0 protegido.
+- Fix acción `rx_decode_stop` faltante en lista blanca `subghz_tools` teh_link.
+
+### 🏗 Build
+- `versionCode`: 31 → **32**
+- `versionName`: "4.3.0" → **"4.4.0"**
+- APK debug: 37.77 MB (arm64-v8a + x86_64 incluidos).
+
+---
+
 ## v4.3.0 — Evil Portal, Beacon Spam & Modo Auditoría con Xibalba v0.18.0
 > 📅 2026-08-06 · Integración completa con firmware Xibalba v0.18.0 con soporte
 > para Evil Portal, Beacon Spam, auditoría en tiempo real, fix de plugins Gradle AGP9.

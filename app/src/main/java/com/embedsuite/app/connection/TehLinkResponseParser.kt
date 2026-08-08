@@ -236,7 +236,8 @@ object TehLinkResponseParser {
         return TehLinkActionResult(
             pluginId = data.optString("plugin_id"),
             action = data.optString("action"),
-            state = parseActionState(data)
+            state = parseActionState(data),
+            rawResponse = data
         )
     }
 

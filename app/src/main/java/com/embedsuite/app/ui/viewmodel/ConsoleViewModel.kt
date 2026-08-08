@@ -54,6 +54,12 @@ class ConsoleViewModel(
                         "[OTA] state=${event.status.state} sha256=${event.status.sha256Verified} total=${event.status.totalSize}B"
                     )
                     is DeviceEvent.WaveformSample -> Unit
+                    is DeviceEvent.BleAdSpamProgress -> Unit
+                    is DeviceEvent.MousejackDongle -> Unit
+                    is DeviceEvent.NfcCloneProgress -> Unit
+                    is DeviceEvent.SubGhzDecodedFrame -> Unit
+                    is DeviceEvent.SubGhzSample -> Unit
+                    is DeviceEvent.WifiProbe -> Unit
                 }
             }
         }

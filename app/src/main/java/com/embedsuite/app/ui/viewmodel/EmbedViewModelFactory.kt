@@ -7,6 +7,12 @@ import com.embedsuite.app.AppContainer
 class EmbedViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(ScriptExplorerViewModel::class.java) ->
+            ScriptExplorerViewModel(
+                connectionManager = container.connectionManager,
+                scriptRepository = container.scriptRepository,
+                appPreferences = container.appPreferences
+            ) as T
         modelClass.isAssignableFrom(DashboardViewModel::class.java) ->
             DashboardViewModel(
                 connectionManager = container.connectionManager,

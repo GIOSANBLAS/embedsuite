@@ -6,10 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -17,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import org.json.JSONObject
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.OtaUpdateStatus
 import com.embedsuite.app.core.AppPreferences
@@ -39,7 +43,10 @@ fun DashboardScreen(
     appPreferences: AppPreferences,
     onNavigateRf: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
-    onNavigateHardwareBringup: () -> Unit = {}
+    onNavigateHardwareBringup: () -> Unit = {},
+    onNavigateProbeSniffer: () -> Unit = {},
+    onNavigateSpectrum: () -> Unit = {},
+    onNavigateNfcClone: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -393,6 +400,168 @@ fun DashboardScreen(
                     viewModel.refreshActionState(pluginId)
                 }) {
                     Text(stringResource(R.string.action_refresh_state), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+            }
+        }
+
+        if (
+            uiState.connectionState is ConnectionState.Connected &&
+            uiState.systemInfo.profile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            HackerSectionHeader("OFENSIVE TOOLS · AUDIT MODE", accent = NeonRed)
+
+            GlassCard(accent = NeonPurple, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Bluetooth, null, tint = NeonPurple)
+                    Spacer(Modifier.width(8.dp))
+                    Text("BLE AD SPAM (AppleJuice / SwiftPair / FindMy / HomeKit)",
+                        fontFamily = FontFamily.Monospace, fontSize = 11.sp,
+                        color = NeonPurple, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()) {
+                    NeonButton(text = "AppleJuice", onClick = {
+                        scope.launch {
+                            val r = connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
+                                JSONObject().put("campaign", "applejuice").put("rate_hz", 10))
+                            Toast.makeText(context, r.fold({ "Start AppleJuice" }) { it.message ?: "fail" },
+                                Toast.LENGTH_SHORT).show()
+                        }
+                    }, modifier = Modifier.weight(1f),
+                        color = NeonPurple.copy(alpha = 0.9f))
+                    NeonButton(text = "SwiftPair", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
+                                JSONObject().put("campaign", "swiftpair").put("rate_hz", 10))
+                        }
+                    }, modifier = Modifier.weight(1f),
+                        color = NeonCyan.copy(alpha = 0.9f))
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()) {
+                    NeonButton(text = "FindMy", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
+                                JSONObject().put("campaign", "findmy").put("rate_hz", 5))
+                        }
+                    }, modifier = Modifier.weight(1f),
+                        color = MatrixGreen.copy(alpha = 0.9f))
+                    NeonButton(text = "HomeKit", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
+                                JSONObject().put("campaign", "homekit").put("rate_hz", 5))
+                        }
+                    }, modifier = Modifier.weight(1f),
+                        color = NeonOrange.copy(alpha = 0.9f))
+                    NeonOutlinedButton(text = "STOP", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_stop", JSONObject())
+                        }
+                    }, modifier = Modifier.weight(1f))
+                }
+            }
+
+            GlassCard(accent = NeonRed, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.WifiOff, null, tint = NeonRed)
+                    Spacer(Modifier.width(8.dp))
+                    Text("WiFi OFFENSIVE (Deauth Broadcast + Probe Sniffer)",
+                        fontFamily = FontFamily.Monospace, fontSize = 11.sp,
+                        color = NeonRed, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()) {
+                    NeonOutlinedButton(text = "Deauth BC 30s", onClick = {
+                        scope.launch {
+                            val r = connectionManager.tehLinkRunAction("wifi_offensive", "deauth_broadcast",
+                                JSONObject().put("channel", 1).put("duration_sec", 30).put("packets_per_sec", 10))
+                            Toast.makeText(context, r.fold({ "Deauth BC Ch1" }) { it.message ?: "fail" },
+                                Toast.LENGTH_SHORT).show()
+                        }
+                    }, color = NeonRed,
+                        modifier = Modifier.weight(1f))
+                    NeonOutlinedButton(text = "Deauth STOP", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("wifi_offensive", "deauth_stop", JSONObject())
+                        }
+                    }, color = NeonOrange, modifier = Modifier.weight(1f))
+                    NeonButton(text = "Probe Sniffer", onClick = onNavigateProbeSniffer,
+                        modifier = Modifier.weight(1.2f),
+                        color = MatrixGreen.copy(alpha = 0.9f))
+                }
+            }
+
+            GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Mouse, null, tint = NeonOrange)
+                    Spacer(Modifier.width(8.dp))
+                    Text("MOUSEJACK NRF24 (Logitech / MS dongles 2.4G)",
+                        fontFamily = FontFamily.Monospace, fontSize = 11.sp,
+                        color = NeonOrange, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()) {
+                    NeonButton(text = "Scan 5s", onClick = {
+                        scope.launch {
+                            val r = connectionManager.tehLinkRunAction("mousejack", "scan_dongles",
+                                JSONObject().put("duration_sec", 5))
+                            Toast.makeText(context, r.fold({ data ->
+                                val d = data.rawResponse?.getInt("dongles_found") ?: 0
+                                "Scanned $d dongles"
+                            }) { it.message ?: "fail" }, Toast.LENGTH_SHORT).show()
+                        }
+                    }, modifier = Modifier.weight(1f),
+                        color = NeonOrange.copy(alpha = 0.95f))
+                    NeonOutlinedButton(text = "Inject GUI+r", onClick = {
+                        scope.launch {
+                            connectionManager.tehLinkRunAction("mousejack", "inject_ducky",
+                                JSONObject().put("script", "GUI r\nDELAY 300\nSTRING notepad\nENTER\nDELAY 500\nSTRING Hello Mousejack\n"))
+                        }
+                    }, color = NeonRed,
+                        modifier = Modifier.weight(1f))
+                    NeonOutlinedButton(text = "Map Tools", onClick = onNavigateTools,
+                        modifier = Modifier.weight(1f))
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                GlassCard(accent = KaliBlue, modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.SettingsInputAntenna, null, tint = KaliBlue)
+                        Spacer(Modifier.width(6.dp))
+                        Text("SubGHz", fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp, color = KaliBlue, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Spectrum heatmap + AutoDecoder 433/868/915\n(Keeloq · Somfy · Nice · PT2262)",
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray,
+                        lineHeight = 12.sp)
+                    Spacer(Modifier.height(6.dp))
+                    NeonButton(text = "Abrir Spectrum", onClick = onNavigateSpectrum,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = KaliBlue.copy(alpha = 0.9f))
+                }
+                GlassCard(accent = MatrixGreen, modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Nfc, null, tint = MatrixGreen)
+                        Spacer(Modifier.width(6.dp))
+                        Text("NFC Clone", fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp, color = MatrixGreen, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Mifare 1K read/write + NTAG URL / WiFi WSC QR (WPA2/WPA3)",
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray,
+                        lineHeight = 12.sp)
+                    Spacer(Modifier.height(6.dp))
+                    NeonButton(text = "Abrir NFC Clone", onClick = onNavigateNfcClone,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MatrixGreen.copy(alpha = 0.9f))
                 }
             }
         }

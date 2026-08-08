@@ -59,4 +59,33 @@ sealed class DeviceEvent {
     data class TehLinkNotice(val message: String) : DeviceEvent()
     /** OTA Xibalba completada: expone sha256_verified para UI feedback instantáneo. */
     data class OtaCompleted(val status: TehLinkOtaStatus) : DeviceEvent()
+
+    /* ===== 5 plugins ofensivos ===== */
+    data class BleAdSpamProgress(val packets: Long, val campaign: String) : DeviceEvent()
+    data class WifiProbe(
+        val ssid: String,
+        val mac: String,
+        val rssi: Int,
+        val channel: Int,
+        val vendor: String = ""
+    ) : DeviceEvent()
+    data class MousejackDongle(
+        val addr: String,
+        val bestChannel: Int,
+        val bestRssi: Int,
+        val frames: Long
+    ) : DeviceEvent()
+    data class SubGhzSample(val freqMhz: Double, val rssi: Int) : DeviceEvent()
+    data class SubGhzDecodedFrame(
+        val proto: String,
+        val decoded: String,
+        val rssi: Int,
+        val freqMhz: Double
+    ) : DeviceEvent()
+    data class NfcCloneProgress(
+        val step: String,
+        val sectors: Int = 0,
+        val uid: String = "",
+        val dumpHex: String = ""
+    ) : DeviceEvent()
 }

@@ -24,8 +24,8 @@ android {
         applicationId = "com.embedsuite.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
-        versionName = "4.3.0"
+        versionCode = 32
+        versionName = "4.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -93,8 +93,8 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.osmdroid)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("org.json:json:20240303")
     testImplementation(libs.junit)
-    testImplementation("org.json:json:20240303")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

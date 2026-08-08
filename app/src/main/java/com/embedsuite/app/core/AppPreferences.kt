@@ -122,9 +122,17 @@ class AppPreferences(context: Context) {
     )
     val firmwareProfile: StateFlow<FirmwareProfile> = _firmwareProfile.asStateFlow()
 
+    private val _auditModeEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUDIT_MODE, true))
+    val auditModeEnabled: StateFlow<Boolean> = _auditModeEnabled.asStateFlow()
+
     fun setFirmwareProfile(profile: FirmwareProfile) {
         prefs.edit().putString(KEY_FIRMWARE_PROFILE, profile.name).apply()
         _firmwareProfile.value = profile
+    }
+
+    fun setAuditModeEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUDIT_MODE, enabled).apply()
+        _auditModeEnabled.value = enabled
     }
 
     companion object {
@@ -145,5 +153,6 @@ class AppPreferences(context: Context) {
         private const val KEY_RF_FREQ = "rf_freq_mhz"
         const val KEY_APP_LANGUAGE = "app_language"
         private const val KEY_FIRMWARE_PROFILE = "firmware_profile"
+        private const val KEY_AUDIT_MODE = "audit_mode_enabled_v430"
     }
 }

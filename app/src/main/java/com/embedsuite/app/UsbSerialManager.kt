@@ -31,8 +31,10 @@ class UsbSerialManager(private val context: android.content.Context) {
     }
 
     fun solicitarPermiso(device: UsbDevice) {
-        val flags = android.app.PendingIntent.FLAG_MUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        val intent = android.content.Intent(ACTION_USB_PERMISSION)
+        val flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        val intent = android.content.Intent(ACTION_USB_PERMISSION).apply {
+            setPackage(context.packageName)
+        }
         val permissionIntent = android.app.PendingIntent.getBroadcast(context, 0, intent, flags)
         usbManager.requestPermission(device, permissionIntent)
     }

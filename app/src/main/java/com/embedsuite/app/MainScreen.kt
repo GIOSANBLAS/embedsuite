@@ -21,15 +21,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embedsuite.app.notifications.EmbedNotificationHelper
 import com.embedsuite.app.field.FieldOperationManager
 import com.embedsuite.app.ui.components.*
+import com.embedsuite.app.ui.screen.*
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.EmbedViewModelFactory
+import com.embedsuite.app.ui.viewmodel.NfcCloneViewModel
+import com.embedsuite.app.ui.viewmodel.ProbeSnifferViewModel
+import com.embedsuite.app.ui.viewmodel.SpectrumViewModel
 import kotlinx.coroutines.launch
 
 data class NavTab(val route: String, val labelRes: Int, val icon: ImageVector)
@@ -41,6 +45,7 @@ private fun mainTabs() = listOf(
     NavTab("wireless", R.string.nav_wifi, Icons.Default.Wifi),
     NavTab("nfc_ir", R.string.nav_nfc, Icons.Default.Nfc),
     NavTab("terminal", R.string.nav_cli, Icons.Default.Terminal),
+    NavTab("scripts", R.string.nav_scripts, Icons.Default.Code),
     NavTab("ai", R.string.nav_ai, Icons.Default.Psychology),
     NavTab("map_tools", R.string.nav_tools, Icons.Default.Map)
 )
@@ -280,7 +285,34 @@ fun MainScreen(
                         onNavigateTools = { navController.navigate("map_tools") },
                         onNavigateHardwareBringup = {
                             navController.navigate("hardware_bringup") { launchSingleTop = true }
-                        }
+                        },
+                        onNavigateProbeSniffer = { navController.navigate("probe_sniffer") { launchSingleTop = true } },
+                        onNavigateSpectrum = { navController.navigate("spectrum_analyzer") { launchSingleTop = true } },
+                        onNavigateNfcClone = { navController.navigate("nfc_clone") { launchSingleTop = true } }
+                    )
+                }
+                composable("probe_sniffer") {
+                    ProbeSnifferScreen(
+                        connectionManager = container.connectionManager,
+                        factory = ProbeSnifferViewModel.factory(container.connectionManager),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("spectrum_analyzer") {
+                    SpectrumScreen(
+                        connectionManager = container.connectionManager,
+                        factory = SpectrumViewModel.factory(
+                            context.applicationContext as android.app.Application,
+                            container.connectionManager
+                        ),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("nfc_clone") {
+                    NfcCloneScreen(
+                        connectionManager = container.connectionManager,
+                        factory = NfcCloneViewModel.factory(container.connectionManager),
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("rf") {
@@ -310,6 +342,16 @@ fun MainScreen(
                 }
                 composable("terminal") {
                     ConsoleScreen(viewModel = viewModel(factory = viewModelFactory))
+                }
+                composable("scripts") {
+                    ScriptExplorerScreen(
+                        factory = viewModelFactory,
+                        onNavigateTools = { navController.navigate("map_tools") {
+                            popUpTo("dashboard") { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        } }
+                    )
                 }
                 composable("ai") {
                     AiAssistantScreen(

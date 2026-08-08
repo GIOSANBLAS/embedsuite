@@ -19,3 +19,11 @@
 -dontwarn net.sqlcipher.**
 # BuildConfig
 -keep class com.embedsuite.app.BuildConfig { *; }
+
+# TEH-Link / Connection models (serialized with org.json)
+-keep class com.embedsuite.app.connection.** { *; }
+# New screens viewmodels (NfcClone / ProbeSniffer / Spectrum / ScriptExplorer)
+-keep class com.embedsuite.app.ui.viewmodel.NfcCloneViewModel { *; }
+-keep class com.embedsuite.app.ui.viewmodel.ProbeSnifferViewModel { *; }
+-keep class com.embedsuite.app.ui.viewmodel.SpectrumViewModel { *; }
+-keep class com.embedsuite.app.ui.viewmodel.ScriptExplorerViewModel { *; }

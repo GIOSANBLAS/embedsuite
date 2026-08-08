@@ -141,7 +141,8 @@ data class TehLinkActionState(
 data class TehLinkActionResult(
     val pluginId: String,
     val action: String,
-    val state: TehLinkActionState
+    val state: TehLinkActionState,
+    val rawResponse: org.json.JSONObject? = null
 )
 
 /** Resultado de un soak test stress: detección de memory leaks / cuelgues. */

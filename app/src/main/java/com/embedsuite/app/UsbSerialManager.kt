@@ -123,8 +123,20 @@ class UsbSerialManager(private val context: android.content.Context) {
         try {
             port.open(connection)
             port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-            port.dtr = true
-            port.rts = true
+            // ESP32-S3 USB-Serial/JTAG: DTR/RTS en alto puede resetear el chip y tumbar el bus OTG.
+            // Solo assert lines en UART bridges externos; en Espressif nativo se dejan en bajo.
+            val nativeEspUsb = Esp32UsbIds.isEspressifDevice(device)
+            if (nativeEspUsb) {
+                port.dtr = false
+                port.rts = false
+            } else {
+                port.dtr = true
+                port.rts = true
+            }
+            // Pequeña estabilización tras claim de interfaces CDC en hosts Xiaomi/OTG.
+            if (nativeEspUsb) {
+                Thread.sleep(80)
+            }
         } catch (e: IOException) {
             try { port.close() } catch (_: IOException) {}
             connection.close()
@@ -146,7 +158,10 @@ class UsbSerialManager(private val context: android.content.Context) {
         return true
     }
 
-    fun enviarTexto(texto: String, appendNewline: String = "\r\n", charset: Charset = Charsets.UTF_8): Boolean {
+    /**
+     * TEH-Link es NDJSON línea a línea: el firmware espera `\n` (no `\r\n`).
+     */
+    fun enviarTexto(texto: String, appendNewline: String = "\n", charset: Charset = Charsets.UTF_8): Boolean {
         val port = serialPort ?: return false
         return try {
             port.write((texto + appendNewline).toByteArray(charset), 2000)

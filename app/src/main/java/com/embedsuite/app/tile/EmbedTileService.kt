@@ -41,8 +41,7 @@ class EmbedTileService : TileService() {
 
     private fun updateTile() {
         val tile = qsTile ?: return
-        val state = AppContainer.instance?.connectionManager?.connectionState?.value
-        when (state) {
+        when (val state = AppContainer.instance?.connectionManager?.connectionState?.value) {
             is ConnectionState.Connected -> {
                 tile.state = Tile.STATE_ACTIVE
                 tile.label = "EMBED LINK"

@@ -38,7 +38,7 @@ class FirmwareFlashCoordinator(
                 setStatus(context, release, ota = true)
                 _otaProgress.value = 5
                 val cacheDir = File(context.cacheDir, "firmware")
-                firmwareRepository.resolveFlashFile(release, cacheDir).fold(
+                firmwareRepository.resolveFlashFile(context, release, cacheDir).fold(
                     onSuccess = { file ->
                         _flashStatus.value = context.getString(com.embedsuite.app.R.string.firmware_status_ota_upload)
                         val sha256 = release.sha256Hex?.trim()?.lowercase()
@@ -81,8 +81,23 @@ class FirmwareFlashCoordinator(
                 setStatus(context, release, ota = false)
                 _otaProgress.value = 5
                 val cacheDir = File(context.cacheDir, "firmware")
-                firmwareRepository.resolveFlashFile(release, cacheDir).fold(
+                firmwareRepository.resolveFlashFile(context, release, cacheDir).fold(
                     onSuccess = { file ->
+                        val analysis = com.embedsuite.app.flash.FirmwareImageAnalyzer.analyze(file)
+                        _flashStatus.value = when (analysis.kind) {
+                            com.embedsuite.app.flash.FirmwareImageAnalyzer.ImageKind.MERGED_FULL ->
+                                context.getString(
+                                    com.embedsuite.app.R.string.firmware_status_usb_merged,
+                                    release.fileName
+                                )
+                            com.embedsuite.app.flash.FirmwareImageAnalyzer.ImageKind.APP_ONLY ->
+                                context.getString(
+                                    com.embedsuite.app.R.string.firmware_status_usb_app,
+                                    analysis.appVersion ?: release.tagName
+                                )
+                        }
+                        analysis.warning?.let { _flashStatus.value = it }
+                        connectionManager.prepareForUsbFlash()
                         _flashStatus.value = context.getString(com.embedsuite.app.R.string.firmware_status_usb_flash)
                         esptoolFlasher.flashFirmware(file) { pct, msg ->
                             _otaProgress.value = pct
@@ -93,6 +108,7 @@ class FirmwareFlashCoordinator(
                                     com.embedsuite.app.R.string.firmware_status_usb_ok,
                                     it
                                 )
+                                connectionManager.reconnectAfterUsbFlash()
                             },
                             onFailure = {
                                 _flashStatus.value = context.getString(
@@ -121,6 +137,10 @@ class FirmwareFlashCoordinator(
         _flashStatus.value = when {
             release.isLocal && ota -> context.getString(com.embedsuite.app.R.string.firmware_status_using_local, release.fileName)
             release.isLocal && !ota -> context.getString(com.embedsuite.app.R.string.firmware_status_preparing_usb, release.fileName)
+            release.bundledAssetPath != null -> context.getString(
+                com.embedsuite.app.R.string.firmware_status_using_bundled,
+                release.tagName
+            )
             else -> context.getString(com.embedsuite.app.R.string.firmware_status_downloading, release.fileName)
         }
     }

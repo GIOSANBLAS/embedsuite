@@ -95,7 +95,7 @@
 
     <string name="dash_command_center">CENTRO DE COMANDO</string>
     <string name="dash_ota_title_xibalba">ATUALIZAÇÃO XIBALBA DISPONÍVEL</string>
-    <string name="plus_compat_sim_warning">⚠ Build em SIMULAÇÃO: %1$s. Flashe Xibalba v0.18.0 Iron Shield (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_sim_warning">⚠ Build em SIMULAÇÃO: %1$s. Flashe Xibalba-0.19.0 Maya (xibalba-bruce, perfil CC1101 Plus real).</string>
     <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba: espectro/waterfall ao vivo não disponíveis via TEH-Link. Use captura TEH-Link ou o menu Sub-GHz do T-Embed.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="subghz_freq_local_hint">Frequência salva no app. Ajuste também no menu Sub-GHz do T-Embed se necessário.</string>
@@ -188,7 +188,7 @@
     <string name="firmware_section_official_xibalba">XIBALBA OFICIAL</string>
     <string name="firmware_section_custom_bin">CUSTOM .bin — CC1101 Plus</string>
     <string name="firmware_recommended">RECOMENDADO</string>
-    <string name="firmware_recommended_reason_xibalba">v0.18.0 Iron Shield — TEH-Link v3, Evil Portal, Beacon Spam, Modo Auditoria e 5 plugins ofensivos para CC1101 Plus.</string>
+    <string name="firmware_recommended_reason_xibalba">Xibalba-0.19.0 Maya — runtime Bruce + TEH-Link v3 USB, UI espanhol Maya/cyber e simbiose EmbedSuite para CC1101 Plus.</string>
     <string name="firmware_fetch_xibalba">BUSCAR FIRMWARE XIBALBA</string>
     <string name="firmware_available">Disponíveis</string>
     <string name="firmware_pick_custom">ESCOLHER .bin CUSTOM</string>

@@ -32,38 +32,25 @@ class MainActivity : ComponentActivity() {
     private val activityScope = CoroutineScope(activityJob + Dispatchers.Main)
     private var deepLinkState by mutableStateOf<DeepLinkParams?>(null)
 
-    private val usbReceiver = object : BroadcastReceiver() {
+    private val usbAttachReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                UsbSerialManager.ACTION_USB_PERMISSION -> {
-                    synchronized(this) {
-                        val device = extractUsbDevice(intent)
-                        if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                            device?.let {
-                                Toast.makeText(context, "Permiso USB concedido", Toast.LENGTH_SHORT).show()
-                                activityScope.launch {
-                                    container.connectionManager.connect(TransportType.USB)
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Permiso USB denegado", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
                 UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    Toast.makeText(context, "Dispositivo USB Conectado", Toast.LENGTH_SHORT).show()
-                    val device = extractUsbDevice(intent) ?: return
+                    Toast.makeText(context, "T-Embed USB detectado", Toast.LENGTH_SHORT).show()
                     if (!::container.isInitialized) return
+                    val device = container.usbSerialManager.mejorDispositivo()
+                        ?: extractUsbDevice(intent)
+                        ?: return
                     if (container.usbSerialManager.tienePermiso(device)) {
                         activityScope.launch {
-                            container.connectionManager.connect(TransportType.USB)
+                            container.connectionManager.connectUsbDevice(device)
                         }
                     } else {
                         container.usbSerialManager.solicitarPermiso(device)
                     }
                 }
                 UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                    Toast.makeText(context, "Dispositivo USB Desconectado", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "T-Embed USB desconectado", Toast.LENGTH_SHORT).show()
                     if (!::container.isInitialized) return
                     activityScope.launch {
                         container.connectionManager.disconnect()
@@ -80,14 +67,13 @@ class MainActivity : ComponentActivity() {
         container = (application as EmbedApplication).container
 
         val filter = IntentFilter().apply {
-            addAction(UsbSerialManager.ACTION_USB_PERMISSION)
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }
-
-        ContextCompat.registerReceiver(this, usbReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(this, usbAttachReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         deepLinkState = DeepLinkParams.from(intent)
+        handleUsbPermissionIntent(intent)
 
         setContent {
             EMBEDSUITETheme {
@@ -103,18 +89,47 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkState = DeepLinkParams.from(intent)
+        handleUsbPermissionIntent(intent)
+    }
+
+    private fun handleUsbPermissionIntent(intent: Intent?) {
+        if (intent?.action != UsbSerialManager.ACTION_USB_PERMISSION) return
+        if (!::container.isInitialized) return
+
+        val device = extractUsbDevice(intent)
+        val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+
+        if (granted && device != null) {
+            Toast.makeText(this, "Permiso USB concedido", Toast.LENGTH_SHORT).show()
+            activityScope.launch {
+                container.connectionManager.connectUsbDevice(device)
+            }
+        } else {
+            val hasPermissionNow = device?.let { container.usbSerialManager.tienePermiso(it) } == true
+            if (hasPermissionNow && device != null) {
+                activityScope.launch {
+                    container.connectionManager.connectUsbDevice(device)
+                }
+            } else {
+                Toast.makeText(
+                    this,
+                    getString(R.string.usb_permission_denied_hint),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+        intent.action = null
     }
 
     override fun onDestroy() {
         try {
-            unregisterReceiver(usbReceiver)
+            unregisterReceiver(usbAttachReceiver)
         } catch (_: IllegalArgumentException) {
             // ya no registrado
         }
         if (::container.isInitialized) {
             container.locationTracker.stopTracking()
             container.wirelessScanner.stopBleScan()
-            // No bloquear el hilo UI (ANR). Desconexión con timeout en IO.
             val cm = container.connectionManager
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 withTimeoutOrNull(2_000L) { cm.disconnect() }

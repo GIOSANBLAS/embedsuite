@@ -178,7 +178,7 @@ fun DashboardScreen(
 
             GlassCard(accent = accent, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(
-                    "🛡 XIBALBA HARDENING 0.17.1+",
+                    "🛡 XIBALBA HARDENING 0.19.0+",
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = accent, fontWeight = FontWeight.Bold
                 )
                 HardeningRow("Task Watchdog (TWDT ${h.twdtTimeoutSeconds}s)", h.twdtEnabled)
@@ -424,8 +424,8 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()) {
                     NeonButton(text = "AppleJuice", onClick = {
                         scope.launch {
-                            val r = connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
-                                JSONObject().put("campaign", "applejuice").put("rate_hz", 10))
+                            val r = connectionManager.tehLinkRunAction("ble_ad_spam", "start",
+                                JSONObject().put("campaign", "applejuice").put("hz", 10))
                             Toast.makeText(context, r.fold({ "Start AppleJuice" }) { it.message ?: "fail" },
                                 Toast.LENGTH_SHORT).show()
                         }
@@ -433,8 +433,8 @@ fun DashboardScreen(
                         color = NeonPurple.copy(alpha = 0.9f))
                     NeonButton(text = "SwiftPair", onClick = {
                         scope.launch {
-                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
-                                JSONObject().put("campaign", "swiftpair").put("rate_hz", 10))
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "start",
+                                JSONObject().put("campaign", "swiftpair").put("hz", 10))
                         }
                     }, modifier = Modifier.weight(1f),
                         color = NeonCyan.copy(alpha = 0.9f))
@@ -444,21 +444,21 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()) {
                     NeonButton(text = "FindMy", onClick = {
                         scope.launch {
-                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
-                                JSONObject().put("campaign", "findmy").put("rate_hz", 5))
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "start",
+                                JSONObject().put("campaign", "findmy").put("hz", 5))
                         }
                     }, modifier = Modifier.weight(1f),
                         color = MatrixGreen.copy(alpha = 0.9f))
                     NeonButton(text = "HomeKit", onClick = {
                         scope.launch {
-                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_start",
-                                JSONObject().put("campaign", "homekit").put("rate_hz", 5))
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "start",
+                                JSONObject().put("campaign", "homekit").put("hz", 5))
                         }
                     }, modifier = Modifier.weight(1f),
                         color = NeonOrange.copy(alpha = 0.9f))
                     NeonOutlinedButton(text = "STOP", onClick = {
                         scope.launch {
-                            connectionManager.tehLinkRunAction("ble_ad_spam", "spam_stop", JSONObject())
+                            connectionManager.tehLinkRunAction("ble_ad_spam", "stop", JSONObject())
                         }
                     }, modifier = Modifier.weight(1f))
                 }
@@ -477,8 +477,12 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()) {
                     NeonOutlinedButton(text = "Deauth BC 30s", onClick = {
                         scope.launch {
-                            val r = connectionManager.tehLinkRunAction("wifi_offensive", "deauth_broadcast",
-                                JSONObject().put("channel", 1).put("duration_sec", 30).put("packets_per_sec", 10))
+                            val r = connectionManager.tehLinkRunAction("wifi_offensive", "deauth_start",
+                                JSONObject()
+                                    .put("bssid", "FF:FF:FF:FF:FF:FF")
+                                    .put("sta", "FF:FF:FF:FF:FF:FF")
+                                    .put("channel", 1)
+                                    .put("pps", 10))
                             Toast.makeText(context, r.fold({ "Deauth BC Ch1" }) { it.message ?: "fail" },
                                 Toast.LENGTH_SHORT).show()
                         }
@@ -508,8 +512,8 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()) {
                     NeonButton(text = "Scan 5s", onClick = {
                         scope.launch {
-                            val r = connectionManager.tehLinkRunAction("mousejack", "scan_dongles",
-                                JSONObject().put("duration_sec", 5))
+                            val r = connectionManager.tehLinkRunAction("mousejack", "scan",
+                                JSONObject().put("ms", 5000))
                             Toast.makeText(context, r.fold({ data ->
                                 val d = data.rawResponse?.getInt("dongles_found") ?: 0
                                 "Scanned $d dongles"
@@ -519,7 +523,7 @@ fun DashboardScreen(
                         color = NeonOrange.copy(alpha = 0.95f))
                     NeonOutlinedButton(text = "Inject GUI+r", onClick = {
                         scope.launch {
-                            connectionManager.tehLinkRunAction("mousejack", "inject_ducky",
+                            connectionManager.tehLinkRunAction("mousejack", "play_ducky",
                                 JSONObject().put("script", "GUI r\nDELAY 300\nSTRING notepad\nENTER\nDELAY 500\nSTRING Hello Mousejack\n"))
                         }
                     }, color = NeonRed,
@@ -692,7 +696,7 @@ fun DashboardScreen(
                     color = NeonCyan
                 )
             }
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.dash_keep_screen), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted)
                 Switch(checked = keepScreenOn, onCheckedChange = { keepScreenOn = it; appPreferences.fieldKeepScreenOn = it })
             }
@@ -852,7 +856,7 @@ private fun HardeningRow(label: String, enabled: Boolean) {
 }
 
 @Composable
-private fun StatBadge(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+private fun StatBadge(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     GlassCard(accent = color, modifier = modifier, cornerRadius = 8.dp) {
         Text(label, fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = TextMuted)
         Text(value, fontFamily = FontFamily.Monospace, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)

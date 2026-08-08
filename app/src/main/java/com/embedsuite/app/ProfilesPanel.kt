@@ -92,7 +92,7 @@ private fun ProfileRow(profile: ProfileEntity, enabled: Boolean, onRun: () -> Un
             Text("[${profile.category}] ${profile.name}", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = accent)
             Text(profile.description, fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = TextMuted)
         }
-        androidx.compose.material3.IconButton(onClick = onRun, enabled = enabled) {
+        IconButton(onClick = onRun, enabled = enabled) {
             Icon(Icons.Default.PlayArrow, "Run", tint = accent, modifier = Modifier.size(20.dp))
         }
     }

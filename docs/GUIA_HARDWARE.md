@@ -1,6 +1,6 @@
 # 🔧 GUÍA DE HARDWARE — T-Embed CC1101 Plus
 
-**EmbedSuite v4.4.0 · Firmware Xibalba v0.18.0 Iron Shield · GIOSÁNBLAS**
+**EmbedSuite v4.5.0 · Firmware Xibalba-0.19.0 Maya · GIOSÁNBLAS**
 
 Guía completa para el hardware **LilyGO T-Embed CC1101 Plus** y su conexión con la app Android EmbedSuite.
 
@@ -17,46 +17,49 @@ Guía completa para el hardware **LilyGO T-Embed CC1101 Plus** y su conexión co
 | **Radio Sub-GHz** | CC1101 (315/433/868/915 MHz) |
 | **NFC** | PN532 (ISO14443A/B, Mifare Classic) |
 | **IR** | Transmisor + receptor IR |
-| **microSD** | Slot tarjeta (FAT32) — **obligatoria para plugins v0.18+** |
+| **microSD** | Slot tarjeta (FAT32) — recomendada para wardriving y biblioteca RF |
 | **Batería** | LiPo 1S con PMIC BQ25896 |
 | **Conector** | USB-C (OTG) |
 | **Botón lateral** | GPIO6 — pairing TEH-Link / navegación |
-| **Firmware objetivo** | **Xibalba v0.18.0 Iron Shield** |
+| **Firmware objetivo** | **Xibalba-0.19.0 Maya** (Bruce runtime + TEH-Link v3) |
 
 ---
 
-## 2. Firmware Xibalba v0.18.0 Iron Shield
+## 2. Firmware Xibalba-0.19.0 Maya
 
-### Qué incluye respecto a v0.17.1
+### Runtime oficial vs legacy
 
-| Característica | v0.17.1 Spark | v0.18.0 Iron Shield |
-|----------------|---------------|---------------------|
+| Característica | v0.19.0 Maya (xibalba-bruce) | v0.18.0 Iron Shield (legacy ESP-IDF) |
+|----------------|------------------------------|--------------------------------------|
+| Base runtime | **Bruce** | ESP-IDF nativo |
 | TEH-Link v3 | ✅ | ✅ |
-| OTA SHA256 verify | ✅ | ✅ |
-| Hardening dashboard | ✅ | ✅ ampliado |
-| Evil Portal | ❌ | ✅ |
-| Beacon Spam | ❌ | ✅ |
-| BLE AD Spam | ❌ | ✅ |
-| WiFi Deauth + Probe Sniffer | ❌ | ✅ |
-| Mousejack NRF24 | Parcial | ✅ plugin dedicado |
-| Sub-GHz Spectrum + Auto-decoder | Parcial | ✅ |
-| NFC Clone/Write Mifare+NTAG | Parcial | ✅ |
-| Modo Auditoría (gating plugins TX) | ❌ | ✅ |
+| Perfil EmbedSuite | **XIBALBA** | XIBALBA (legacy) |
+| UI dispositivo | **Español Maya/cyber** | Español ESP-IDF |
+| Binario merged @ 0x0 | ✅ `xibalba-t-embed-cc1101.bin` | `te-embed-xibalba.bin` |
+| Repo | [xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce) | [te-embed-xibalba](https://github.com/GIOSANBLAS/te-embed-xibalba) |
+| Recomendado | **★ Sí** | Solo rollback |
+
+> **Stock Bruce** (sin parche TEH-Link): la app lo detecta como perfil **UNKNOWN** — no hay simbiosis EmbedSuite hasta flashear Xibalba-0.19.0 Maya.
 
 ### Flasheo recomendado
 
-1. **App EmbedSuite v4.4.0** → Map & Tools → Firmware.
-2. Selecciona **v0.18.0 Iron Shield ★**.
-3. OTA (si ya tienes Xibalba) o Flash USB (primera vez / bootloader).
-4. SHA256 embebido en catálogo: `76fa3ed1…cc2a31dd`.
+1. **App EmbedSuite v4.5.0** → Map & Tools → Firmware.
+2. Selecciona **Xibalba-0.19.0 Maya ★**.
+3. OTA (si ya tienes Xibalba operativo) o Flash USB (primera vez / bootloader).
+4. SHA256 embebido en catálogo: `f19a06cb…c9f58c9`.
 
-Si la descarga GitHub falla, importa el `.bin` manualmente — el catálogo embebido sigue mostrando v0.18.0 como recomendado.
+Si la descarga GitHub falla, importa `xibalba-t-embed-cc1101.bin` manualmente — el catálogo embebido sigue mostrando v0.19.0 como recomendado.
+
+**Desde PC (esptool):**
+```bash
+esptool.py --chip esp32s3 -p COMx -b 460800 write_flash 0x0 xibalba-t-embed-cc1101.bin
+```
 
 ---
 
 ## 3. microSD
 
-> **IMPORTANTE:** Obligatoria para Evil Portal, wardriving, biblioteca Sub-GHz y plugins en SD.
+> **Recomendada** para wardriving, biblioteca Sub-GHz y almacenamiento en SD del dispositivo.
 
 | Aspecto | Requisito |
 |---------|-----------|
@@ -99,27 +102,27 @@ Si la descarga GitHub falla, importa el `.bin` manualmente — el catálogo embe
 
 ---
 
-## 6. Checklist funcional CC1101 Plus (v0.18.0)
+## 6. Checklist funcional CC1101 Plus (v0.19.0 Maya)
 
-Ejecuta con Xibalba v0.18.0 + Modo Auditoría activo:
+Ejecuta con Xibalba-0.19.0 Maya + Modo Auditoría activo:
 
 | # | Prueba | Dónde en app | Resultado esperado |
 |---|--------|--------------|-------------------|
-| 1 | Conexión USB | Dashboard LINK | Verde, firmware 0.18.0+ |
-| 2 | Hardening flags | Dashboard | 6 flags visibles |
-| 3 | Lista plugins | Dashboard XIBALBA PLUGINS | ≥10 plugins incl. evil_portal, ble_ad_spam |
-| 4 | Sub-GHz RX 15s | Dashboard RX 15s | Señal en Última señal |
-| 5 | Sub-GHz TX replay | RF → Retransmitir | TX vía TEH-Link (autorizado) |
-| 6 | WiFi scan T-Embed | Dashboard WiFi scan | APs listados en terminal |
-| 7 | Wardriving | Dashboard Start/Stop | Sesión GPS + WiFi en mapa |
-| 8 | NFC read | NFC/IR tab | UID leído vía PN532 |
-| 9 | IR RX 10s | NFC/IR tab | Código capturado |
-| 10 | OTA check | Map & Tools | v0.18.0 recomendado, no downgrade |
-| 11 | BLE Spam | Dashboard / Scripts | Campaña AppleJuice start/stop |
-| 12 | WiFi Probe | Probe Sniffer screen | Probes con RSSI/OUI |
-| 13 | Spectrum | Spectrum screen | Heatmap 433 MHz |
-| 14 | NFC Clone | NFC Clone screen | Read Mifare 1K |
-| 15 | Evil Portal | Scripts → Evil Portal | SoftAP + status (Auditoría ON) |
+| 1 | Conexión USB | Dashboard LINK | Verde, perfil XIBALBA, firmware 0.19.0+ |
+| 2 | get_info | Dashboard / CLI | `product: T-Embed Xibalba`, `proto: teh-link` |
+| 3 | UI español | Pantalla T-Embed | Menú Maya/cyber en español |
+| 4 | Hardening flags | Dashboard | 6 flags visibles |
+| 5 | Sub-GHz RX 15s | Dashboard RX 15s | Señal en Última señal |
+| 6 | Sub-GHz TX replay | RF → Retransmitir | TX vía TEH-Link (autorizado) |
+| 7 | WiFi scan T-Embed | Dashboard WiFi scan | APs listados |
+| 8 | Wardriving | Dashboard Start/Stop | Sesión GPS + WiFi en mapa |
+| 9 | NFC read | NFC/IR tab | UID leído vía PN532 |
+| 10 | IR RX 10s | NFC/IR tab | Código capturado |
+| 11 | OTA check | Map & Tools | v0.19.0 recomendado, no downgrade a legacy |
+| 12 | BLE Spam | Dashboard / Scripts | Campaña start/stop (Auditoría ON) |
+| 13 | WiFi Probe | Probe Sniffer screen | Probes con RSSI/OUI |
+| 14 | Spectrum | Spectrum screen | Heatmap 433 MHz |
+| 15 | NFC Clone | NFC Clone screen | Read Mifare 1K |
 
 ---
 
@@ -138,9 +141,10 @@ Ejecuta con Xibalba v0.18.0 + Modo Auditoría activo:
 
 | Problema | Causa | Solución |
 |----------|-------|----------|
-| Flash muestra v0.17.1 | Catálogo antiguo / GitHub falló | App v4.4.0+ carga v0.18.0 embebido automáticamente |
-| Flags SIM en Dashboard | Firmware simulación | Re-flashea v0.18.0 Iron Shield |
-| Plugin no responde | Firmware < v0.18.0 o Auditoría OFF | Actualiza firmware + activa Auditoría |
+| Perfil UNKNOWN | Stock Bruce sin TEH-Link | Flashea Xibalba-0.19.0 Maya (xibalba-bruce) |
+| Flash muestra v0.18.0 legacy | Catálogo antiguo / GitHub falló | App v4.5.0+ carga v0.19.0 embebido automáticamente |
+| Flags SIM en Dashboard | Firmware simulación | Re-flashea Xibalba-0.19.0 Maya |
+| Plugin no responde | Auditoría OFF o capability ausente | Activa Auditoría · Verifica `get_status` |
 | Mousejack sin resultados | Sin módulo nRF24 conectado | Verificar hardware nRF24 en T-Embed |
 | NFC Clone falla | Tag no Mifare/NTAG o keys incorrectas | Usar keys default del script |
 | OTA interrumpida | Cable inestable | Cable corto de calidad, no mover durante OTA |
@@ -153,15 +157,15 @@ Ejecuta con Xibalba v0.18.0 + Modo Auditoría activo:
 ```
 ┌─────────────────┐      USB-C (datos)      ┌──────────────────────────┐
 │   Teléfono      │  ◄────────────────────► │  T-Embed CC1101 Plus     │
-│   Android       │      OTG + cable        │  Xibalba v0.18.0         │
+│   Android       │      OTG + cable        │  Xibalba-0.19.0 Maya     │
 │   (EmbedSuite)  │                         │  CC1101 · PN532 · IR     │
 └─────────────────┘                         └──────────────────────────┘
          │                                              │
          │ GPS / WiFi / BLE del teléfono                │ microSD FAT32
          ▼                                              ▼
-   Wardriving / scans phone                     Plugins · wardriving · portal
+   Wardriving / scans phone                     Biblioteca RF · wardriving
 ```
 
 ---
 
-*Documentación v4.4.0 · EmbedSuite · GIOSÁNBLAS*
+*Documentación v4.5.0 · EmbedSuite · GIOSÁNBLAS*

@@ -82,7 +82,7 @@ class AppContainer(context: Context) {
     )
 
     val esptoolFlasher = EsptoolFlasher(usbSerialManager)
-    val firmwareRepository = FirmwareRepository()
+    val firmwareRepository = FirmwareRepository(secureStore)
     val firmwareFlashCoordinator = FirmwareFlashCoordinator(
         appScope = appScope,
         connectionManager = connectionManager,
@@ -115,6 +115,11 @@ class AppContainer(context: Context) {
 
     init {
         instance = this
+        val hadMock = appPreferences.ensureRealHardwareMode()
+        if (hadMock) {
+            secureStore.clearTehLinkAuthToken()
+            Log.i(TAG, "Mock transport desactivado — token TEH-Link borrado; re-empareja con T-Embed físico.")
+        }
         SoundFeedback.init()
         SoundFeedback.setEnabled(appPreferences.soundEnabled.value)
         rfAutomationEngine.start()

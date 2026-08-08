@@ -42,6 +42,16 @@ class SecureStore(context: Context) {
         prefs?.edit()?.putString(KEY_TEH_LINK_AUTH, token.trim())?.apply()
     }
 
+    fun clearTehLinkAuthToken() {
+        prefs?.edit()?.remove(KEY_TEH_LINK_AUTH)?.apply()
+    }
+
+    fun getGithubToken(): String = prefs?.getString(KEY_GITHUB_TOKEN, "").orEmpty()
+
+    fun setGithubToken(token: String) {
+        prefs?.edit()?.putString(KEY_GITHUB_TOKEN, token.trim())?.apply()
+    }
+
     /** Passphrase SQLCipher para Room; se genera una vez y persiste cifrada. */
     fun getOrCreateDatabasePassphrase(): ByteArray {
         val existing = prefs?.getString(KEY_DB_PASSPHRASE, null)
@@ -61,6 +71,7 @@ class SecureStore(context: Context) {
         private const val TAG = "SecureStore"
         private const val KEY_GEMINI = "gemini_api_key"
         private const val KEY_TEH_LINK_AUTH = "teh_link_auth_token"
+        private const val KEY_GITHUB_TOKEN = "github_pat_firmware"
         private const val KEY_DB_PASSPHRASE = "room_db_passphrase"
         private const val PASSPHRASE_LENGTH = 32
     }

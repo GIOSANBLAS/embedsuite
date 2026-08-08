@@ -97,7 +97,7 @@ fun ScriptExplorerScreen(
                 is ConnectionState.Error -> "ERROR LINK" to NeonRed
             }
             BadgeBox { Text(txt, color = color, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
-            if (auditLocked) {
+            if (!auditLocked) {
                 BadgeBox { Text("AUDIT LOCK", color = NeonRed, fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.weight(1f))
@@ -314,7 +314,7 @@ private fun InfoChip(label: String, value: String) {
     Surface(
         shape = RoundedCornerShape(999.dp),
         color = DarkSurface,
-        border = androidx.compose.foundation.BorderStroke(0.7.dp, MatrixGreen.copy(0.35f))
+        border = BorderStroke(0.7.dp, MatrixGreen.copy(0.35f))
     ) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label.uppercase(), color = TextMuted, fontFamily = FontFamily.Monospace, fontSize = 8.sp, modifier = Modifier.padding(end = 4.dp))
@@ -328,7 +328,7 @@ private fun BadgeBox(content: @Composable RowScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = DarkSurface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, MatrixGreen.copy(0.3f)),
+        border = BorderStroke(0.6.dp, MatrixGreen.copy(0.3f)),
         content = {
             Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                 content()

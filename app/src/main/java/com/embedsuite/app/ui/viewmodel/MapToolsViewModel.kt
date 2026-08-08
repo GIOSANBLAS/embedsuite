@@ -79,6 +79,7 @@ class MapToolsViewModel(
                 }
             }
         }
+        loadReleases()
     }
 
     fun setExportStatus(msg: String) {
@@ -106,7 +107,7 @@ class MapToolsViewModel(
                     val recommended = FirmwareCatalog.pickRecommended(list, profile)
                     _uiState.update { state ->
                         val keepSelection = state.customRelease != null &&
-                            state.selectedRelease?.source == com.embedsuite.app.connection.FirmwareSource.CUSTOM_LOCAL
+                            state.selectedRelease?.source == FirmwareSource.CUSTOM_LOCAL
                         state.copy(
                             releases = list,
                             recommendedRelease = recommended,
@@ -155,8 +156,8 @@ class MapToolsViewModel(
         _uiState.update { it.copy(selectedRelease = release) }
     }
 
-    suspend fun resolveFlashFile(release: FirmwareRelease, cacheDir: File) =
-        firmwareRepository.resolveFlashFile(release, cacheDir)
+    suspend fun resolveFlashFile(context: Context, release: FirmwareRelease, cacheDir: File) =
+        firmwareRepository.resolveFlashFile(context, release, cacheDir)
 
     fun parseImportFile(context: Context, uri: Uri) {
         viewModelScope.launch {

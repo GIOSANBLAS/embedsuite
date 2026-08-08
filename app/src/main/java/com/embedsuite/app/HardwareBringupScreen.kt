@@ -39,11 +39,11 @@ import com.embedsuite.app.ui.theme.TextGray
 import com.embedsuite.app.ui.theme.TextMuted
 
 private const val HARDWARE_TEST_SUITE_DOC_URL =
-    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/docs/HARDWARE_TEST_SUITE.md"
+    "https://github.com/GIOSANBLAS/xibalba-bruce/blob/main/XIBALBA.md"
 private const val HARDWARE_TEST_PS1_URL =
-    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/scripts/hardware_test_suite.ps1"
+    "https://github.com/GIOSANBLAS/embedsuite/blob/main/docs/GUIA_HARDWARE.md"
 private const val HARDWARE_CHECKLIST_CSV_URL =
-    "https://github.com/GIOSANBLAS/te-embed-xibalba/blob/main/examples/hardware_test_checklist.csv"
+    "https://github.com/GIOSANBLAS/embedsuite/blob/main/docs/GUIA_DIA_1.md"
 
 @Composable
 fun HardwareBringupScreen(onBack: () -> Unit) {

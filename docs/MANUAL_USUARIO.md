@@ -1,7 +1,7 @@
 # EMBED SUITE — Manual de Usuario
 
 **Companion Android para LilyGO T-Embed CC1101 Plus · Firmware Xibalba (TEH-Link)**
-Versión documentada: **4.3.0** · Firmware: **0.18.0** · GIOSÁNBLAS
+Versión documentada: **4.5.0** · Firmware: **Xibalba-0.19.0 Maya** (Bruce + TEH-Link v3, UI español) · GIOSÁNBLAS
 
 > 📘 **Fuente de verdad in-app:** Acerca de → Manual interactivo (`assets/manual/index.html`).  
 > Este archivo en `docs/` es un espejo resumido para revisión externa.
@@ -14,7 +14,7 @@ Versión documentada: **4.3.0** · Firmware: **0.18.0** · GIOSÁNBLAS
 |------------|---------|
 | **Teléfono Android** | UI, GPS wardriving, escaneo WiFi/BLE del teléfono, biblioteca local |
 | **T-Embed CC1101 Plus** | ESP32-S3 + CC1101 Sub-GHz + PN532 NFC + IR + SD |
-| **Firmware Xibalba** | Protocolo **TEH-Link** (JSON NDJSON por USB CDC) |
+| **Firmware Xibalba-0.19.0 Maya** | Runtime Bruce + protocolo **TEH-Link v3** (JSON NDJSON por USB CDC) · UI dispositivo en español |
 
 ### Transportes
 

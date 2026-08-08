@@ -20,7 +20,7 @@ data class OpenSourceLicense(
 
 object AppInfo {
 
-    val tagline = "Xibalba Native · T-Embed CC1101 Plus · TEH-Link"
+    val tagline = "Xibalba Maya · Bruce + TEH-Link · T-Embed CC1101 Plus"
 
     val team = listOf(
         TeamMember(
@@ -31,6 +31,17 @@ object AppInfo {
     )
 
     val changelog = listOf(
+        ChangelogEntry(
+            version = "4.5.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Resync completo con firmware Xibalba-0.19.0 Maya (GIOSANBLAS/xibalba-bruce)",
+                "Catálogo OTA / assets apuntan a runtime Bruce + TEH-Link v3 (merged @ 0x0)",
+                "Guías, strings ES/EN/PT-BR y copy de bringup alineados con UI español del dispositivo",
+                "Legacy ESP-IDF Iron Shield/Spark queda como rollback opcional, no recomendado",
+                "Simbiosis: ping/get_info/pair/run_action sin cambios de protocolo en la app"
+            )
+        ),
         ChangelogEntry(
             version = "4.4.1",
             date = "Ago 2026",

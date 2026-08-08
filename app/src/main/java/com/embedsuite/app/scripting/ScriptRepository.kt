@@ -31,10 +31,10 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "wifi_tethering",
-                defaultParams = mapOf("template" to "google", "ssid" to "Google Free WiFi", "channel" to 6),
+                defaultParams = mapOf("template_id" to "google", "ssid" to "Google Free WiFi", "channel" to 6),
                 parameters = listOf(
                     ScriptParameter("ssid", "SSID falso", "string", "Google Free WiFi", true),
-                    ScriptParameter("template", "Plantilla", "enum", "google", true, listOf("google", "facebook", "instagram", "microsoft", "netflix", "generic")),
+                    ScriptParameter("template_id", "Plantilla", "enum", "google", true, listOf("google", "facebook", "instagram", "microsoft", "netflix", "generic")),
                     ScriptParameter("channel", "Canal WiFi", "int", "6", true, listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"))
                 )
             ),
@@ -48,7 +48,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "wifi_tethering",
-                defaultParams = mapOf("template" to "facebook", "ssid" to "Facebook Guest WiFi", "channel" to 1)
+                defaultParams = mapOf("template_id" to "facebook", "ssid" to "Facebook Guest WiFi", "channel" to 1)
             ),
             Script(
                 id = "TEHLINK_JS_EVIL_PORTAL_STOP",
@@ -99,10 +99,11 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "blur_on",
-                defaultParams = mapOf("mode" to "random", "count" to 100, "channels" to listOf(1,6,11), "tx_power" to 20),
+                defaultParams = mapOf("spec" to "random:100", "hz" to 10, "channel" to 0),
                 parameters = listOf(
-                    ScriptParameter("count", "Cuenta SSIDs", "int", "100", true),
-                    ScriptParameter("channels", "Hopping", "string", "1,6,11", true)
+                    ScriptParameter("spec", "Spec (random:N o csv:a,b,c)", "string", "random:100", true),
+                    ScriptParameter("hz", "Beacons/seg", "int", "10", true),
+                    ScriptParameter("channel", "Canal (0=hop)", "int", "0", true)
                 )
             ),
             Script(
@@ -115,11 +116,13 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 defaultParams = mapOf(
-                    "mode" to "csv",
-                    "ssids" to listOf("Free Public WiFi","Starbucks WiFi","McDonalds Free WiFi","Hotel Guest","Airport Free WiFi","AT&T Free WiFi","Xfinity WiFi","Library Public WiFi")
+                    "spec" to "csv:Free Public WiFi,Starbucks WiFi,McDonalds Free WiFi,Hotel Guest,Airport Free WiFi,AT&T Free WiFi,Xfinity WiFi,Library Public WiFi",
+                    "hz" to 10,
+                    "channel" to 0
                 ),
                 parameters = listOf(
-                    ScriptParameter("ssids", "Lista SSIDs (CSV)", "text", "Free Public WiFi,Starbucks WiFi,McDonalds Free WiFi,Hotel Guest", true)
+                    ScriptParameter("spec", "Spec csv:SSID1,SSID2,...", "text",
+                        "csv:Free Public WiFi,Starbucks WiFi,McDonalds Free WiFi,Hotel Guest", true)
                 )
             ),
             Script(
@@ -225,7 +228,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "bluetooth",
-                defaultParams = mapOf("campaign" to 0, "hz" to 30)
+                defaultParams = mapOf("campaign" to "applejuice", "hz" to 30)
             ),
             Script(
                 id = "BLEAD_SWIFTPAIR_START",
@@ -236,7 +239,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "laptop_windows",
-                defaultParams = mapOf("campaign" to 1, "hz" to 20)
+                defaultParams = mapOf("campaign" to "swiftpair", "hz" to 20)
             ),
             Script(
                 id = "BLEAD_FINDMY_START",
@@ -247,7 +250,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "location_searching",
-                defaultParams = mapOf("campaign" to 2, "hz" to 15)
+                defaultParams = mapOf("campaign" to "findmy", "hz" to 15)
             ),
             Script(
                 id = "BLEAD_HOMEKIT_START",
@@ -258,7 +261,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 action = "start",
                 requiresAuditUnlock = true,
                 icon = "home",
-                defaultParams = mapOf("campaign" to 3, "hz" to 15)
+                defaultParams = mapOf("campaign" to "homekit", "hz" to 15)
             ),
             Script(
                 id = "BLEAD_CUSTOM_HEX_START",
@@ -268,7 +271,7 @@ class BuiltInScriptRepository : ScriptRepository {
                 pluginId = "ble_ad_spam",
                 action = "start",
                 requiresAuditUnlock = true,
-                defaultParams = mapOf("campaign" to 4, "hz" to 10,
+                defaultParams = mapOf("campaign" to "custom", "hz" to 10,
                     "custom_hex" to "0201060303AAFE1616AAFE10EE01424243"),
                 parameters = listOf(
                     ScriptParameter("custom_hex", "ADV data HEX (0..62 chars)", "text",

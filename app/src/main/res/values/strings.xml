@@ -19,7 +19,7 @@
     <string name="nav_scripts">SCRIPTS</string>
     <string name="nav_ai">AI</string>
     <string name="nav_tools">Tools</string>
-    <string name="topbar_subtitle">Xibalba // TEH-Link · T-Embed CC1101</string>
+    <string name="topbar_subtitle">Xibalba Maya // TEH-Link · T-Embed CC1101</string>
     <string name="status_offline">OFFLINE</string>
     <string name="status_sync">SYNC…</string>
     <string name="status_link_ok">LINK OK</string>
@@ -40,7 +40,7 @@
 
     <!-- Onboarding legal -->
     <string name="onboard_connect_title">CONECTAR T-EMBED</string>
-    <string name="onboard_connect_body">Conecta el T-Embed CC1101 Plus por USB OTG.\nLa app usa TEH-Link (firmware Xibalba) para control total del device.\nLong-press en el botón lateral (GPIO6) antes del primer pairing.\n\nWiFi/BLE: funciones del teléfono; OTA Xibalba siempre por USB.</string>
+    <string name="onboard_connect_body">Conecta el T-Embed CC1101 Plus por USB OTG.\nLa app usa TEH-Link v3 con firmware Xibalba-0.19 (runtime Bruce).\nLong-press GPIO6 (o ventana auto al boot) antes del primer pairing.\n\nWiFi/BLE en la app: funciones del teléfono; OTA Xibalba siempre por USB.</string>
     <string name="onboard_capture_title">CAPTURAR SEÑAL</string>
     <string name="onboard_capture_body">Ve a RF → CAPTURAR RAW.\nEl CC1101 escuchará 433.92 MHz.\nLas señales se guardan con GPS si activas ubicación.</string>
     <string name="onboard_library_title">BIBLIOTECA &amp; REPLAY</string>
@@ -82,7 +82,7 @@
     <string name="settings_auto_reconnect">Auto-reconexión</string>
     <string name="settings_default_transport">Transporte por defecto</string>
     <string name="settings_firmware_profile">Firmware del dispositivo</string>
-    <string name="settings_firmware_profile_sub">Xibalba + TEH-Link es el modo oficial para T-Embed CC1101 Plus</string>
+    <string name="settings_firmware_profile_sub">Xibalba-0.19 Maya (Bruce + TEH-Link) es el modo oficial para T-Embed CC1101 Plus</string>
     <string name="settings_firmware_profile_xibalba_recommended">Recomendado para T-Embed CC1101 Plus con firmware Xibalba</string>
     <string name="settings_firmware_detected">Detectado: %1$s</string>
     <string name="settings_system">SISTEMA</string>
@@ -102,17 +102,17 @@
 
     <!-- Hardware bring-up (Xibalba Day 1) -->
     <string name="hardware_bringup_title">GUÍA DÍA 1 · HARDWARE</string>
-    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba v0.18.0 Iron Shield</string>
+    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba-0.19.0 Maya (Bruce)</string>
     <string name="hardware_bringup_flash_header">1 · FLASHEAR FIRMWARE</string>
-    <string name="hardware_bringup_flash_body">• Map &amp; Tools → Firmware → v0.18.0 Iron Shield ★\n• OTA TEH-Link (USB) o Flash USB (bootloader)\n• Si GitHub no responde: importa te-embed-xibalba.bin custom\n• Verifica boot splash LVGL + SHA256 en OTA\n• Si ves flags SIM en Dashboard, re-flashea perfil CC1101 Plus real</string>
+    <string name="hardware_bringup_flash_body">• Map &amp; Tools → Firmware → Xibalba-0.19.0 Maya ★\n• OTA TEH-Link (USB) o Flash USB (binario merged @ 0x0)\n• Repo: GIOSANBLAS/xibalba-bruce · asset xibalba-t-embed-cc1101.bin\n• Boot: animación Xibalba (pirámide Maya) + UI español\n• Si ves flags SIM en Dashboard, re-flashea el perfil CC1101 Plus real</string>
     <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
-    <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
+    <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s — o ventana auto al boot sin token\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
     <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
-    <string name="hardware_bringup_checklist_body">□ Dashboard: LINK verde, firmware v0.18.0+\n□ ping / get_info sin flags SIM\n□ Captura Sub-GHz TEH-Link (RX 15 s)\n□ WiFi scan + Wardriving (GPS teléfono)\n□ NFC / IR si capabilities lo permiten\n□ Modo Auditoría ON para tools ofensivas\n□ OTA: no debe ofrecer downgrade</string>
-    <string name="hardware_bringup_test_log">ABRIR HARDWARE_TEST_LOG.md</string>
-    <string name="hardware_bringup_test_log_sub">Registro de pruebas en GitHub (te-embed-xibalba)</string>
+    <string name="hardware_bringup_checklist_body">□ Dashboard: LINK verde, firmware Xibalba-0.19.0+\n□ ping / get_info (product T-Embed Xibalba, proto teh-link)\n□ Captura Sub-GHz TEH-Link (RX 15 s)\n□ WiFi scan + Wardriving (GPS teléfono)\n□ NFC / IR en dispositivo o vía TEH-Link según capabilities\n□ Tools ofensivas: preferir menú del T-Embed si la acción remota es parcial\n□ OTA: no debe ofrecer downgrade a ESP-IDF legacy</string>
+    <string name="hardware_bringup_test_log">ABRIR DOCS HARDWARE</string>
+    <string name="hardware_bringup_test_log_sub">Registro / guía en GitHub (xibalba-bruce + EmbedSuite)</string>
     <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>
-    <string name="settings_hardware_bringup_sub">Flash v0.18.0 Iron Shield, pairing GPIO6, checklist CC1101 Plus</string>
+    <string name="settings_hardware_bringup_sub">Flash Xibalba-0.19.0 Maya, pairing GPIO6, checklist CC1101 Plus</string>
     <string name="dash_hardware_bringup">Guía hardware Día 1 →</string>
 
     <!-- Dashboard -->
@@ -120,7 +120,7 @@
     <string name="dash_ota_title_xibalba">ACTUALIZACIÓN XIBALBA DISPONIBLE</string>
     <string name="dash_ota_body">Device: %1$s → Latest: %2$s</string>
     <string name="dash_ota_action">Ir a Tools → Flash</string>
-    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba v0.18.0 Iron Shield (perfil CC1101 Plus real).</string>
+    <string name="plus_compat_sim_warning">⚠ Build en modo SIMULACIÓN: %1$s. Flashea Xibalba-0.19.0 Maya (xibalba-bruce, perfil CC1101 Plus real).</string>
     <string name="plus_compat_subghz_xibalba_hint">Modo Xibalba (USB): captura TEH-Link y TX/replay listos. Espectro/waterfall en vivo aún no expuesto por el firmware — usa el menú Sub-GHz del T-Embed si lo necesitas.</string>
     <string name="plus_compat_subghz_header_xibalba">XIBALBA TEH-LINK · CC1101 PLUS</string>
     <string name="subghz_freq_local_hint">Frecuencia guardada en la app. Ajusta también la frecuencia en el menú Sub-GHz del T-Embed si hace falta.</string>
@@ -230,7 +230,7 @@
     <string name="firmware_section_official_xibalba">XIBALBA OFICIAL</string>
     <string name="firmware_section_custom_bin">CUSTOM .bin — CC1101 Plus</string>
     <string name="firmware_recommended">RECOMENDADO</string>
-    <string name="firmware_recommended_reason_xibalba">v0.18.0 Iron Shield — TEH-Link v3, Evil Portal, Beacon Spam, Modo Auditoría y 5 plugins ofensivos para CC1101 Plus.</string>
+    <string name="firmware_recommended_reason_xibalba">Xibalba-0.19.0 Maya — runtime Bruce + TEH-Link v3 USB, UI español Maya/cyber y simbiosis EmbedSuite para CC1101 Plus.</string>
     <string name="firmware_fetch_xibalba">BUSCAR FIRMWARE XIBALBA</string>
     <string name="firmware_available">Disponibles</string>
     <string name="firmware_pick_custom">ELEGIR .bin CUSTOM</string>

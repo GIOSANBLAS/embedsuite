@@ -1,6 +1,6 @@
 # 🏗️ EmbedSuite — Documentación Técnica / Arquitectura
 
-**EmbedSuite v4.4.0 · Firmware Xibalba (TEH-Link v3) · GIOSÁNBLAS**
+**EmbedSuite v4.5.0 · Firmware Xibalba-0.19.0 Maya (Bruce + TEH-Link v3) · GIOSÁNBLAS**
 
 Este documento describe la arquitectura de la app Android **EmbedSuite**, su integración con el firmware **Xibalba** del T-Embed CC1101 Plus, el protocolo **TEH-Link v3** y el flujo de detección de firmwares.
 
@@ -25,10 +25,11 @@ Este documento describe la arquitectura de la app Android **EmbedSuite**, su int
                                │ TEH-Link v3 (NDJSON)
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              FIRMWARE XIBALBA (T-Embed CC1101 Plus)             │
+│     FIRMWARE XIBALBA-0.19.0 MAYA (T-Embed CC1101 Plus)          │
+│     Runtime Bruce + parche TEH-Link · UI español Maya/cyber     │
 │  ┌────────────┐  ┌────────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │ plugin_mgr │  │  teh_link  │  │  evil_   │  │  subghz/wi- │  │
-│  │  (gating)  │  │  (v3 API)  │  │  portal  │  │  fi/nfc/ir  │  │
+│  │ plugin_mgr │  │  teh_link  │  │  Bruce   │  │  subghz/wi- │  │
+│  │  (gating)  │  │  (v3 API)  │  │  menus   │  │  fi/nfc/ir  │  │
 │  └────────────┘  └────────────┘  └──────────┘  └─────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -138,8 +139,8 @@ El firmware emite eventos NDJSON que la app parsea en `DeviceEvent`:
 
 1. Al conectar un transporte, se ejecuta `detectFirmwareProfile(transport)`.
 2. Se envía `ping` TEH-Link.
-3. Si responde → `FirmwareProfile.XIBALBA`.
-4. Si no → `FirmwareProfile.UNKNOWN` (Bruce / VARSYS sin TEH-Link).
+3. Si responde con protocolo TEH-Link → `FirmwareProfile.XIBALBA`.
+4. Si no responde → `FirmwareProfile.UNKNOWN`.
 
 ```kotlin
 private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareProfile {
@@ -150,10 +151,12 @@ private suspend fun detectFirmwareProfile(transport: TEmbedTransport): FirmwareP
 
 ### Perfiles soportados
 
-| Perfil | TEH-Link | Uso |
-|--------|----------|-----|
-| `XIBALBA` | ✅ | Funcionalidad completa (dashboard, RF, plugins, OTA) |
-| `UNKNOWN` | ❌ | Bruce / VARSYS — solo escaneo del teléfono |
+| Perfil | Condición | TEH-Link | Uso |
+|--------|-----------|----------|-----|
+| **`XIBALBA`** | Xibalba-0.19.0 Maya (Bruce runtime + TEH-Link v3) o legacy ESP-IDF con TEH-Link | ✅ | Simbiosis completa: dashboard, RF, plugins, OTA, hardening |
+| **`UNKNOWN`** | **Stock Bruce** sin parche TEH-Link, o VARSYS / otro firmware sin `ping` TEH-Link | ❌ | Solo escaneo del teléfono; flashear `xibalba-t-embed-cc1101.bin` para simbiosis |
+
+> **Importante:** El runtime oficial **Xibalba-0.19.0 Maya** ([GIOSANBLAS/xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce)) es **Bruce + TEH-Link v3**, no ESP-IDF. La UI del dispositivo está **100 % en español** (tema Maya/cyber). El legacy **v0.18.0 Iron Shield** (te-embed-xibalba, ESP-IDF) sigue siendo perfil XIBALBA si responde TEH-Link, pero queda como rollback — la app recomienda v0.19.0.
 
 ---
 
@@ -210,6 +213,8 @@ TehLinkActionPolicy.validate(pluginId, action).getOrElse {
 4. Si `sha256Verified == true` → UI muestra ✅ VERIFIED.
 5. Si no → **NO reinicies**, flashea por USB.
 
+**Firmware recomendado:** `xibalba-t-embed-cc1101.bin` desde [xibalba-bruce v0.19.0](https://github.com/GIOSANBLAS/xibalba-bruce/releases/tag/v0.19.0), merged @ 0x0. SHA256 catálogo: `f19a06cb8491edbe7c267f03a91be1649e0ed4dc214da102995cf6325c9f58c9`.
+
 ---
 
 ## 7. Seguridad
@@ -237,4 +242,4 @@ TehLinkActionPolicy.validate(pluginId, action).getOrElse {
 
 ---
 
-*Documentación técnica v4.4.0 · EmbedSuite · GIOSÁNBLAS*
+*Documentación técnica v4.5.0 · EmbedSuite · GIOSÁNBLAS*

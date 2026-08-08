@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EMBED SUITE 4.4.0 — Manual Xibalba / TEH-Link</title>
+  <title>EMBED SUITE 4.5.0 — Manual Xibalba / TEH-Link</title>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -82,13 +82,14 @@
 </head>
 <body>
 
-<h1>EMBED SUITE 4.4.0</h1>
-<p class="sub">Xibalba Native · T-Embed CC1101 Plus · Protocolo TEH-Link v3 (JSON NDJSON por USB CDC)</p>
+<h1>EMBED SUITE 4.5.0</h1>
+<p class="sub">Xibalba-0.19.0 Maya · Bruce + TEH-Link v3 · T-Embed CC1101 Plus · UI dispositivo en español</p>
 
 <div class="card">
-  <p><strong>Hardware:</strong> LilyGO T-Embed CC1101 Plus con firmware <strong>te-embed-xibalba</strong>.</p>
+  <p><strong>Hardware:</strong> LilyGO T-Embed CC1101 Plus con firmware <strong>Xibalba-0.19.0 Maya</strong> (<a href="https://github.com/GIOSANBLAS/xibalba-bruce">xibalba-bruce</a>).</p>
+  <p><strong>Binario:</strong> <code>xibalba-t-embed-cc1101.bin</code> merged @ 0x0.</p>
   <p><strong>Conexión:</strong> <strong>USB OTG (recomendado y prioritario)</strong>. WiFi/BLE TEH-Link son experimentales. Emparejamiento: mantén pulsado el botón lateral ~2 s (ventana 120 s).</p>
-  <p><strong>Multi-firmware:</strong> detección automática de Xibalba / Bruce / VARSYS al conectar.</p>
+  <p><strong>Multi-firmware:</strong> <strong>XIBALBA</strong> si responde TEH-Link (Bruce + parche); <strong>UNKNOWN</strong> si es stock Bruce sin TEH-Link.</p>
   <p class="warn">Uso RF/IR/NFC solo en entornos autorizados. Eres responsable del cumplimiento legal.</p>
 </div>
 
@@ -167,10 +168,13 @@
 
 <h2>11. Firmware Flash</h2>
 <div class="card">
-  <h3>Sección Xibalba oficial <span class="badge">RECOMENDADO</span></h3>
-  <p>Buscar releases GitHub → OTA USB (TEH-Link) o USB Flash con bootloader.</p>
+  <h3>Xibalba-0.19.0 Maya <span class="badge">RECOMENDADO</span></h3>
+  <p>Repo: <strong>GIOSANBLAS/xibalba-bruce</strong> · Asset: <code>xibalba-t-embed-cc1101.bin</code> merged @ 0x0.</p>
+  <p>Buscar releases GitHub → OTA USB (TEH-Link) o USB Flash con bootloader (Encoder + RST).</p>
   <p>Tras una OTA correcta, la app confirma si el dispositivo marcó <code>sha256_verified=true</code>.</p>
-  <h3>Sección Custom .bin</h3>
+  <h3>Legacy v0.18.0 Iron Shield</h3>
+  <p>Repo te-embed-xibalba (ESP-IDF) — solo rollback explícito, no recomendado.</p>
+  <h3>Custom .bin</h3>
   <p>Solo USB Flash. Requiere aceptar disclaimer. Riesgo de brick.</p>
 </div>
 
@@ -187,13 +191,14 @@
 <table>
   <tr><th>Síntoma</th><th>Acción</th></tr>
   <tr><td>OFFLINE / timeout</td><td>Reconectar USB; Re-emparejar TEH-Link (long-press GPIO6); revisar Link Debug</td></tr>
+  <tr><td>Perfil UNKNOWN</td><td>Flashea Xibalba-0.19.0 Maya (xibalba-bruce) — stock Bruce no tiene TEH-Link</td></tr>
   <tr><td>OTA falla</td><td>Verificar emparejamiento; cable USB datos; espacio flash; reintentar o USB Flash</td></tr>
   <tr><td>TX bloqueado</td><td>Confirmar USB conectado; token anti-broadcast en widget; <code>confirm:true</code> en subghz_tx</td></tr>
   <tr><td>Plugin no disponible</td><td>Firmware sin CC1101 real → modo simulación; revisar <code>get_status</code> capabilities</td></tr>
   <tr><td>Herramienta ofensiva bloqueada</td><td>Activar Modo Auditoría en Ajustes → Seguridad</td></tr>
 </table>
 
-<p class="sub" style="margin-top:24px">EMBED SUITE 4.4.0 · Xibalba Native · USB OTG prioritario · GIOSÁNBLAS</p>
+<p class="sub" style="margin-top:24px">EMBED SUITE 4.5.0 · Xibalba-0.19.0 Maya · Bruce + TEH-Link · USB OTG prioritario · GIOSÁNBLAS</p>
 
 </body>
 </html>

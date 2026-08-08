@@ -104,9 +104,9 @@ class ScriptExplorerViewModel(
             }
             return
         }
-        if (script.requiresAuditUnlock && appPreferences.auditModeEnabled.value) {
+        if (script.requiresAuditUnlock && !appPreferences.auditModeEnabled.value) {
             _runningScripts.value = _runningScripts.value.toMutableMap().apply {
-                put(script.id, ScriptRunState.Blocked("Modo Auditoría bloquea ${script.category.label}"))
+                put(script.id, ScriptRunState.Blocked("Activa Modo Auditoría en Ajustes → Seguridad"))
             }
             return
         }
@@ -124,7 +124,7 @@ class ScriptExplorerViewModel(
                 put(script.id, r.fold(
                     onSuccess = { res ->
                         val s: TehLinkActionState = res.state
-                        val dataJson = org.json.JSONObject().apply {
+                        val dataJson = JSONObject().apply {
                             put("state", s.state)
                             put("progress", s.progress)
                             put("message", s.message)

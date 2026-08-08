@@ -665,7 +665,7 @@ class DeviceConnectionManager(
         )
     }
 
-    // ===== XIBALBA v0.18.0: Evil Portal =====
+    // ===== XIBALBA v0.19+ (Evil Portal API) =====
     suspend fun tehLinkRunEvilPortalStart(
         ssid: String,
         templateId: String = "generic",
@@ -704,7 +704,7 @@ class DeviceConnectionManager(
         return tehLinkRunAction(pluginId = "evil_portal", action = "status")
     }
 
-    // ===== XIBALBA v0.18.0: Beacon Spam =====
+    // ===== XIBALBA v0.19+ (Beacon Spam API) =====
     suspend fun tehLinkRunBeaconSpamStart(
         spec: String = "random:50",
         hz: Int = 10,

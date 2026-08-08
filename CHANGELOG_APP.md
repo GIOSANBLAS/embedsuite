@@ -1,5 +1,24 @@
 # EmbedSuite · Changelog App Android
 
+## v4.5.0 — Resync Xibalba-0.19.0 Maya (Bruce runtime + TEH-Link v3)
+> 📅 2026-08-08 · Alineación completa con firmware [GIOSANBLAS/xibalba-bruce](https://github.com/GIOSANBLAS/xibalba-bruce) v0.19.0 Maya: runtime Bruce, TEH-Link v3 USB, UI español en dispositivo.
+
+### 🔄 Firmware & catálogo
+- **Recomendado:** Xibalba-0.19.0 Maya — `xibalba-t-embed-cc1101.bin` merged @ 0x0 desde xibalba-bruce.
+- **Legacy rollback:** v0.18.0 Iron Shield (te-embed-xibalba, ESP-IDF) — marcado prerelease, no recomendado.
+- **Perfil XIBALBA:** Bruce + TEH-Link responde `ping` / `get_info`; stock Bruce sin TEH-Link → perfil UNKNOWN.
+- Catálogo embebido, `FirmwareRepository` GitHub API y assets apuntan a xibalba-bruce como fuente primaria.
+
+### 📚 Documentación
+- README, GUIA_DIA_1, GUIA_HARDWARE, ARCHITECTURE, BUILD_INSTRUCTIONS, MANUAL_USUARIO y manuales HTML actualizados a v4.5.0 / v0.19.0 Maya.
+- Strings ES/EN/PT-BR y Hardware Bringup alineados con UI español del T-Embed.
+
+### 🏗 Build
+- `versionCode`: 32 → **33**
+- `versionName`: "4.4.0" → **"4.5.0"**
+
+---
+
 ## v4.4.0 — Offensive Toolkit: BLE Spam, WiFi Deauth+Probe, Mousejack, SubGHz Spectrum & NFC Clone
 > 📅 2026-08-06 · Integración de las 5 herramientas ofensivas top con firmware
 > Xibalba (TEH-Link v3 streaming NDJSON) y Modo Auditoría con gating por plugin.

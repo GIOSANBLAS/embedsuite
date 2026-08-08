@@ -119,7 +119,7 @@ data class TehLinkOtaStatus(
     val hasError: Boolean get() = state.equals("error", true) || state.equals("mismatch", true)
 }
 
-/** Estado Evil Portal (Xibalba v0.18.0+). */
+/** Estado Evil Portal (Xibalba v0.19+). */
 data class TehLinkEvilPortalStatus(
     val running: Boolean = false,
     val ssid: String = "",
@@ -144,7 +144,7 @@ data class TehLinkEvilPortalStatus(
     }
 }
 
-/** Estado Beacon Spam (Xibalba v0.18.0+). */
+/** Estado Beacon Spam (Xibalba v0.19+). */
 data class TehLinkBeaconSpamStatus(
     val running: Boolean = false,
     val spec: String = "",
@@ -184,9 +184,9 @@ data class TehLinkActionState(
     val ir: TehLinkIrResult? = null,
     val ota: TehLinkOtaStatus? = null,
     val soak: TehLinkSoakResult? = null,
-    /** Estado Evil Portal (Xibalba v0.18.0+). */
+    /** Estado Evil Portal (Xibalba v0.19+). */
     val evilPortal: TehLinkEvilPortalStatus? = null,
-    /** Estado Beacon Spam (Xibalba v0.18.0+). */
+    /** Estado Beacon Spam (Xibalba v0.19+). */
     val beaconSpam: TehLinkBeaconSpamStatus? = null
 )
 
@@ -196,11 +196,11 @@ data class TehLinkActionResult(
     val state: TehLinkActionState,
     val rawResponse: JSONObject? = null
 ) {
-    /** Helper para acceder rápido al estado Evil Portal (Xibalba v0.18.0+). */
+    /** Helper para acceder rápido al estado Evil Portal (Xibalba v0.19+). */
     val evilPortalStatus: TehLinkEvilPortalStatus?
         get() = state.evilPortal
     
-    /** Helper para acceder rápido al estado Beacon Spam (Xibalba v0.18.0+). */
+    /** Helper para acceder rápido al estado Beacon Spam (Xibalba v0.19+). */
     val beaconSpamStatus: TehLinkBeaconSpamStatus?
         get() = state.beaconSpam
 }

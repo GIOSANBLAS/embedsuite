@@ -265,7 +265,7 @@ class TehLinkClient(
         )
     }
 
-    // ===== XIBALBA v0.18.0: Evil Portal =====
+    // ===== XIBALBA v0.19+ (Evil Portal API) =====
     suspend fun runEvilPortalStart(
         transport: TEmbedTransport,
         ssid: String,
@@ -295,7 +295,7 @@ class TehLinkClient(
         return runAction(transport, "evil_portal", "status")
     }
 
-    // ===== XIBALBA v0.18.0: Beacon Spam =====
+    // ===== XIBALBA v0.19+ (Beacon Spam API) =====
     suspend fun runBeaconSpamStart(
         transport: TEmbedTransport,
         spec: String = "random:50",

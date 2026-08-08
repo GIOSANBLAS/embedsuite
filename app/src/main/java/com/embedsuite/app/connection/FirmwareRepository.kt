@@ -126,7 +126,7 @@ class FirmwareRepository(
     suspend fun fetchXibalbaReleases(): Result<List<FirmwareRelease>> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
-                .url("https://api.github.com/repos/GIOSANBLAS/te-embed-xibalba/releases?per_page=10")
+                .url("https://api.github.com/repos/GIOSANBLAS/xibalba-bruce/releases?per_page=10")
                 .withGithubAuth()
                 .build()
 
@@ -165,7 +165,9 @@ class FirmwareRepository(
                         
                         if (fileName.endsWith(".bin", ignoreCase = true) &&
                             (fileName.contains("xibalba", ignoreCase = true) ||
-                                fileName.contains("te-embed", ignoreCase = true))
+                                fileName.contains("te-embed", ignoreCase = true) ||
+                                fileName.contains("bruce", ignoreCase = true) ||
+                                fileName.contains("lilygo-t-embed", ignoreCase = true))
                         ) {
                             // Buscar SHA256 con regex flexible
                             val sha256 = Regex("""SHA256:\s*([0-9a-fA-F]{64})""", RegexOption.IGNORE_CASE)
@@ -208,7 +210,7 @@ class FirmwareRepository(
                 }
                 
                 if (results.isEmpty()) {
-                    android.util.Log.w("FirmwareRepository", "No valid releases from GitHub, using embedded catalog v0.18.0")
+                    android.util.Log.w("FirmwareRepository", "No valid releases from GitHub, using embedded catalog Xibalba-0.19.0")
                     Result.success(FirmwareCatalog.fallbackReleases())
                 } else {
                     Result.success(FirmwareCatalog.mergeWithEmbedded(results))

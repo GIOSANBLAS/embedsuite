@@ -53,6 +53,18 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_MOCK_TRANSPORT, false)
         set(value) = prefs.edit().putBoolean(KEY_MOCK_TRANSPORT, value).apply()
 
+    /**
+     * Fuerza perfil hardware real (LilyGO T-Embed CC1101 Plus + Xibalba vía USB).
+     * @return true si se desactivó mock transport (requiere re-emparejar TEH-Link).
+     */
+    fun ensureRealHardwareMode(): Boolean {
+        val hadMock = useMockTransport
+        useMockTransport = false
+        setDefaultTransport(TransportType.USB)
+        setFirmwareProfile(FirmwareProfile.XIBALBA)
+        return hadMock
+    }
+
     var fieldKeepScreenOn: Boolean
         get() = prefs.getBoolean(KEY_FIELD_SCREEN, false)
         set(value) = prefs.edit().putBoolean(KEY_FIELD_SCREEN, value).apply()

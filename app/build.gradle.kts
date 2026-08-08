@@ -24,8 +24,8 @@ android {
         applicationId = "com.embedsuite.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "4.4.0"
+        versionCode = 33
+        versionName = "4.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -58,7 +58,7 @@ android {
             }
         }
         debug {
-            buildConfigField("boolean", "ENABLE_MOCK_TRANSPORT", "true")
+            buildConfigField("boolean", "ENABLE_MOCK_TRANSPORT", "false")
         }
     }
     compileOptions {

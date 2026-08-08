@@ -788,7 +788,7 @@ class MockTransport(
         private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
 
         val defaultResponses = mapOf(
-            "info" to "Xibalba v0.18.0 Iron Shield | CC1101 | Free heap: 120000",
+            "info" to "Xibalba-0.19.0 Maya | CC1101 | TEH-Link v3 | Free heap: 120000",
             "free" to "Heap: 118432 bytes",
             "uptime" to "Uptime: 01:23:45",
             "subghz" to "Sub-GHz menu",

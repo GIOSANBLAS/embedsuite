@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LilyGO T-Embed / ESP32-S3 — Espressif USB (JTAG, CDC, bootloader) -->
+<resources>
+    <usb-device vendor-id="12346" />
+    <!-- 0x303A = 12346 decimal -->
+</resources>

@@ -45,7 +45,7 @@ class FieldOperationService : Service() {
         val sessionName = FieldOperationManager.sessionName.ifBlank { "Campo" }
         FieldOperationManager.markSessionStarted(sessionName, freq)
 
-        val mgr = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mgr.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, "Operación de campo", NotificationManager.IMPORTANCE_LOW)
@@ -53,7 +53,7 @@ class FieldOperationService : Service() {
         }
         startForeground(NOTIFICATION_ID, buildNotification("EMBED // $sessionName @ $freq MHz"))
 
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "embed:field").apply {
             acquire(4 * 60 * 60 * 1000L)
         }

@@ -67,7 +67,7 @@ fun SplashScreen(onFinished: () -> Unit) {
                 letterSpacing = 3.sp
             )
             Text(
-                "XIBALBA SYMBIOSIS // T-EMBED CC1101 PLUS",
+                "XIBALBA MAYA // BRUCE + TEH-LINK v3",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp,
                 color = KaliBlue

@@ -21,6 +21,8 @@ object HumanErrorMapper {
                 "Ventana de emparejamiento cerrada. Repite el gesto de emparejamiento en el hardware."
             lower.contains("not connected") || lower.contains("offline") ->
                 "Sin enlace activo. Conecta por USB o WiFi TEH-Link."
+            lower.contains("teh-link solo disponible") || lower.contains("solo disponible con t-embed xibalba") ->
+                "El perfil no es Xibalba (o se perdió tras reconectar). Pulsa Conectar, espera LINK verde y reintenta."
             lower.contains("invalid workflow") || lower.contains("workflow") && lower.contains("invalid") ->
                 "El archivo .ewf no es un workflow válido."
             else -> raw

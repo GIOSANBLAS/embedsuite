@@ -333,6 +333,7 @@ class DeviceConnectionManager(
         activeTransport is UsbTransport && _connectionState.value is ConnectionState.Connected
 
     suspend fun sendTehLinkRaw(json: String): Result<String> {
+        ensureXibalbaProfile()
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }
@@ -353,6 +354,18 @@ class DeviceConnectionManager(
             }
         } catch (_: TimeoutCancellationException) {
             Result.failure(Exception("Timeout TEH-Link: sin respuesta."))
+        }
+    }
+
+    /** Si hay transporte pero el perfil quedó UNKNOWN (p. ej. tras Autopilot/reconnect), re-detecta con ping. */
+    private suspend fun ensureXibalbaProfile() {
+        if (_detectedProfile.value == FirmwareProfile.XIBALBA) return
+        val transport = activeTransport ?: return
+        if (_connectionState.value !is ConnectionState.Connected) return
+        val profile = detectFirmwareProfile(transport)
+        _detectedProfile.value = profile
+        if (profile == FirmwareProfile.XIBALBA) {
+            _events.tryEmit(DeviceEvent.RawLine("[perfil] re-detectado XIBALBA vía ping"))
         }
     }
 
@@ -521,6 +534,7 @@ class DeviceConnectionManager(
             return Result.failure(it)
         }
         val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        ensureXibalbaProfile()
         if (_detectedProfile.value != FirmwareProfile.XIBALBA) {
             return Result.failure(Exception("TEH-Link solo disponible con T-Embed Xibalba."))
         }

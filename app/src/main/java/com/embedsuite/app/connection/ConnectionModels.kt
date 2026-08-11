@@ -75,7 +75,13 @@ sealed class DeviceEvent {
         val bestRssi: Int,
         val frames: Long
     ) : DeviceEvent()
-    data class SubGhzSample(val freqMhz: Double, val rssi: Int) : DeviceEvent()
+    data class SubGhzSample(
+        val freqMhz: Double,
+        val rssi: Int,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
+        val timestampMs: Long = System.currentTimeMillis()
+    ) : DeviceEvent()
     data class SubGhzDecodedFrame(
         val proto: String,
         val decoded: String,

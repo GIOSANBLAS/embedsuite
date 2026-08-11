@@ -13,7 +13,13 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 
-data class SpectrumSample(val freqMhz: Double, val rssi: Int, val tMs: Long = System.currentTimeMillis())
+data class SpectrumSample(
+    val freqMhz: Double,
+    val rssi: Int,
+    val tMs: Long = System.currentTimeMillis(),
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)
 data class DecodedFrame(
     val proto: String, val decoded: String, val rssi: Int, val freqMhz: Double,
     val seen: Long, val tMs: Long = System.currentTimeMillis()
@@ -51,7 +57,7 @@ class SpectrumViewModel(
                     is DeviceEvent.SubGhzSample -> {
                         val cur = _samples.value.toMutableList()
                         if (cur.size > 4096) cur.subList(0, cur.size - 4096).clear()
-                        cur += SpectrumSample(ev.freqMhz, ev.rssi)
+                        cur += SpectrumSample(ev.freqMhz, ev.rssi, ev.timestampMs, ev.latitude, ev.longitude)
                         _samples.value = cur
                     }
                     is DeviceEvent.SubGhzDecodedFrame -> {
@@ -179,9 +185,9 @@ class SpectrumViewModel(
             val app = getApplication<Application>()
             app.contentResolver.openOutputStream(uri)?.use { os ->
                 OutputStreamWriter(os).use { w ->
-                    w.write("timestamp_ms,freq_mhz,rssi_dbm\n")
+                    w.write("timestamp_ms,freq_mhz,rssi_dbm,latitude,longitude\n")
                     _samples.value.forEach { s ->
-                        w.append("${s.tMs},${s.freqMhz},${s.rssi}\n")
+                        w.append("${s.tMs},${s.freqMhz},${s.rssi},${s.latitude ?: ""},${s.longitude ?: ""}\n")
                     }
                 }
             }

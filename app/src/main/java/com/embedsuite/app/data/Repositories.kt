@@ -46,6 +46,31 @@ class SignalRepository(private val dao: CapturedSignalDao) {
         )
     }
 
+    /** Muestra de barrido CC1101 (`rf.scan.sample`) geotagged con GPS Android. */
+    suspend fun saveRfScanSample(
+        freqMhz: Double,
+        rssi: Int,
+        latitude: Double?,
+        longitude: Double?,
+        timestampMs: Long = System.currentTimeMillis()
+    ): Long {
+        return dao.insert(
+            CapturedSignalEntity(
+                timestamp = timestampMs,
+                signalType = "RF_SCAN",
+                name = "scan",
+                label = "RSSI sweep",
+                tags = "rf.scan",
+                frequency = "%.3f".format(freqMhz),
+                protocol = "RSSI",
+                rssi = rssi,
+                latitude = latitude,
+                longitude = longitude,
+                detail = "$rssi dBm"
+            )
+        )
+    }
+
     suspend fun saveFromDecodedLine(line: String, latitude: Double?, longitude: Double?) {
         val decoded = RfProtocolDecoder.decode(line) ?: return
         dao.insert(

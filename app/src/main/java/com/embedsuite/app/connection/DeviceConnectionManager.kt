@@ -111,6 +111,9 @@ class DeviceConnectionManager(
 
     private val _incomingRaw = MutableSharedFlow<String>(extraBufferCapacity = 256)
 
+    @Volatile
+    private var lastScanSamplePersistMs = 0L
+
     val mappedSignals: Flow<List<CapturedSignalEntity>> =
         signalRepository?.mappedSignals ?: flowOf(emptyList())
 
@@ -803,6 +806,9 @@ class DeviceConnectionManager(
         maxHz: Int = 25
     ): Result<JSONObject> {
         val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        // GPS híbrido: Android aporta posición; time.sync ya alinea el reloj del T-Embed
+        runCatching { locationTracker?.startTracking() }
+        scope.launch { syncTimeWithDevice() }
         return tehLinkClient.rfScanStart(
             transport, freqStart, freqEnd, step, rssiThreshold, dwellMs, maxHz
         ).onSuccess {
@@ -1218,7 +1224,15 @@ class DeviceConnectionManager(
                 val freq = data.optDouble("freq_mhz", Double.NaN)
                 val rssi = data.optInt("rssi", Int.MIN_VALUE)
                 if (!freq.isNaN() && rssi != Int.MIN_VALUE) {
-                    _events.tryEmit(DeviceEvent.SubGhzSample(freq, rssi))
+                    val (lat, lng) = locationTracker?.currentLatLng() ?: (null to null)
+                    val ts = System.currentTimeMillis()
+                    _events.tryEmit(DeviceEvent.SubGhzSample(freq, rssi, lat, lng, ts))
+                    // Persistir muestras geotagged (throttle) para mapa / export KML
+                    if (lat != null && lng != null && shouldPersistScanSample(ts)) {
+                        scope.launch {
+                            signalRepository?.saveRfScanSample(freq, rssi, lat, lng, ts)
+                        }
+                    }
                 }
             }
             "rf.scan.stopped" -> {
@@ -1257,5 +1271,12 @@ class DeviceConnectionManager(
             "Para emparejar TEH-Link: mantén pulsado el botón lateral del T-Embed ~2 s (ventana 120 s), luego reconecta USB."
         private const val FREQ_LOCAL_HINT =
             "Frecuencia guardada en la app. Ajusta también la frecuencia en el menú Sub-GHz del T-Embed si hace falta."
+        private const val SCAN_SAMPLE_PERSIST_MIN_MS = 750L
+    }
+
+    private fun shouldPersistScanSample(nowMs: Long): Boolean {
+        if (nowMs - lastScanSamplePersistMs < SCAN_SAMPLE_PERSIST_MIN_MS) return false
+        lastScanSamplePersistMs = nowMs
+        return true
     }
 }

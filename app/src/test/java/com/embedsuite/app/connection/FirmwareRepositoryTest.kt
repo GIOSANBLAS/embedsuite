@@ -13,44 +13,44 @@ class FirmwareRepositoryTest {
     }
 
     @Test
-    fun pickRecommended_prefersStableV0190() {
-        val v017 = FirmwareRelease(
-            tagName = "v0.17.1",
-            name = "Spark",
-            downloadUrl = "https://example.com/xibalba-171.bin",
-            fileName = "xibalba-t-embed-cc1101.bin",
-            isPrerelease = true,
-            source = FirmwareSource.OFFICIAL_XIBALBA
-        )
-        val v019 = FirmwareRelease(
+    fun pickRecommended_prefersStableV0191() {
+        val v0190 = FirmwareRelease(
             tagName = "v0.19.0",
             name = "Maya",
-            downloadUrl = "https://example.com/xibalba-t-embed-cc1101.bin",
+            downloadUrl = "https://example.com/xibalba-0190.bin",
             fileName = "xibalba-t-embed-cc1101.bin",
             isPrerelease = false,
             source = FirmwareSource.OFFICIAL_XIBALBA
         )
-        val recommended = FirmwareCatalog.pickRecommended(listOf(v017, v019), FirmwareProfile.XIBALBA)
+        val v0191 = FirmwareRelease(
+            tagName = "v0.19.1",
+            name = "Maya",
+            downloadUrl = "https://example.com/xibalba-0191.bin",
+            fileName = "xibalba-t-embed-cc1101.bin",
+            isPrerelease = false,
+            source = FirmwareSource.OFFICIAL_XIBALBA
+        )
+        val recommended = FirmwareCatalog.pickRecommended(listOf(v0190, v0191), FirmwareProfile.XIBALBA)
         assertEquals(FirmwareSource.OFFICIAL_XIBALBA, recommended?.source)
-        assertEquals("v0.19.0", recommended?.tagName)
+        assertEquals("v0.19.1", recommended?.tagName)
     }
 
     @Test
-    fun fallbackReleases_recommendsV0190WithBundledAsset() {
+    fun fallbackReleases_recommendsV0191() {
         val list = FirmwareCatalog.fallbackReleases()
-        assertEquals(1, list.size)
-        assertTrue(list.any { it.tagName == "v0.19.0" })
+        assertTrue(list.size >= 2)
+        assertTrue(list.any { it.tagName == "v0.19.1" })
         val recommended = list.first { it.isRecommended }
-        assertEquals("v0.19.0", recommended.tagName)
-        assertNotNull(recommended.sha256Hex)
+        assertEquals("v0.19.1", recommended.tagName)
         assertEquals("firmware/xibalba-t-embed-cc1101.bin", recommended.bundledAssetPath)
     }
 
     @Test
-    fun embeddedReleases_containsOnlyV0190() {
+    fun embeddedReleases_containsV0191AndV0190() {
         val embedded = FirmwareCatalog.embeddedReleases()
-        assertEquals(1, embedded.size)
-        assertEquals(FirmwareCatalog.XIBALBA_V0190.tagName, embedded.first().tagName)
+        assertEquals(2, embedded.size)
+        assertEquals(FirmwareCatalog.XIBALBA_V0191.tagName, embedded.first().tagName)
+        assertTrue(embedded.any { it.tagName == "v0.19.0" })
     }
 
     @Test

@@ -47,7 +47,21 @@ object FirmwareCatalog {
 
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Runtime oficial actual: Bruce + TEH-Link v3 + UI ES Maya/cyber. */
+    /** Runtime en device ahora: Xibalba-0.19.1 Maya (TEH-Link v3, get_info). */
+    val XIBALBA_V0191: FirmwareRelease = FirmwareRelease(
+        tagName = "v0.19.1",
+        name = "Xibalba-0.19.1 Maya",
+        downloadUrl = "https://github.com/GIOSANBLAS/xibalba-bruce/releases/download/v0.19.1/xibalba-t-embed-cc1101.bin",
+        fileName = "xibalba-t-embed-cc1101.bin",
+        isPrerelease = false,
+        source = FirmwareSource.OFFICIAL_XIBALBA,
+        isRecommended = true,
+        description = "T-Embed Xibalba-0.19.1 Maya — runtime Bruce + TEH-Link v3 USB (sim flags HW reales, auth pair)",
+        sha256Hex = "cf26bd4333e1c87908bd3490553f04a76b9584768ddf8864987fe87cfe997f33",
+        bundledAssetPath = "firmware/xibalba-t-embed-cc1101.bin"
+    )
+
+    /** Runtime anterior estable en catálogo / release GitHub. */
     val XIBALBA_V0190: FirmwareRelease = FirmwareRelease(
         tagName = "v0.19.0",
         name = "Xibalba-0.19.0 Maya",
@@ -55,14 +69,14 @@ object FirmwareCatalog {
         fileName = "xibalba-t-embed-cc1101.bin",
         isPrerelease = false,
         source = FirmwareSource.OFFICIAL_XIBALBA,
-        isRecommended = true,
+        isRecommended = false,
         description = "T-Embed Xibalba-0.19.0 Maya — runtime Bruce + TEH-Link v3 USB, UI español, shell Maya/cyber EmbedSuite (merged @ 0x0)",
         sha256Hex = "f19a06cb8491edbe7c267f03a91be1649e0ed4dc214da102995cf6325c9f58c9",
         bundledAssetPath = "firmware/xibalba-t-embed-cc1101.bin"
     )
 
     /** Catálogo embebido — siempre disponible sin GitHub API (repo privado / sin red). */
-    fun embeddedReleases(): List<FirmwareRelease> = listOf(XIBALBA_V0190)
+    fun embeddedReleases(): List<FirmwareRelease> = listOf(XIBALBA_V0191, XIBALBA_V0190)
 
     fun fallbackReleases(): List<FirmwareRelease> =
         markRecommended(embeddedReleases(), FirmwareProfile.XIBALBA)

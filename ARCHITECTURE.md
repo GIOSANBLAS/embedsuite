@@ -120,12 +120,33 @@ One JSON object per line (NDJSON). Default baud: 115200 on USB CDC.
 | `get_status` | Battery, heap, SD, capabilities, coredump |
 | `get_screen` | Current device UI frame |
 | `list_actions` / `run_action` / `get_action_state` | Plugin execution |
-| `ota_begin` / `ota_chunk` / `ota_finish` / `ota_status` | USB OTA with SHA256 verify |
+| `ota_begin` / `ota_chunk` / `ota_finish` / `ota_status` | USB OTA with SHA256 verify (dual-slot OTA desde Xibalba 0.20) |
 | `clear_coredump` | Post-crash cleanup |
+| `time_sync` | Android epoch → device clock (shared RF+GPS timeline) |
+
+### 3.2.1 Extended plugins (Xibalba 0.20+)
+
+| Plugin | Actions | Description |
+|--------|---------|-------------|
+| `rf_scanner` | `start`/`stop`/`status` | Headless CC1101 RSSI sweep (freq_start/freq_end/step/rssi_threshold/dwell_ms) |
+| `rf_jammer` | `start`/`stop`/`status` | Headless jammer (continuous/burst) with safety cutoff |
+| `nfc_toolkit` | `read`/`reader_start`/`reader_stop`/`write`/`status` | Real headless PN532 (stub in 0.19) |
+| `sd_storage` | `mount`/`list`/`save`/`status` | Remote microSD; sessions under `/embedsuite/` |
+| `audio` | `beep`/`status` | NS4168 speaker (freq/duration) |
+| `device` | + `set_language`/`set_mode`/`power_status` | ES/EN, stealth mode, power state |
+
+App-side facade: `connection/XibalbaAdapter` + services in `services/`
+(NfcService, SdCardService, AudioService, IrService) + `scan/HybridLocationProvider`.
 
 ### 3.3 Streaming events
 
 Firmware emits NDJSON events parsed into `DeviceEvent`: `SubGhzSignal`, `WifiProbe`, `OtaCompleted`, `TehLinkNotice`, etc.
+
+Xibalba 0.20+ also emits unsolicited `{"type":"event","event":...,"ts":...,"data":{...}}`
+lines that `DeviceConnectionManager.handleStreamingEvent` maps to:
+`RfScanSample` (sweep), `RfScanStateChanged`, `RfJammerStateChanged`,
+`NfcCardDetected`, `NfcReaderStateChanged`. `ts` uses the clock synced via
+`time_sync`, shared with the phone GPS timeline.
 
 ### 3.4 Security policies
 

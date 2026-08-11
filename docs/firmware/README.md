@@ -10,22 +10,23 @@ no tiene permisos de escritura en ese repo (token con scope solo a embedsuite).
 
 | Archivo | Qué es |
 |---------|--------|
-| `xibalba-0.20-tehlink.bundle` | Bundle git con los **5 commits reales** (autoría y mensajes intactos) |
-| `xibalba-0.20-tehlink.patch` | Diff completo en un solo parche (review rápida; sin `media/`, que se borra con `git rm`) |
+| `xibalba-0.20-tehlink.bundle` | Bundle git con los **5 commits reales** (autoría, mensajes y borrado de `media/` intactos) |
+| `xibalba-0.20-tehlink.patch` | Diff plano para review rápida (excluye `media/`; ver instrucciones abajo) |
 
 ## Aplicar (recomendado: bundle → conserva commits)
 
 ```bash
 cd xibalba-bruce
 git fetch /ruta/a/xibalba-0.20-tehlink.bundle cursor/xibalba-optimization-5cca:xibalba-0.20
-git checkout xibalba-0.20
-git rm -r media/        # el bundle no puede borrar 41MB de assets por sí solo
-git commit -m "chore(limpieza): eliminar media/ (assets docs Bruce, 41MB)"
+git checkout xibalba-0.20        # incluye el borrado de media/ (commit 1)
 # compilar: python -m platformio run -e lilygo-t-embed-cc1101
 git push origin xibalba-0.20
 ```
 
 ## Aplicar (alternativa: parche plano)
+
+El `.patch` excluye `media/` a propósito (41MB de binarios harían ilegible la
+review); hay que borrarlo a mano:
 
 ```bash
 cd xibalba-bruce

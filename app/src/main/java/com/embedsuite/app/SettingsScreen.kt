@@ -19,9 +19,12 @@ import com.embedsuite.app.BuildConfig
 import com.embedsuite.app.connection.FirmwareProfile
 import com.embedsuite.app.connection.TransportType
 import com.embedsuite.app.connection.DeviceConnectionManager
+import com.embedsuite.app.connection.XibalbaAdapter
 import com.embedsuite.app.core.AppLanguage
 import com.embedsuite.app.core.AppPreferences
 import com.embedsuite.app.core.SoundFeedback
+import com.embedsuite.app.services.AudioService
+import com.embedsuite.app.services.SdCardService
 import com.embedsuite.app.ui.components.*
 import com.embedsuite.app.ui.theme.*
 import kotlinx.coroutines.launch
@@ -34,7 +37,10 @@ fun SettingsScreen(
     onNavigateAbout: () -> Unit = {},
     onResetOnboarding: () -> Unit = {},
     onLanguageChanged: () -> Unit = {},
-    onNavigateHardwareBringup: () -> Unit = {}
+    onNavigateHardwareBringup: () -> Unit = {},
+    xibalbaAdapter: XibalbaAdapter? = null,
+    sdCardService: SdCardService? = null,
+    audioService: AudioService? = null
 ) {
     val soundEnabled by preferences.soundEnabled.collectAsState()
     val hapticsEnabled by preferences.hapticsEnabled.collectAsState()
@@ -45,8 +51,14 @@ fun SettingsScreen(
     val glassIntensity by preferences.glassIntensity.collectAsState()
     val fieldFrequency by preferences.fieldFrequencyMhzFlow.collectAsState()
     val appLanguage by preferences.appLanguage.collectAsState()
+    val nfcHwEnabled by preferences.nfcEnabled.collectAsState()
+    val irHwEnabled by preferences.irEnabled.collectAsState()
+    val deviceAudioEnabled by preferences.deviceAudioEnabled.collectAsState()
+    val sdHwEnabled by preferences.sdEnabled.collectAsState()
+    val sdState = sdCardService?.state?.collectAsState()
     var useMockTransport by remember { mutableStateOf(preferences.useMockTransport) }
     var repairMessage by remember { mutableStateOf<String?>(null) }
+    var hardwareMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -101,11 +113,95 @@ fun SettingsScreen(
                             onClick = {
                                 if (appLanguage != lang) {
                                     preferences.setAppLanguage(lang)
+                                    // Sincronizar idioma con el dispositivo (ES/EN; Xibalba 0.20+)
+                                    if (xibalbaAdapter != null &&
+                                        detectedProfile == FirmwareProfile.XIBALBA
+                                    ) {
+                                        scope.launch {
+                                            xibalbaAdapter.setLanguage(
+                                                when (lang.tag) {
+                                                    "es" -> "es"
+                                                    else -> "en"
+                                                }
+                                            )
+                                        }
+                                    }
                                     onLanguageChanged()
                                 }
                             },
                             accent = NeonCyan
                         )
+                    }
+                }
+            }
+
+            // ===== Hardware T-Embed (Xibalba 0.20+) =====
+            GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Text(stringResource(R.string.settings_hardware), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
+                Text(stringResource(R.string.settings_hardware_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                Spacer(modifier = Modifier.height(6.dp))
+                SettingToggle(stringResource(R.string.settings_hw_nfc), nfcHwEnabled) {
+                    preferences.setNfcEnabled(it)
+                }
+                SettingToggle(stringResource(R.string.settings_hw_ir), irHwEnabled) {
+                    preferences.setIrEnabled(it)
+                }
+                SettingToggle(stringResource(R.string.settings_hw_audio), deviceAudioEnabled) {
+                    preferences.setDeviceAudioEnabled(it)
+                }
+                SettingToggle(stringResource(R.string.settings_hw_sd), sdHwEnabled) {
+                    preferences.setSdEnabled(it)
+                }
+
+                if (sdCardService != null || audioService != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (sdCardService != null) {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        sdCardService.mount().fold(
+                                            onSuccess = {
+                                                hardwareMessage = "SD: ${it.state} (${it.usedBytes / 1024} KB usados)"
+                                            },
+                                            onFailure = { hardwareMessage = "SD: ${it.message}" }
+                                        )
+                                    }
+                                },
+                                enabled = sdHwEnabled
+                            ) {
+                                Text(
+                                    stringResource(R.string.settings_hw_sd_mount),
+                                    fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen
+                                )
+                            }
+                        }
+                        if (audioService != null) {
+                            TextButton(
+                                onClick = { scope.launch { audioService.beep(1000, 120) } },
+                                enabled = deviceAudioEnabled
+                            ) {
+                                Text(
+                                    stringResource(R.string.settings_hw_audio_test),
+                                    fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange
+                                )
+                            }
+                        }
+                    }
+                    sdState?.value?.let { state ->
+                        Text(
+                            when (state) {
+                                is SdCardService.SdState.Ready ->
+                                    "SD: ${state.status.usedBytes / 1024}/${state.status.totalBytes / 1024} KB"
+                                is SdCardService.SdState.Mounting -> "SD: montando..."
+                                is SdCardService.SdState.Error -> "SD: ${state.message}"
+                                SdCardService.SdState.Disconnected -> "SD: no montada"
+                            },
+                            fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
+                        )
+                    }
+                    hardwareMessage?.let {
+                        Text(it, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan)
                     }
                 }
             }

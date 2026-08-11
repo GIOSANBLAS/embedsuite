@@ -76,6 +76,11 @@ class SpectrumViewModel(
                     is DeviceEvent.BleAdSpamProgress,
                     is DeviceEvent.WifiProbe,
                     is DeviceEvent.MousejackDongle,
+                    is DeviceEvent.RfScanSample,
+                    is DeviceEvent.RfScanStateChanged,
+                    is DeviceEvent.RfJammerStateChanged,
+                    is DeviceEvent.NfcCardDetected,
+                    is DeviceEvent.NfcReaderStateChanged,
                     is DeviceEvent.NfcCloneProgress -> Unit
                 }
             }

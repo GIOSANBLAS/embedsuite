@@ -24,7 +24,9 @@ fun RfHubScreen(
     rfReplayEngine: RfReplayEngine,
     aiEngine: EmbedAiEngine,
     initialTab: Int? = null,
-    highlightSignalId: Long? = null
+    highlightSignalId: Long? = null,
+    onNavigateScanner: () -> Unit = {},
+    onNavigateJammer: () -> Unit = {}
 ) {
     val tab by viewModel.selectedTab.collectAsState()
     val lastDecoded by viewModel.lastDecoded.collectAsState()
@@ -53,6 +55,25 @@ fun RfHubScreen(
             GlassChip(stringResource(R.string.rf_tab_spectrum), tab == 0, { viewModel.selectTab(0) }, MatrixGreen)
             GlassChip(stringResource(R.string.rf_tab_library), tab == 1, { viewModel.selectTab(1) }, NeonCyan)
             GlassChip(stringResource(R.string.rf_tab_analysis), tab == 2, { viewModel.selectTab(2) }, NeonOrange)
+        }
+
+        // Accesos directos a las herramientas TEH-Link (Xibalba 0.20+)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            GlassChip(
+                stringResource(R.string.rf_tool_scanner),
+                false,
+                onNavigateScanner,
+                MatrixGreen
+            )
+            GlassChip(
+                stringResource(R.string.rf_tool_jammer),
+                false,
+                onNavigateJammer,
+                NeonRed
+            )
         }
 
         lastDecoded?.let { decoded ->

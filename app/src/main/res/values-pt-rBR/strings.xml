@@ -305,4 +305,56 @@
     <string name="ai_chip_report">Relatório</string>
     <string name="ai_voice_prompt">Comando para T-Embed…</string>
     <string name="ai_prompt_capture">Captura subghz raw 15 segundos</string>
+
+    <!-- Jammer RF (Xibalba 0.20+) -->
+    <string name="jammer_title">JAMMER RF</string>
+    <string name="jammer_subtitle">CC1101 · TX contínuo/rajada com corte de segurança</string>
+    <string name="jammer_freq">Frequência: %1$s MHz</string>
+    <string name="jammer_power">Potência: %1$d dBm</string>
+    <string name="jammer_mode">Modo de interferência</string>
+    <string name="jammer_mode_continuous">CONTÍNUO</string>
+    <string name="jammer_mode_burst">RAJADA</string>
+    <string name="jammer_burst_interval">Intervalo de rajada: %1$d ms</string>
+    <string name="jammer_max_seconds">Corte automático: %1$d s</string>
+    <string name="jammer_start">⚡ INICIAR JAMMER</string>
+    <string name="jammer_stop">🔴 PARAR (%1$d s)</string>
+    <string name="jammer_requires_xibalba">Requer T-Embed com Xibalba 0.20+ conectado via USB.</string>
+    <string name="jammer_active_warning">⚠️ JAMMER ATIVO — INTERFERINDO %1$s MHz</string>
+    <string name="jammer_legal_notice">Uso exclusivo em laboratório e auditorias autorizadas. Interferência intencional de RF é regulada por lei.</string>
+
+    <!-- Scanner RF (Xibalba 0.20+) -->
+    <string name="scanner_title">SCANNER RF</string>
+    <string name="scanner_subtitle">Varredura RSSI CC1101 + mapa GPS híbrido</string>
+    <string name="scanner_view_chart">GRÁFICO</string>
+    <string name="scanner_view_map">MAPA</string>
+    <string name="scanner_samples">Amostras: %1$d</string>
+    <string name="scanner_max">Máx: %1$d dBm @ %2$s MHz</string>
+    <string name="scanner_time_synced">⏱ Relógio sincronizado com o dispositivo</string>
+    <string name="scanner_range">Faixa: %1$s – %2$s MHz</string>
+    <string name="scanner_threshold">Limiar RSSI: %1$d dBm</string>
+    <string name="scanner_start">📡 INICIAR VARREDURA</string>
+    <string name="scanner_stop">⏹ PARAR</string>
+    <string name="scanner_requires_xibalba">Requer T-Embed com Xibalba 0.20+ conectado via USB.</string>
+
+    <!-- NFC leitor contínuo / escrita -->
+    <string name="nfc_reader_start">🔍 LEITOR CONTÍNUO</string>
+    <string name="nfc_reader_stop">⏹ PARAR LEITOR</string>
+    <string name="nfc_write_tag">GRAVAR TAG</string>
+    <string name="nfc_write_hint">Grava um registro NDEF de texto em um NTAG/Ultralight. Aproxime a tag após confirmar.</string>
+    <string name="nfc_write_confirm">GRAVAR</string>
+    <string name="nfc_cards_detected">Cartões detectados: %1$d</string>
+
+    <!-- Ajustes: hardware -->
+    <string name="settings_hardware">HARDWARE T-EMBED</string>
+    <string name="settings_hardware_sub">Subsistemas do dispositivo (Xibalba 0.20+)</string>
+    <string name="settings_hw_nfc">NFC / RFID (PN532)</string>
+    <string name="settings_hw_ir">Infravermelho</string>
+    <string name="settings_hw_audio">Áudio (speaker NS4168)</string>
+    <string name="settings_hw_sd">Cartão SD</string>
+    <string name="settings_hw_sd_mount">MONTAR SD</string>
+    <string name="settings_hw_audio_test">TESTE BEEP</string>
+
+    <!-- Atalhos RF Hub -->
+    <string name="rf_tool_scanner">📡 SCANNER</string>
+    <string name="rf_tool_jammer">⚡ JAMMER</string>
 </resources>

@@ -1043,6 +1043,11 @@ class DeviceConnectionManager(
             return
         }
 
+        // Eventos streaming TEH-Link v3 (Xibalba 0.20+): {"type":"event","event":...}
+        if (line.trimStart().startsWith("{\"type\":\"event\"")) {
+            if (handleStreamingEvent(line)) return
+        }
+
         _incomingRaw.tryEmit(line)
         LinkDebugLog.appendIncoming(line)
         _events.tryEmit(DeviceEvent.RawLine(line))
@@ -1081,6 +1086,53 @@ class DeviceConnectionManager(
                 }
             }
         }
+    }
+
+    /** Parsea líneas de evento NDJSON del firmware; true si la línea era un evento conocido. */
+    private fun handleStreamingEvent(line: String): Boolean {
+        val root = runCatching { JSONObject(line.trim()) }.getOrNull() ?: return false
+        if (root.optString("type") != "event") return false
+        val name = root.optString("event")
+        val ts = root.optLong("ts", 0)
+        val data = root.optJSONObject("data") ?: JSONObject()
+
+        when (name) {
+            "rf.scan.sample" -> _events.tryEmit(
+                DeviceEvent.RfScanSample(
+                    freqMhz = data.optDouble("freq"),
+                    rssi = data.optInt("rssi", -127),
+                    timestampMs = ts
+                )
+            )
+            "rf.scan.started" -> _events.tryEmit(DeviceEvent.RfScanStateChanged(true))
+            "rf.scan.stopped" -> _events.tryEmit(DeviceEvent.RfScanStateChanged(false))
+            "rf.scan.error" -> _events.tryEmit(DeviceEvent.RfScanStateChanged(false, "cc1101_init_failed"))
+            "rf.jammer.started" -> _events.tryEmit(
+                DeviceEvent.RfJammerStateChanged(true, data.optDouble("freq"), data.optString("mode"))
+            )
+            "rf.jammer.stopped" -> _events.tryEmit(
+                DeviceEvent.RfJammerStateChanged(false, detail = "stopped_or_cutoff")
+            )
+            "rf.jammer.error" -> _events.tryEmit(
+                DeviceEvent.RfJammerStateChanged(false, detail = "tx_init_failed")
+            )
+            "nfc.card.detected" -> _events.tryEmit(
+                DeviceEvent.NfcCardDetected(
+                    uid = data.optString("uid"),
+                    type = data.optString("type"),
+                    sak = data.optString("sak"),
+                    atqa = data.optString("atqa"),
+                    timestampMs = ts
+                )
+            )
+            "nfc.reader.started" -> _events.tryEmit(DeviceEvent.NfcReaderStateChanged(true))
+            "nfc.reader.stopped" -> _events.tryEmit(DeviceEvent.NfcReaderStateChanged(false))
+            else -> return false
+        }
+        // Los eventos también van al log crudo para la consola de debug
+        _incomingRaw.tryEmit(line.trim())
+        LinkDebugLog.appendIncoming(line.trim())
+        return true
     }
 
     companion object {

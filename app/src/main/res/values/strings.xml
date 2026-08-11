@@ -427,4 +427,56 @@
     <string name="ai_chip_report">Reporte</string>
     <string name="ai_voice_prompt">Comando para T-Embed…</string>
     <string name="ai_prompt_capture">Captura subghz raw 15 segundos</string>
+
+    <!-- Jammer RF (Xibalba 0.20+) -->
+    <string name="jammer_title">JAMMER RF</string>
+    <string name="jammer_subtitle">CC1101 · TX continuo/ráfaga con cutoff de seguridad</string>
+    <string name="jammer_freq">Frecuencia: %1$s MHz</string>
+    <string name="jammer_power">Potencia: %1$d dBm</string>
+    <string name="jammer_mode">Modo de interferencia</string>
+    <string name="jammer_mode_continuous">CONTINUO</string>
+    <string name="jammer_mode_burst">RÁFAGA</string>
+    <string name="jammer_burst_interval">Intervalo de ráfaga: %1$d ms</string>
+    <string name="jammer_max_seconds">Corte automático: %1$d s</string>
+    <string name="jammer_start">⚡ INICIAR JAMMER</string>
+    <string name="jammer_stop">🔴 DETENER (%1$d s)</string>
+    <string name="jammer_requires_xibalba">Requiere T-Embed con Xibalba 0.20+ conectado por USB.</string>
+    <string name="jammer_active_warning">⚠️ JAMMER ACTIVO — INTERFIRIENDO %1$s MHz</string>
+    <string name="jammer_legal_notice">Uso exclusivo en laboratorio y auditorías autorizadas. La interferencia intencionada de radiofrecuencia está regulada por la ley.</string>
+
+    <!-- Escáner RF (Xibalba 0.20+) -->
+    <string name="scanner_title">ESCÁNER RF</string>
+    <string name="scanner_subtitle">Barrido RSSI CC1101 + mapa GPS híbrido</string>
+    <string name="scanner_view_chart">GRÁFICA</string>
+    <string name="scanner_view_map">MAPA</string>
+    <string name="scanner_samples">Muestras: %1$d</string>
+    <string name="scanner_max">Máx: %1$d dBm @ %2$s MHz</string>
+    <string name="scanner_time_synced">⏱ Reloj sincronizado con el dispositivo</string>
+    <string name="scanner_range">Rango: %1$s – %2$s MHz</string>
+    <string name="scanner_threshold">Umbral RSSI: %1$d dBm</string>
+    <string name="scanner_start">📡 INICIAR ESCANEO</string>
+    <string name="scanner_stop">⏹ DETENER</string>
+    <string name="scanner_requires_xibalba">Requiere T-Embed con Xibalba 0.20+ conectado por USB.</string>
+
+    <!-- NFC lector continuo / escritura -->
+    <string name="nfc_reader_start">🔍 LECTOR CONTINUO</string>
+    <string name="nfc_reader_stop">⏹ DETENER LECTOR</string>
+    <string name="nfc_write_tag">ESCRIBIR TAG</string>
+    <string name="nfc_write_hint">Escribe un registro NDEF de texto en un NTAG/Ultralight. Acerca el tag tras confirmar.</string>
+    <string name="nfc_write_confirm">ESCRIBIR</string>
+    <string name="nfc_cards_detected">Tarjetas detectadas: %1$d</string>
+
+    <!-- Ajustes: hardware -->
+    <string name="settings_hardware">HARDWARE T-EMBED</string>
+    <string name="settings_hardware_sub">Subsistemas del dispositivo (Xibalba 0.20+)</string>
+    <string name="settings_hw_nfc">NFC / RFID (PN532)</string>
+    <string name="settings_hw_ir">Infrarrojos</string>
+    <string name="settings_hw_audio">Audio (speaker NS4168)</string>
+    <string name="settings_hw_sd">Tarjeta SD</string>
+    <string name="settings_hw_sd_mount">MONTAR SD</string>
+    <string name="settings_hw_audio_test">TEST BEEP</string>
+
+    <!-- Atajos RF Hub -->
+    <string name="rf_tool_scanner">📡 ESCÁNER</string>
+    <string name="rf_tool_jammer">⚡ JAMMER</string>
 </resources>

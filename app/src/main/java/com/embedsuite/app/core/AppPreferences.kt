@@ -137,6 +137,20 @@ class AppPreferences(context: Context) {
     private val _auditModeEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUDIT_MODE, true))
     val auditModeEnabled: StateFlow<Boolean> = _auditModeEnabled.asStateFlow()
 
+    // ===== Hardware T-Embed (toggles de subsistemas — Xibalba 0.20+) =====
+
+    private val _nfcEnabled = MutableStateFlow(prefs.getBoolean(KEY_HW_NFC, true))
+    val nfcEnabled: StateFlow<Boolean> = _nfcEnabled.asStateFlow()
+
+    private val _irEnabled = MutableStateFlow(prefs.getBoolean(KEY_HW_IR, true))
+    val irEnabled: StateFlow<Boolean> = _irEnabled.asStateFlow()
+
+    private val _deviceAudioEnabled = MutableStateFlow(prefs.getBoolean(KEY_HW_AUDIO, true))
+    val deviceAudioEnabled: StateFlow<Boolean> = _deviceAudioEnabled.asStateFlow()
+
+    private val _sdEnabled = MutableStateFlow(prefs.getBoolean(KEY_HW_SD, true))
+    val sdEnabled: StateFlow<Boolean> = _sdEnabled.asStateFlow()
+
     fun setFirmwareProfile(profile: FirmwareProfile) {
         prefs.edit().putString(KEY_FIRMWARE_PROFILE, profile.name).apply()
         _firmwareProfile.value = profile
@@ -145,6 +159,26 @@ class AppPreferences(context: Context) {
     fun setAuditModeEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUDIT_MODE, enabled).apply()
         _auditModeEnabled.value = enabled
+    }
+
+    fun setNfcEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HW_NFC, enabled).apply()
+        _nfcEnabled.value = enabled
+    }
+
+    fun setIrEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HW_IR, enabled).apply()
+        _irEnabled.value = enabled
+    }
+
+    fun setDeviceAudioEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HW_AUDIO, enabled).apply()
+        _deviceAudioEnabled.value = enabled
+    }
+
+    fun setSdEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HW_SD, enabled).apply()
+        _sdEnabled.value = enabled
     }
 
     companion object {
@@ -166,5 +200,9 @@ class AppPreferences(context: Context) {
         const val KEY_APP_LANGUAGE = "app_language"
         private const val KEY_FIRMWARE_PROFILE = "firmware_profile"
         private const val KEY_AUDIT_MODE = "audit_mode_enabled_v430"
+        private const val KEY_HW_NFC = "hw_nfc_enabled"
+        private const val KEY_HW_IR = "hw_ir_enabled"
+        private const val KEY_HW_AUDIO = "hw_audio_enabled"
+        private const val KEY_HW_SD = "hw_sd_enabled"
     }
 }

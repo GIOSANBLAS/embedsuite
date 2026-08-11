@@ -29,12 +29,18 @@ import com.embedsuite.app.flash.FirmwareFlashCoordinator
 import com.embedsuite.app.macro.MacroEngine
 import com.embedsuite.app.rf.RfAutomationEngine
 import com.embedsuite.app.rf.RfReplayEngine
+import com.embedsuite.app.connection.XibalbaAdapter
 import com.embedsuite.app.scan.BleGattClient
+import com.embedsuite.app.scan.HybridLocationProvider
 import com.embedsuite.app.scan.LocationTracker
 import com.embedsuite.app.scan.WirelessScanner
 import com.embedsuite.app.scripting.BuiltInScriptRepository
 import com.embedsuite.app.scripting.ScriptRepository
 import com.embedsuite.app.security.SecureStore
+import com.embedsuite.app.services.AudioService
+import com.embedsuite.app.services.IrService
+import com.embedsuite.app.services.NfcService
+import com.embedsuite.app.services.SdCardService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -115,6 +121,14 @@ class AppContainer(context: Context) {
         macroEngine = macroEngine
     )
     val mapTileCacheManager = com.embedsuite.app.map.MapTileCacheManager(appContext)
+
+    // ===== Ecosistema Xibalba 0.20+ (TEH-Link v3 extendido) =====
+    val xibalbaAdapter = XibalbaAdapter(connectionManager)
+    val nfcService = NfcService(xibalbaAdapter, nfcDumpRepository, appScope)
+    val sdCardService = SdCardService(xibalbaAdapter)
+    val audioService = AudioService(xibalbaAdapter)
+    val irService = IrService(xibalbaAdapter)
+    val hybridLocation = HybridLocationProvider(locationTracker, xibalbaAdapter, appScope)
 
     val aiPreferences = AiPreferences(appContext, secureStore)
     val aiEngine = EmbedAiEngine(

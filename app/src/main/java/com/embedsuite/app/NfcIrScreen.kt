@@ -112,10 +112,17 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 isConnected = isConnected,
                 controlsEnabled = isConnected && nfcDeviceEnabled,
                 waitingHint = stringResource(R.string.nfc_waiting_teh_link),
+                readerActive = uiState.readerActive,
+                detectedCount = uiState.detectedCards.size,
                 onRead = { viewModel.readNfc() },
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
                 onSaveDump = { viewModel.saveDump() },
+                onToggleReader = {
+                    if (uiState.readerActive) viewModel.stopContinuousReader()
+                    else viewModel.startContinuousReader()
+                },
+                onWriteTag = { text -> viewModel.writeNfcText(text) },
                 onExportNfc = {
                     if (uiState.nfcUid == "—" || uiState.nfcDump.isBlank()) {
                         Toast.makeText(context, "No hay dump para exportar", Toast.LENGTH_SHORT).show()
@@ -191,22 +198,42 @@ private fun NfcPanel(
     isConnected: Boolean,
     controlsEnabled: Boolean = isConnected,
     waitingHint: String = "",
+    readerActive: Boolean = false,
+    detectedCount: Int = 0,
     onRead: () -> Unit,
     onEmulate: () -> Unit,
     onClearDump: () -> Unit,
     onSaveDump: () -> Unit,
+    onToggleReader: () -> Unit = {},
+    onWriteTag: (String) -> Unit = {},
     onExportNfc: () -> Unit = {}
 ) {
+    var showWriteDialog by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier.fillMaxWidth().height(140.dp).background(DarkSurface, RoundedCornerShape(8.dp))
-            .border(1.dp, MatrixGreen.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(16.dp),
+            .border(
+                1.dp,
+                (if (readerActive) NeonCyan else MatrixGreen).copy(alpha = 0.5f),
+                RoundedCornerShape(8.dp)
+            ).padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Nfc, null, tint = MatrixGreen, modifier = Modifier.size(40.dp))
+            Icon(
+                Icons.Default.Nfc, null,
+                tint = if (readerActive) NeonCyan else MatrixGreen,
+                modifier = Modifier.size(40.dp)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(estadoOperacion, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeonCyan)
             Text("UID: $nfcUid", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = MatrixGreen)
+            if (readerActive && detectedCount > 0) {
+                Text(
+                    stringResource(R.string.nfc_cards_detected, detectedCount),
+                    fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonCyan
+                )
+            }
         }
     }
     Spacer(modifier = Modifier.height(12.dp))
@@ -219,6 +246,33 @@ private fun NfcPanel(
         }
         OutlinedButton(onClick = onExportNfc, enabled = nfcDump.isNotBlank(), modifier = Modifier.weight(1f)) {
             Text("EXPORT .nfc", fontFamily = FontFamily.Monospace, color = MatrixGreen, fontSize = 10.sp)
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onToggleReader,
+            enabled = controlsEnabled,
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (readerActive) NeonRed else NeonCyan
+            )
+        ) {
+            Text(
+                if (readerActive) stringResource(R.string.nfc_reader_stop)
+                else stringResource(R.string.nfc_reader_start),
+                fontFamily = FontFamily.Monospace, color = BlackAMOLED, fontSize = 10.sp
+            )
+        }
+        OutlinedButton(
+            onClick = { showWriteDialog = true },
+            enabled = controlsEnabled,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                stringResource(R.string.nfc_write_tag),
+                fontFamily = FontFamily.Monospace, color = NeonOrange, fontSize = 10.sp
+            )
         }
     }
     Spacer(modifier = Modifier.height(12.dp))
@@ -237,6 +291,48 @@ private fun NfcPanel(
             Text(nfcDump.ifBlank { waitingHint }, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen,
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()))
         }
+    }
+
+    if (showWriteDialog) {
+        var textToWrite by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showWriteDialog = false },
+            containerColor = DarkSurface,
+            title = {
+                Text(
+                    stringResource(R.string.nfc_write_tag),
+                    fontFamily = FontFamily.Monospace, color = NeonOrange
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.nfc_write_hint),
+                        fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = textToWrite,
+                        onValueChange = { if (it.length <= 130) textToWrite = it },
+                        label = { Text("NDEF Text", fontFamily = FontFamily.Monospace) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (textToWrite.isNotBlank()) {
+                        onWriteTag(textToWrite)
+                        showWriteDialog = false
+                    }
+                }) { Text(stringResource(R.string.nfc_write_confirm), color = MatrixGreen, fontFamily = FontFamily.Monospace) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWriteDialog = false }) {
+                    Text(stringResource(R.string.action_cancel), color = TextGray)
+                }
+            }
+        )
     }
 }
 

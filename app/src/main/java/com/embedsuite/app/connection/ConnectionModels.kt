@@ -88,4 +88,36 @@ sealed class DeviceEvent {
         val uid: String = "",
         val dumpHex: String = ""
     ) : DeviceEvent()
+
+    /* ===== Eventos streaming TEH-Link v3 (Xibalba 0.20+) =====
+     * Líneas NDJSON no solicitadas {"type":"event","event":...,"ts":...,"data":{...}} */
+
+    /** Muestra RSSI del barrido rf_scanner (una por frecuencia ≥ umbral). */
+    data class RfScanSample(
+        val freqMhz: Double,
+        val rssi: Int,
+        val timestampMs: Long = 0
+    ) : DeviceEvent()
+
+    /** Cambio de estado del escáner RF (started/stopped/error). */
+    data class RfScanStateChanged(val running: Boolean, val detail: String = "") : DeviceEvent()
+
+    /** Cambio de estado del jammer RF (started/stopped + cutoff de seguridad). */
+    data class RfJammerStateChanged(
+        val running: Boolean,
+        val freqMhz: Double = 0.0,
+        val detail: String = ""
+    ) : DeviceEvent()
+
+    /** Tarjeta NFC detectada por el lector continuo PN532. */
+    data class NfcCardDetected(
+        val uid: String,
+        val type: String = "",
+        val sak: String = "",
+        val atqa: String = "",
+        val timestampMs: Long = 0
+    ) : DeviceEvent()
+
+    /** Lector NFC arrancado/detenido en el dispositivo. */
+    data class NfcReaderStateChanged(val running: Boolean) : DeviceEvent()
 }

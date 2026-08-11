@@ -62,6 +62,16 @@ class ConsoleViewModel(
                     is DeviceEvent.SubGhzDecodedFrame -> Unit
                     is DeviceEvent.SubGhzSample -> Unit
                     is DeviceEvent.WifiProbe -> Unit
+                    is DeviceEvent.RfScanSample ->
+                        appendLog("[SCAN] ${event.freqMhz} MHz @ ${event.rssi} dBm")
+                    is DeviceEvent.RfScanStateChanged ->
+                        appendLog(if (event.running) "[SCAN] iniciado" else "[SCAN] detenido ${event.detail}")
+                    is DeviceEvent.RfJammerStateChanged ->
+                        appendLog(if (event.running) "[JAMMER] ACTIVO ${event.freqMhz} MHz" else "[JAMMER] detenido")
+                    is DeviceEvent.NfcCardDetected ->
+                        appendLog("[NFC] ${event.uid} (${event.type})")
+                    is DeviceEvent.NfcReaderStateChanged ->
+                        appendLog(if (event.running) "[NFC] lector activo" else "[NFC] lector detenido")
                 }
             }
         }

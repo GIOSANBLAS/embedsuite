@@ -1,0 +1,5242 @@
+diff --git a/XIBALBA.md b/XIBALBA.md
+index afd4d47..20d17bf 100644
+--- a/XIBALBA.md
++++ b/XIBALBA.md
+@@ -34,12 +34,41 @@ Implementación nativa en `src/core/teh_link/`:
+ - Transporte USB CDC (115200 baud), NDJSON.
+ - Pairing: GPIO6 (botón lateral), ventana ~120 s.
+ - Plugins expuestos vía `run_action` para simbiosis EmbedSuite.
+-- OTA con verificación SHA256.
++- OTA con verificación SHA256 (dual slot OTA desde la tabla `custom_16Mb.csv` optimizada).
++- **Eventos streaming** (`{"type":"event","event":...,"ts":...,"data":{...}}`):
++  `rf.scan.sample`, `rf.scan.started/stopped`, `rf.jammer.started/stopped`,
++  `nfc.card.detected`, `nfc.reader.started/stopped`.
++- **Comando `time_sync`**: fija el reloj del dispositivo con la hora de Android
++  (ms epoch) para que los eventos RF/NFC compartan eje temporal con el GPS del teléfono.
++
++### Plugins v3 (Xibalba 0.20+)
++
++| Plugin | Acciones | Notas |
++|--------|----------|-------|
++| `rf_scanner` | `start`/`stop`/`status` | Barrido RSSI CC1101 headless (freq_start/freq_end/step/rssi_threshold/dwell_ms) |
++| `rf_jammer` | `start`/`stop`/`status` | Jammer headless (freq/power/mode continuous\|burst) con cutoff de seguridad |
++| `nfc_toolkit` | `read`/`reader_start`/`reader_stop`/`write`/`status` | PN532 headless real (antes stub) |
++| `sd_storage` | `mount`/`list`/`save`/`status` | microSD remota; `save` escribe bajo `/embedsuite/` |
++| `audio` | `beep`/`status` | Speaker NS4168 (freq/duration) |
++| `device` | + `set_language`/`set_mode`/`power_status` | Idioma ES/EN, modo stealth, estado de energía |
++| `subghz_analyzer` / `wifi_toolkit` / `ble_toolkit` / … | (sin cambios) | API heredada estable |
+ 
+ EmbedSuite se comunica **exclusivamente** por TEH-Link. Stock Bruce sin parche → perfil UNKNOWN en la app.
+ 
+ ---
+ 
++## Limpieza 0.20 (fuera juegos/entretención)
++
++Eliminados del build: `tururururu` (Megalodon), `clicker`, `u2f`, `ibutton`
++(menú Otros) y `media/` (41 MB de assets de documentación Bruce).
++Se mantienen: RF (CC1101), NFC/RFID (PN532), IR, microSD, audio NS4168, micrófono,
++WiFi/BLE, BadUSB/HID, intérprete JS y la UI Maya/cyber (`xibalba_ui`).
++
++**Aviso particiones:** `custom_16Mb.csv` 0.20 añade slots OTA. Migrar desde ≤0.19
++requiere **reflasheo USB** (no OTA) y borra NVS (re-emparejar TEH-Link).
++
++---
++
+ ## Compilar y flashear
+ 
+ ```powershell
+diff --git a/build.py b/build.py
+index 7ebaf51..47550e3 100644
+--- a/build.py
++++ b/build.py
+@@ -20,7 +20,7 @@ BOOT_OFFSETS = {
+ }
+ boot_offset = BOOT_OFFSETS.get(mcu, 0x0000)  # safe fallback
+ 
+-# Default offsets (adjust if your partitions.csv uses custom addresses)
++# Default offsets (fallbacks; the factory offset is read from the partition CSV)
+ PART_TABLE_OFFSET = 0x8000
+ APP_OFFSET        = 0x10000
+ 
+@@ -66,6 +66,7 @@ def _merge_bins_callback(target, source, env):
+     part_csv = proj_dir / part_csv_name if part_csv_name else proj_dir / "partitions.csv"
+     ota_size = None
+     ota0_offset = None
++    app_offset = APP_OFFSET
+     if part_csv.exists():
+         with open(part_csv, newline="") as f:
+             reader = csv.reader(f)
+@@ -83,6 +84,13 @@ def _merge_bins_callback(target, source, env):
+                         ota0_offset = int(offset, 0)
+                     except ValueError:
+                         pass
++                # La app va en la partición factory (o ota_0 si no hay factory):
++                # Xibalba 16MB mueve factory a 0x20000 para dar cabida a otadata.
++                if subtype == "factory":
++                    try:
++                        app_offset = int(offset, 0)
++                    except ValueError:
++                        pass
+ 
+     # ---- Firmware size check against test partition ----
+     if ota_size:
+@@ -105,7 +113,7 @@ def _merge_bins_callback(target, source, env):
+         "--output", q(out_bin),
+         hex(boot_offset), q(boot_bin),
+         hex(PART_TABLE_OFFSET), q(part_bin),
+-        hex(APP_OFFSET), q(app_bin),
++        hex(app_offset), q(app_bin),
+     ])
+ 
+     print("[merge_bin] Merging binaries:")
+diff --git a/custom_16Mb.csv b/custom_16Mb.csv
+index 9115a3a..737c778 100644
+--- a/custom_16Mb.csv
++++ b/custom_16Mb.csv
+@@ -1,5 +1,22 @@
+-# Name,     Type, SubType,   Offset,   Size,    Flags
++# Xibalba — tabla de particiones optimizada T-Embed CC1101 Plus (16 MB)
++#
++# Cambios vs. layout heredado de Bruce:
++#  - Añade otadata + ota_0/ota_1 (dual slot) → la OTA por TEH-Link
++#    (ota_begin/ota_chunk/ota_finish con SHA256) por fin tiene dónde escribir;
++#    antes Update.begin() no tenía slot OTA válido.
++#  - factory queda como imagen de recuperación conocida.
++#  - App máx 0x440000 (4.25 MB) por slot — el binario actual (~4.1 MB) cabe;
++#    la limpieza de módulos de entretenimiento deja margen extra.
++#  - LittleFS baja a ~3.1 MB (los datos grandes viven en la microSD).
++#
++# NOTA: cambiar la tabla requiere reflasheo por USB (no OTA) y borra NVS
++# (habrá que re-emparejar TEH-Link).
++#
++# Name,     Type, SubType,   Offset,    Size,     Flags
+ nvs,        data, nvs,       0x9000,   0x6000,
+-factory,    app,  factory,   0x10000,  0x470000,
+-spiffs,     data, spiffs,    0x480000, 0xB70000,
++otadata,    data, ota,       0xF000,   0x2000,
++factory,    app,  factory,   0x20000,  0x440000,
++ota_0,      app,  ota_0,     0x460000, 0x440000,
++ota_1,      app,  ota_1,     0x8A0000, 0x440000,
++spiffs,     data, spiffs,    0xCE0000, 0x310000,
+ coredump,   data, coredump,  0xFF0000, 0x10000,
+diff --git a/patch.py b/patch.py
+index f8538e5..08c7031 100644
+--- a/patch.py
++++ b/patch.py
+@@ -25,6 +25,12 @@ if not isfile(join(FRAMEWORK_DIR,mcu, "lib", ".patched")):
+         FRAMEWORK_DIR, mcu, "lib", "libnet80211.a.patched"
+     )
+ 
++    # Recuperación: si un build anterior quedó a medias (original renombrado a
++    # .old pero sin .patched), restaurar antes de volver a parchear.
++    if not isfile(original_file) and isfile("%s.old" % (original_file)):
++        print("Patch: restoring libnet80211.a from .old (interrupted patch)")
++        rename("%s.old" % (original_file), original_file)
++
+     if mcu=="esp32c5" or mcu=="esp32c6" :
+         env.Execute(
+             "pio pkg exec -p toolchain-riscv32-esp -- riscv32-esp-elf-objcopy  --weaken-symbol=ieee80211_raw_frame_sanity_check %s %s"
+@@ -33,10 +39,19 @@ if not isfile(join(FRAMEWORK_DIR,mcu, "lib", ".patched")):
+     elif mcu=="esp32p4":
+         """Do nothing"""
+     else:
+-        env.Execute(
++        # Plataformas recientes (pioarduino 55.x) usan toolchain unificado
++        # toolchain-xtensa-esp-elf; las antiguas traen toolchain-xtensa-<mcu>.
++        # Se intenta primero el paquete por-chip y se cae al unificado.
++        rc = env.Execute(
+             "pio pkg exec -p toolchain-xtensa-%s -- xtensa-%s-elf-objcopy  --weaken-symbol=ieee80211_raw_frame_sanity_check %s %s"
+             % (mcu, mcu, original_file, patched_file)
+         )
++        if rc != 0 or not isfile(patched_file):
++            print("Patch: per-chip toolchain missing, using unified xtensa-esp-elf")
++            env.Execute(
++                "pio pkg exec -p toolchain-xtensa-esp-elf -- xtensa-esp-elf-objcopy  --weaken-symbol=ieee80211_raw_frame_sanity_check %s %s"
++                % (original_file, patched_file)
++            )
+ 
+     if isfile("%s.old" % (original_file)):
+         remove("%s.old" % (original_file))
+diff --git a/platformio.ini b/platformio.ini
+index e15667d..68d75c3 100644
+--- a/platformio.ini
++++ b/platformio.ini
+@@ -127,7 +127,7 @@ build_src_filter =
+ 
+ build_flags =
+ 	-Isrc
+-	-DBRUCE_VERSION='"Xibalba-0.19.1"'
++	-DBRUCE_VERSION='"Xibalba-0.20.0"'
+ 	-DXIBALBA_BRUCE_BASE=1
+ 	-DXIBALBA_LAYERED=0
+ 	-DEEPROMSIZE=128
+diff --git a/src/core/audio_feedback.cpp b/src/core/audio_feedback.cpp
+new file mode 100644
+index 0000000..9e7062f
+--- /dev/null
++++ b/src/core/audio_feedback.cpp
+@@ -0,0 +1,33 @@
++#include "audio_feedback.h"
++
++#include "modules/others/audio.h"
++
++namespace xibalba {
++namespace audio {
++
++void begin() {}
++
++void beep(uint16_t freqHz, uint16_t durationMs) {
++    if (freqHz == 0) return;
++    if (freqHz > 8000) freqHz = 8000; // límite seguro NS4168
++    _tone(freqHz, durationMs);
++}
++
++void stop() { _tone(0, 0); }
++
++void ok() { beep(1200, 80); }
++
++void error() {
++    beep(300, 120);
++    delay(140);
++    beep(300, 120);
++}
++
++void cardFound() { beep(1000, 100); }
++
++void packetFound() { beep(800, 50); }
++
++void scanDone() { beep(1200, 200); }
++
++} // namespace audio
++} // namespace xibalba
+diff --git a/src/core/audio_feedback.h b/src/core/audio_feedback.h
+new file mode 100644
+index 0000000..0971ffc
+--- /dev/null
++++ b/src/core/audio_feedback.h
+@@ -0,0 +1,30 @@
++#pragma once
++
++#include <Arduino.h>
++
++/**
++ * Audio Feedback — beeps semánticos para el speaker NS4168 del T-Embed.
++ *
++ * Envuelve `_tone()` de modules/others/audio (respeta bruceConfig.soundEnabled)
++ * con eventos con nombre para que la app y los módulos no repitan frecuencias
++ * mágicas. Android puede disparar un beep arbitrario con `audio.beep`.
++ */
++namespace xibalba {
++namespace audio {
++
++void begin();
++
++/** Beep arbitrario (Hz / ms). duration 0 = tono continuo hasta stop(). */
++void beep(uint16_t freqHz, uint16_t durationMs);
++
++void stop();
++
++// Feedback semántico
++void ok();          // operación correcta
++void error();       // error de operación
++void cardFound();   // tarjeta NFC detectada
++void packetFound(); // paquete RF capturado
++void scanDone();    // barrido completado
++
++} // namespace audio
++} // namespace xibalba
+diff --git a/src/core/language.cpp b/src/core/language.cpp
+new file mode 100644
+index 0000000..4f98e65
+--- /dev/null
++++ b/src/core/language.cpp
+@@ -0,0 +1,62 @@
++#include "language.h"
++
++#include <Preferences.h>
++
++namespace xibalba {
++namespace lang {
++
++static Lang s_lang = Lang::ES;
++
++// Sin acentos en las cadenas ES: limitación de las fuentes TFT del Bruce base.
++static const char *const STRINGS_ES[] = {
++    "Xibalba listo. Esperando comandos...", // Ready
++    "Acerca una tarjeta NFC",               // WaitingCard
++    "Tarjeta detectada",                    // CardDetected
++    "Escaneando frecuencias",               // Scanning
++    "Jammer activo",                        // JammerActive
++    "SD montada",                           // SdReady
++    "SD no detectada",                      // SdMissing
++    "Error de operacion",                   // ErrorGeneric
++};
++
++static const char *const STRINGS_EN[] = {
++    "Xibalba ready. Waiting for commands...", // Ready
++    "Bring an NFC card close",                // WaitingCard
++    "Card detected",                          // CardDetected
++    "Scanning frequencies",                   // Scanning
++    "Jammer active",                          // JammerActive
++    "SD card mounted",                        // SdReady
++    "SD card not detected",                   // SdMissing
++    "Operation error",                        // ErrorGeneric
++};
++
++void begin() {
++    Preferences prefs;
++    prefs.begin("xibalba", true);
++    String tag = prefs.getString("lang", "es");
++    prefs.end();
++    s_lang = (tag == "en") ? Lang::EN : Lang::ES;
++}
++
++Lang current() { return s_lang; }
++
++const char *currentTag() { return s_lang == Lang::EN ? "en" : "es"; }
++
++bool setByTag(const String &tag) {
++    if (tag != "es" && tag != "en") return false;
++    s_lang = (tag == "en") ? Lang::EN : Lang::ES;
++    Preferences prefs;
++    prefs.begin("xibalba", false);
++    prefs.putString("lang", tag);
++    prefs.end();
++    return true;
++}
++
++const char *str(Key key) {
++    size_t idx = (size_t)key;
++    if (idx >= (size_t)Key::ErrorGeneric + 1) idx = 0;
++    return (s_lang == Lang::EN) ? STRINGS_EN[idx] : STRINGS_ES[idx];
++}
++
++} // namespace lang
++} // namespace xibalba
+diff --git a/src/core/language.h b/src/core/language.h
+new file mode 100644
+index 0000000..b31e970
+--- /dev/null
++++ b/src/core/language.h
+@@ -0,0 +1,41 @@
++#pragma once
++
++#include <Arduino.h>
++
++/**
++ * Language — multi-idioma ES/EN para Xibalba (NVS-backed).
++ *
++ * La UI TFT heredada de Bruce está en español sin acentos (limitación de las
++ * fuentes). Este módulo fija la base para i18n: preferencia persistente y
++ * tabla de cadenas para los mensajes que genera el firmware hacia EmbedSuite
++ * (TEH-Link) y las pantallas nuevas. EmbedSuite envía `system.set_lang`.
++ */
++namespace xibalba {
++namespace lang {
++
++enum class Lang : uint8_t { ES = 0, EN = 1 };
++
++void begin();
++
++Lang current();
++const char *currentTag(); // "es" | "en"
++
++/** Persiste en NVS y devuelve false si el tag no es válido. */
++bool setByTag(const String &tag);
++
++// Claves de mensajes firmware → app / pantalla
++enum class Key : uint8_t {
++    Ready = 0,
++    WaitingCard,
++    CardDetected,
++    Scanning,
++    JammerActive,
++    SdReady,
++    SdMissing,
++    ErrorGeneric,
++};
++
++const char *str(Key key);
++
++} // namespace lang
++} // namespace xibalba
+diff --git a/src/core/menu_items/OthersMenu.cpp b/src/core/menu_items/OthersMenu.cpp
+index 157902e..5865383 100644
+--- a/src/core/menu_items/OthersMenu.cpp
++++ b/src/core/menu_items/OthersMenu.cpp
+@@ -5,18 +5,13 @@
+ #include "core/utils.h"
+ #include "modules/badusb_ble/ducky_typer.h"
+ #include "modules/bjs_interpreter/interpreter.h"
+-#include "modules/others/clicker.h"
+-#include "modules/others/ibutton.h"
+ #include "modules/others/mic.h"
+ #include "modules/others/qrcode_menu.h"
+-#include "modules/others/tururururu.h"
+-#include "modules/others/u2f.h"
+-// Removed: #include "modules/others/timer.h"
++// Limpieza Xibalba: fuera juegos/HID toys (tururururu, clicker, u2f, ibutton, timer)
+ 
+ void OthersMenu::optionsMenu() {
+     options = {
+         {"Codigos QR",      qrcode_menu                  },
+-        {"Megalodon",    shark_setup                  },
+ 
+ #if defined(MIC_SPM1423) || defined(MIC_INMP441)
+         {"Microfono",   [this]() { micMenu(); }      }, //@deveclipse
+@@ -26,12 +21,6 @@ void OthersMenu::optionsMenu() {
+ #if !defined(LITE_VERSION)
+         {"BadUSB e HID", [this]() { badUsbHidMenu(); }},
+ #endif
+-
+-#ifndef LITE_VERSION
+-        {"iButton",      setup_ibutton                },
+-#endif
+-
+-        // Timer removed - moved to another "Reloj"
+     };
+ 
+     addOptionToMainMenu();
+@@ -45,11 +34,6 @@ void OthersMenu::badUsbHidMenu() {
+         {"Teclado USB", [=]() { ducky_keyboard(hid_usb, false); }},
+ #endif
+ 
+-#ifdef USB_as_HID
+-        {"Clicker USB",  clicker_setup                            },
+-        {"USB U2F",      u2f_setup                                },
+-#endif
+-
+         {"Atras",         [this]() { optionsMenu(); }              },
+     };
+ 
+diff --git a/src/core/power_manager.cpp b/src/core/power_manager.cpp
+new file mode 100644
+index 0000000..c1ed09f
+--- /dev/null
++++ b/src/core/power_manager.cpp
+@@ -0,0 +1,59 @@
++#include "power_manager.h"
++
++#include "core/display.h"
++#include "core/powerSave.h"
++#include <globals.h>
++
++namespace xibalba {
++namespace power {
++
++static const uint32_t DEFAULT_IDLE_TIMEOUT_MS = 5UL * 60UL * 1000UL; // 5 min
++
++static PowerMode s_mode = PowerMode::ACTIVE;
++static uint32_t s_last_activity_ms = 0;
++static uint32_t s_idle_timeout_ms = DEFAULT_IDLE_TIMEOUT_MS;
++
++void begin() {
++    s_mode = PowerMode::ACTIVE;
++    s_last_activity_ms = millis();
++}
++
++void activity() {
++    s_last_activity_ms = millis();
++    if (s_mode == PowerMode::DOZE) {
++        // Despertar: restaurar CPU y pantalla (powerSave ya gestiona brillo)
++        setCpuFrequencyMhz(CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ);
++        if (isScreenOff) {
++            isScreenOff = false;
++            wakeUpScreen();
++        }
++        previousMillis = millis(); // reinicia el dimmer de powerSave
++        s_mode = PowerMode::ACTIVE;
++        Serial.println("[POWER] ACTIVE (actividad TEH-Link)");
++    }
++}
++
++void update() {
++    if (s_idle_timeout_ms == 0) return; // doze desactivado
++    if (s_mode != PowerMode::ACTIVE) return;
++
++    uint32_t idle = millis() - s_last_activity_ms;
++    if (idle < s_idle_timeout_ms) return;
++
++    // No dormir si hay una operación RF/NFC larga en curso (las tareas TEH
++    // renuevan actividad) ni si la pantalla ya está en su propio ciclo.
++    s_mode = PowerMode::DOZE;
++    setCpuFrequencyMhz(80);
++    Serial.println("[POWER] DOZE (idle > timeout) — USB CDC sigue vivo");
++}
++
++PowerMode mode() { return s_mode; }
++
++uint32_t idleMs() { return millis() - s_last_activity_ms; }
++
++void setIdleTimeoutMs(uint32_t ms) { s_idle_timeout_ms = ms; }
++
++uint32_t idleTimeoutMs() { return s_idle_timeout_ms; }
++
++} // namespace power
++} // namespace xibalba
+diff --git a/src/core/power_manager.h b/src/core/power_manager.h
+new file mode 100644
+index 0000000..675fef9
+--- /dev/null
++++ b/src/core/power_manager.h
+@@ -0,0 +1,36 @@
++#pragma once
++
++#include <Arduino.h>
++
++/**
++ * Power Manager — gestión de energía para la simbiosis EmbedSuite.
++ *
++ * OJO: el T-Embed se usa principalmente por USB CDC (TEH-Link). Un light-sleep
++ * profundo tumba TinyUSB y cortaría el enlace con Android, así que el modo de
++ * ahorro es un "doze" seguro: CPU a 80 MHz + pantalla apagada vía powerSave,
++ * manteniendo el stack USB vivo. El wake es instantáneo al llegar un comando.
++ */
++namespace xibalba {
++namespace power {
++
++enum class PowerMode : uint8_t { ACTIVE = 0, DOZE = 1 };
++
++void begin();
++
++/** Marca actividad (cada comando TEH-Link/evento de input la renueva). */
++void activity();
++
++/** Llamar periódicamente desde la tarea serial/TEH-Link. */
++void update();
++
++PowerMode mode();
++
++/** ms desde la última actividad registrada. */
++uint32_t idleMs();
++
++/** Timeout de doze configurable (default 5 min). 0 desactiva el doze. */
++void setIdleTimeoutMs(uint32_t ms);
++uint32_t idleTimeoutMs();
++
++} // namespace power
++} // namespace xibalba
+diff --git a/src/core/serialcmds.cpp b/src/core/serialcmds.cpp
+index 2fdee86..411726c 100644
+--- a/src/core/serialcmds.cpp
++++ b/src/core/serialcmds.cpp
+@@ -1,4 +1,5 @@
+ #include "serialcmds.h"
++#include "core/power_manager.h"
+ #include "freertos/queue.h"
+ #include "freertos/semphr.h"
+ #include "freertos/task.h"
+@@ -37,6 +38,7 @@ bool parseSerialCommand(const String &command, bool waitForResponse) {
+ 
+ void handleSerialCommands(SerialCli &serialCli) {
+     teh_link_poll_pairing_button();
++    xibalba::power::update();
+ 
+     CmdPacket packet;
+     if (cmdQueue && rspQueue) {
+diff --git a/src/core/teh_link/teh_events.cpp b/src/core/teh_link/teh_events.cpp
+new file mode 100644
+index 0000000..81116a1
+--- /dev/null
++++ b/src/core/teh_link/teh_events.cpp
+@@ -0,0 +1,42 @@
++#include "teh_events.h"
++
++#include "core/time_sync.h"
++#include <freertos/FreeRTOS.h>
++#include <freertos/semphr.h>
++#include <globals.h>
++
++static SemaphoreHandle_t s_serial_mtx = nullptr;
++
++void teh_link_events_begin() {
++    if (!s_serial_mtx) s_serial_mtx = xSemaphoreCreateMutex();
++}
++
++bool teh_link_serial_try_lock() {
++    if (!s_serial_mtx) return true;
++    return xSemaphoreTake(s_serial_mtx, pdMS_TO_TICKS(5)) == pdTRUE;
++}
++
++void teh_link_serial_unlock() {
++    if (s_serial_mtx) xSemaphoreGive(s_serial_mtx);
++}
++
++void teh_link_emit_event(const char *event, JsonObjectConst data) {
++    if (!event || !*event) return;
++    if (!teh_link_serial_try_lock()) return; // línea en curso: se descarta
++
++    JsonDocument root;
++    root["type"] = "event";
++    root["event"] = event;
++    root["ts"] = (uint64_t)xibalba::time_sync::eventTimestampMs();
++    if (!data.isNull()) root["data"] = data;
++
++    String out;
++    serializeJson(root, out);
++    serialDevice->println(out);
++    serialDevice->flush();
++    teh_link_serial_unlock();
++}
++
++void teh_link_emit_event(const char *event) {
++    teh_link_emit_event(event, JsonObjectConst());
++}
+diff --git a/src/core/teh_link/teh_events.h b/src/core/teh_link/teh_events.h
+new file mode 100644
+index 0000000..efd8689
+--- /dev/null
++++ b/src/core/teh_link/teh_events.h
+@@ -0,0 +1,28 @@
++#pragma once
++
++#include <Arduino.h>
++#include <ArduinoJson.h>
++
++/**
++ * TEH-Link Events — streaming NDJSON firmware → EmbedSuite.
++ *
++ * Además del par comando/respuesta, el firmware emite líneas no solicitadas:
++ *   {"type":"event","event":"rf.scan.sample","ts":<epoch_ms>,"data":{...}}
++ *
++ * `ts` usa el reloj sincronizado con Android (time_sync) para que las series
++ * RF+GPS de EmbedSuite compartan eje temporal con el teléfono.
++ *
++ * El hilo serie está protegido por un mutex: las respuestas a comandos y los
++ * eventos nunca se entrelazan a mitad de línea.
++ */
++void teh_link_events_begin();
++
++/** Emite un evento (no bloqueante si el mutex está tomado: descarta). */
++void teh_link_emit_event(const char *event, JsonObjectConst data);
++
++/** Emite un evento sin payload (o con campos simples ya serializados). */
++void teh_link_emit_event(const char *event);
++
++/** Sección crítica para emisores que construyen varias líneas propias. */
++bool teh_link_serial_try_lock();
++void teh_link_serial_unlock();
+diff --git a/src/core/teh_link/teh_link.cpp b/src/core/teh_link/teh_link.cpp
+index 1067066..ed29f23 100644
+--- a/src/core/teh_link/teh_link.cpp
++++ b/src/core/teh_link/teh_link.cpp
+@@ -21,8 +21,17 @@
+ 
+ #include <globals.h>
+ 
++#include "core/audio_feedback.h"
++#include "core/display.h"
++#include "core/language.h"
++#include "core/power_manager.h"
+ #include "core/serialcmds.h"
++#include "core/time_sync.h"
+ #include "core/utils.h"
++#include "teh_events.h"
++#include "teh_nfc.h"
++#include "teh_rf.h"
++#include "teh_storage.h"
+ #include "xibalba/Layer.h"
+ #include "xibalba/core/ActionRegistry.h"
+ #include "xibalba/events/EventBus.h"
+@@ -127,8 +136,16 @@ static uint32_t clamp_sec(int seconds, int defSec) {
+ static void reply_json(JsonDocument &root) {
+     String out;
+     serializeJson(root, out);
+-    serialDevice->println(out);
+-    serialDevice->flush();
++    // Mutex compartido con teh_events: respuestas y eventos nunca se entrelazan
++    if (teh_link_serial_try_lock()) {
++        serialDevice->println(out);
++        serialDevice->flush();
++        teh_link_serial_unlock();
++    } else {
++        // No debería ocurrir (el handler serie es único); fallback sin lock
++        serialDevice->println(out);
++        serialDevice->flush();
++    }
+ }
+ 
+ static void reply_ok(int id, JsonDocument &dataDoc) {
+@@ -209,6 +226,11 @@ void teh_link_init(void) {
+ #endif
+ #endif
+     xibalba::Layer::begin();
++    xibalba::time_sync::begin();
++    xibalba::power::begin();
++    xibalba::lang::begin();
++    xibalba::audio::begin();
++    teh_link_events_begin();
+     load_token();
+     s_ui_screen = "Inicio";
+     s_active_plugin = "";
+@@ -309,10 +331,14 @@ static void fill_plugins(JsonArray arr) {
+         o["author"] = "Xibalba";
+     };
+     add("subghz_analyzer", "Sub-GHz");
++    add("rf_scanner", "Escaner RF");
++    add("rf_jammer", "Jammer RF");
+     add("wifi_toolkit", "WiFi");
+     add("ble_toolkit", "BLE");
+     add("nfc_toolkit", "NFC");
+     add("ir_toolkit", "IR");
++    add("sd_storage", "Almacenamiento SD");
++    add("audio", "Audio");
+     add("wardriving", "Wardriving");
+     add("crypto_toolkit", "Cripto");
+     add("badusb", "BadUSB");
+@@ -339,6 +365,12 @@ static void fill_actions(JsonArray arr) {
+     add("subghz_analyzer", "capture_start", {"seconds", "freq_mhz"});
+     add("subghz_analyzer", "capture_stop", {});
+     add("subghz_analyzer", "status", {});
++    add("rf_scanner", "start", {"freq_start", "freq_end", "step", "rssi_threshold", "dwell_ms"});
++    add("rf_scanner", "stop", {});
++    add("rf_scanner", "status", {});
++    add("rf_jammer", "start", {"freq", "power", "mode", "burst_interval", "max_seconds"});
++    add("rf_jammer", "stop", {});
++    add("rf_jammer", "status", {});
+     add("wifi_toolkit", "scan_start", {"seconds"});
+     add("wifi_toolkit", "scan_stop", {});
+     add("wifi_toolkit", "status", {});
+@@ -349,10 +381,20 @@ static void fill_actions(JsonArray arr) {
+     add("wardriving", "gps_update", {"lat", "lon"});
+     add("wardriving", "stop", {});
+     add("wardriving", "status", {});
+-    add("nfc_toolkit", "read", {});
++    add("nfc_toolkit", "read", {"timeout"});
++    add("nfc_toolkit", "reader_start", {"timeout"});
++    add("nfc_toolkit", "reader_stop", {});
++    add("nfc_toolkit", "write", {"text", "timeout"});
+     add("nfc_toolkit", "status", {});
+     add("ir_toolkit", "send", {"protocol", "address"});
++    add("ir_toolkit", "rx_start", {"seconds"});
+     add("ir_toolkit", "status", {});
++    add("sd_storage", "mount", {});
++    add("sd_storage", "list", {"path"});
++    add("sd_storage", "save", {"filename", "data"});
++    add("sd_storage", "status", {});
++    add("audio", "beep", {"freq", "duration"});
++    add("audio", "status", {});
+     add("crypto_toolkit", "hash", {"input", "algo"});
+     add("crypto_toolkit", "base64_encode", {"input"});
+     add("crypto_toolkit", "base64_decode", {"input"});
+@@ -369,6 +411,9 @@ static void fill_actions(JsonArray arr) {
+     add("device", "set_config", {"json"});
+     add("device", "export_bruce_json", {});
+     add("device", "import_bruce_json", {"json"});
++    add("device", "set_language", {"lang"});
++    add("device", "set_mode", {"mode"});
++    add("device", "power_status", {});
+     add("evil_portal", "start", {"ssid", "template_id", "channel"});
+     add("evil_portal", "stop", {});
+     add("evil_portal", "status", {});
+@@ -804,6 +849,59 @@ static void handle_run_action(JsonObjectConst root, int id) {
+             reply_ok(id, data);
+             return;
+         }
++        // Idioma ES/EN del dispositivo (NVS) — simbiosis con idioma de la app
++        if (strcmp(action, "set_language") == 0) {
++            String lang = params["lang"] | "";
++            if (!xibalba::lang::setByTag(lang)) {
++                reply_err(id, "invalid_lang");
++                return;
++            }
++            data["plugin_id"] = plugin;
++            data["action"] = action;
++            data["lang"] = xibalba::lang::currentTag();
++            data["state"] = "ok";
++            reply_ok(id, data);
++            return;
++        }
++        // Modo del dispositivo: active (normal) | stealth (pantalla apagada + CPU baja)
++        if (strcmp(action, "set_mode") == 0) {
++            String mode = params["mode"] | "active";
++            data["plugin_id"] = plugin;
++            data["action"] = action;
++            if (mode == "stealth") {
++                xibalba::power::setIdleTimeoutMs(0);
++                setCpuFrequencyMhz(80);
++                if (!isScreenOff) {
++                    isScreenOff = true;
++                    turnOffDisplay();
++                }
++                data["mode"] = "stealth";
++            } else {
++                xibalba::power::setIdleTimeoutMs(5UL * 60UL * 1000UL);
++                setCpuFrequencyMhz(CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ);
++                if (isScreenOff) {
++                    isScreenOff = false;
++                    wakeUpScreen();
++                }
++                data["mode"] = "active";
++            }
++            data["state"] = "ok";
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "power_status") == 0) {
++            data["plugin_id"] = plugin;
++            data["action"] = action;
++            data["power_mode"] = xibalba::power::mode() == xibalba::power::PowerMode::ACTIVE
++                                     ? "active"
++                                     : "doze";
++            data["idle_ms"] = xibalba::power::idleMs();
++            data["idle_timeout_ms"] = xibalba::power::idleTimeoutMs();
++            data["time_synced"] = xibalba::time_sync::isSynced();
++            data["lang"] = xibalba::lang::currentTag();
++            reply_ok(id, data);
++            return;
++        }
+         // F1b: device/status (and future migrated actions) via ActionRegistry.
+         {
+             auto reg = xibalba::core::ActionRegistry::instance().invoke(plugin, action, params);
+@@ -832,13 +930,58 @@ static void handle_run_action(JsonObjectConst root, int id) {
+         return;
+     }
+ 
+-    // ---- NFC / IR status stubs (hardware via device UI; remote status) ----
++    // ---- NFC / RFID (PN532 headless real) ----
+     if (strcmp(plugin, "nfc_toolkit") == 0) {
+         data["plugin_id"] = plugin;
+         data["action"] = action;
+-        data["ready"] = true;
+-        data["state"] = "idle";
+-        data["message"] = "Usar menu RFID en el dispositivo para lectura completa";
++
++        if (strcmp(action, "read") == 0) {
++            int timeout = constrain(params["timeout"] | 10, 1, 60);
++            JsonObject card = data.to<JsonObject>();
++            if (teh_nfc::read_once(card, timeout)) {
++                data["state"] = "detected";
++                data["message"] = xibalba::lang::str(xibalba::lang::Key::CardDetected);
++            } else {
++                data["state"] = "timeout";
++                data["message"] = xibalba::lang::str(xibalba::lang::Key::WaitingCard);
++            }
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "reader_start") == 0) {
++            String err;
++            if (!teh_nfc::reader_start(params, err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            data["state"] = "reading";
++            data["running"] = true;
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "reader_stop") == 0) {
++            teh_nfc::reader_stop();
++            teh_nfc::fill_status(data.to<JsonObject>());
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "write") == 0) {
++            String text = params["text"] | "";
++            // Acepta también payload hex ("data") → UTF-8 best-effort
++            if (text.isEmpty()) text = params["data"] | "";
++            String err;
++            int timeout = constrain(params["timeout"] | 15, 1, 60);
++            if (!teh_nfc::write_ndef_text(text, timeout, err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            data["state"] = "written";
++            data["bytes"] = (uint32_t)text.length();
++            reply_ok(id, data);
++            return;
++        }
++
++        teh_nfc::fill_status(data.to<JsonObject>());
+         reply_ok(id, data);
+         return;
+     }
+@@ -862,6 +1005,106 @@ static void handle_run_action(JsonObjectConst root, int id) {
+         return;
+     }
+ 
++    // ---- RF Scanner (barrido RSSI CC1101 con streaming de muestras) ----
++    if (strcmp(plugin, "rf_scanner") == 0) {
++        if (strcmp(action, "start") == 0) {
++            String err;
++            if (!teh_rf::scan_start(params, err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            data["plugin_id"] = plugin;
++            data["action"] = action;
++            data["state"] = "scanning";
++            data["running"] = true;
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "stop") == 0) teh_rf::scan_stop();
++        data["plugin_id"] = plugin;
++        data["action"] = action;
++        teh_rf::scan_fill_status(data.to<JsonObject>());
++        reply_ok(id, data);
++        return;
++    }
++
++    // ---- RF Jammer (TX headless con cutoff de seguridad) ----
++    if (strcmp(plugin, "rf_jammer") == 0) {
++        if (strcmp(action, "start") == 0) {
++            String err;
++            if (!teh_rf::jammer_start(params, err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            data["plugin_id"] = plugin;
++            data["action"] = action;
++            data["state"] = "jamming";
++            data["running"] = true;
++            data["message"] = xibalba::lang::str(xibalba::lang::Key::JammerActive);
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "stop") == 0) teh_rf::jammer_stop();
++        data["plugin_id"] = plugin;
++        data["action"] = action;
++        teh_rf::jammer_fill_status(data.to<JsonObject>());
++        reply_ok(id, data);
++        return;
++    }
++
++    // ---- SD Storage (montaje, listado, guardado de sesiones) ----
++    if (strcmp(plugin, "sd_storage") == 0) {
++        data["plugin_id"] = plugin;
++        data["action"] = action;
++        if (strcmp(action, "mount") == 0) {
++            String err;
++            if (!teh_storage::mount(err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            teh_storage::fill_status(data.to<JsonObject>());
++            data["message"] = xibalba::lang::str(xibalba::lang::Key::SdReady);
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "list") == 0) {
++            teh_storage::list_dir(params["path"] | "/", data.to<JsonObject>());
++            reply_ok(id, data);
++            return;
++        }
++        if (strcmp(action, "save") == 0) {
++            String filename = params["filename"] | "";
++            String b64 = params["data"] | "";
++            String err;
++            if (!teh_storage::save_file(filename, b64, data.to<JsonObject>(), err)) {
++                reply_err(id, err.c_str());
++                return;
++            }
++            reply_ok(id, data);
++            return;
++        }
++        teh_storage::fill_status(data.to<JsonObject>());
++        reply_ok(id, data);
++        return;
++    }
++
++    // ---- Audio (feedback NS4168) ----
++    if (strcmp(plugin, "audio") == 0) {
++        data["plugin_id"] = plugin;
++        data["action"] = action;
++        if (strcmp(action, "beep") == 0) {
++            uint16_t freq = (uint16_t)constrain(params["freq"] | 1000, 50, 8000);
++            uint16_t dur = (uint16_t)constrain(params["duration"] | 100, 0, 5000);
++            xibalba::audio::beep(freq, dur);
++            data["freq"] = freq;
++            data["duration"] = dur;
++            data["state"] = "played";
++        }
++        data["enabled"] = (bool)bruceConfig.soundEnabled;
++        reply_ok(id, data);
++        return;
++    }
++
+     // ---- Evil portal / beacon / ble spam (remote start flags + CLI) ----
+     if (strcmp(plugin, "evil_portal") == 0) {
+         if (strcmp(action, "start") == 0) {
+@@ -1177,6 +1420,27 @@ bool teh_link_handle_line(const String &line) {
+         return true;
+     }
+ 
++    // Cualquier comando autenticado renueva el power manager
++    xibalba::power::activity();
++
++    // ---- Time Sync (reloj Android → dispositivo) ----
++    if (strcmp(cmd, "time_sync") == 0) {
++        uint64_t tsMs = 0;
++        if (doc["timestamp_ms"].is<uint64_t>()) tsMs = doc["timestamp_ms"].as<uint64_t>();
++        else if (doc["timestamp_ns"].is<uint64_t>()) tsMs = doc["timestamp_ns"].as<uint64_t>() / 1000000ULL;
++        if (tsMs == 0) {
++            reply_err(id, "missing_timestamp");
++            return true;
++        }
++        int64_t offset = xibalba::time_sync::applyAndroidTime(tsMs);
++        JsonDocument data;
++        data["synced"] = true;
++        data["offset_ms"] = (int64_t)offset;
++        data["device_time_ms"] = (uint64_t)xibalba::time_sync::eventTimestampMs();
++        reply_ok(id, data);
++        return true;
++    }
++
+     if (strcmp(cmd, "get_status") == 0 || strcmp(cmd, "get_screen") == 0) {
+         tick_timers();
+         JsonDocument data;
+@@ -1197,6 +1461,7 @@ bool teh_link_handle_line(const String &line) {
+         JsonObject cap = data["capabilities"].to<JsonObject>();
+         cap["nfc"] = true;
+         cap["nfc_emulate"] = true;
++        cap["nfc_write"] = true;
+         cap["ir"] = true;
+         cap["subghz_tx"] = true;
+         cap["ir_rx"] = true;
+@@ -1206,11 +1471,21 @@ bool teh_link_handle_line(const String &line) {
+         cap["charger"] = true;
+         cap["fuel_gauge"] = true;
+         cap["gps_external"] = false;
++        cap["rf_scan"] = true; // CC1101 integrado en el target T-Embed CC1101 Plus
++        cap["rf_jammer"] = true;
++        cap["sd"] = sdcardMounted;
++        cap["audio"] = bruceConfig.soundEnabled != 0;
++        cap["time_sync"] = true;
+         data["battery_pct"] = getBattery();
+         data["charge_status"] = "unknown";
+         data["charging"] = false;
+         data["vbus_present"] = true;
+         data["coredump_present"] = false;
++        data["power_mode"] = xibalba::power::mode() == xibalba::power::PowerMode::ACTIVE
++                                 ? "active"
++                                 : "doze";
++        data["time_synced"] = xibalba::time_sync::isSynced();
++        data["lang"] = xibalba::lang::currentTag();
+         reply_ok(id, data);
+         return true;
+     }
+diff --git a/src/core/teh_link/teh_nfc.cpp b/src/core/teh_link/teh_nfc.cpp
+new file mode 100644
+index 0000000..243223e
+--- /dev/null
++++ b/src/core/teh_link/teh_nfc.cpp
+@@ -0,0 +1,192 @@
++#include "teh_nfc.h"
++
++#include "core/audio_feedback.h"
++#include "core/language.h"
++#include "core/power_manager.h"
++#include "teh_events.h"
++#include <freertos/FreeRTOS.h>
++#include <freertos/task.h>
++
++#if !defined(LITE_VERSION) && !defined(DISABLE_INTERPRETER)
++#define TEH_NFC_HEADLESS 1
++#include "modules/rfid/tag_o_matic.h"
++#endif
++
++namespace teh_nfc {
++
++static volatile bool s_running = false;
++static uint32_t s_cards = 0;
++static String s_last_uid;
++static TaskHandle_t s_task = nullptr;
++
++bool reader_running() { return s_running; }
++
++#ifdef TEH_NFC_HEADLESS
++
++static void fill_card(JsonObject d, TagOMatic &reader) {
++    RFIDInterface *rfid = reader.getRFIDInterface();
++    if (!rfid) return;
++    d["uid"] = rfid->printableUID.uid;
++    d["type"] = rfid->printableUID.picc_type;
++    d["sak"] = rfid->printableUID.sak;
++    d["atqa"] = rfid->printableUID.atqa;
++}
++
++static void nfc_reader_task(void *pvParameters) {
++    uint32_t timeoutMs = (uint32_t)(uintptr_t)pvParameters;
++    uint32_t started = millis();
++
++    {
++        TagOMatic reader(true); // headless: sin UI, inicializa el módulo PN532
++        String seenUid;
++
++        while (s_running) {
++            if (timeoutMs > 0 && (millis() - started) >= timeoutMs) break;
++
++            // Ventana corta por iteración para poder cortar con reader_stop
++            String uid = reader.read_uid_headless(1);
++            if (uid.length() > 0 && uid != seenUid) {
++                seenUid = uid;
++                s_cards++;
++                s_last_uid = uid;
++
++                JsonDocument ev;
++                JsonObject d = ev.to<JsonObject>();
++                d["uid"] = uid;
++                RFIDInterface *rfid = reader.getRFIDInterface();
++                if (rfid) {
++                    d["type"] = rfid->printableUID.picc_type;
++                    d["sak"] = rfid->printableUID.sak;
++                    d["atqa"] = rfid->printableUID.atqa;
++                }
++                teh_link_emit_event("nfc.card.detected", d);
++                xibalba::audio::cardFound();
++            } else if (uid.length() == 0) {
++                seenUid = ""; // tarjeta retirada → puede re-detectarse
++            }
++
++            xibalba::power::activity();
++            vTaskDelay(pdMS_TO_TICKS(50));
++        }
++    }
++
++    s_running = false;
++    teh_link_emit_event("nfc.reader.stopped");
++    s_task = nullptr;
++    vTaskDelete(nullptr);
++}
++
++bool reader_start(JsonObjectConst params, String &err) {
++    if (s_running) {
++        err = "reader_already_running";
++        return false;
++    }
++    uint32_t timeoutSec = (uint32_t)constrain(params["timeout"] | 60, 0, 600);
++    s_cards = 0;
++    s_last_uid = "";
++    s_running = true;
++    if (xTaskCreatePinnedToCore(
++            nfc_reader_task, "teh_nfc", 8192, (void *)(uintptr_t)(timeoutSec * 1000UL), 1,
++            &s_task, 0
++        ) != pdPASS) {
++        s_running = false;
++        err = "task_create_failed";
++        return false;
++    }
++    teh_link_emit_event("nfc.reader.started");
++    return true;
++}
++
++void reader_stop() { s_running = false; }
++
++void fill_status(JsonObject data) {
++    data["running"] = (bool)s_running;
++    data["state"] = s_running ? "reading" : "idle";
++    data["ready"] = true;
++    data["cards"] = s_cards;
++    data["last_uid"] = s_last_uid;
++    data["message"] = xibalba::lang::str(
++        s_running ? xibalba::lang::Key::WaitingCard : xibalba::lang::Key::Ready
++    );
++}
++
++bool read_once(JsonObject data, int timeoutSec) {
++    TagOMatic reader(true);
++    String uid = reader.read_uid_headless(constrain(timeoutSec, 1, 60));
++    if (uid.length() == 0) return false;
++    data["uid"] = uid;
++    RFIDInterface *rfid = reader.getRFIDInterface();
++    if (rfid) {
++        data["type"] = rfid->printableUID.picc_type;
++        data["sak"] = rfid->printableUID.sak;
++        data["atqa"] = rfid->printableUID.atqa;
++    }
++    s_last_uid = uid;
++    s_cards++;
++    xibalba::audio::cardFound();
++    return true;
++}
++
++bool write_ndef_text(const String &text, int timeoutSec, String &err) {
++    if (text.length() == 0 || text.length() > 130) {
++        err = "invalid_data";
++        return false;
++    }
++    TagOMatic reader(true);
++    RFIDInterface *rfid = reader.getRFIDInterface();
++    if (!rfid) {
++        err = "nfc_hw_unavailable";
++        return false;
++    }
++
++    // NDEF Text Record (RTD "T", lang "en") — igual que build_ndef_text_payload
++    rfid->ndefMessage.payloadType = RFIDInterface::NDEF_TEXT;
++    rfid->ndefMessage.payload[0] = 0x02;
++    rfid->ndefMessage.payload[1] = 0x65; // 'e'
++    rfid->ndefMessage.payload[2] = 0x6E; // 'n'
++    size_t i = 0;
++    for (; i < (size_t)text.length() && (i + 3) < sizeof(rfid->ndefMessage.payload); i++) {
++        rfid->ndefMessage.payload[i + 3] = (byte)text.charAt(i);
++    }
++    rfid->ndefMessage.payloadSize = i + 3;
++    rfid->ndefMessage.messageSize = rfid->ndefMessage.payloadSize + 4;
++
++    uint32_t started = millis();
++    while ((millis() - started) < (uint32_t)timeoutSec * 1000UL) {
++        int rc = rfid->write_ndef();
++        if (rc == RFIDInterface::SUCCESS) {
++            xibalba::audio::ok();
++            return true;
++        }
++        if (rc != RFIDInterface::TAG_NOT_PRESENT) {
++            err = "write_failed";
++            xibalba::audio::error();
++            return false;
++        }
++        vTaskDelay(pdMS_TO_TICKS(120));
++    }
++    err = "tag_timeout";
++    return false;
++}
++
++#else // TEH_NFC_HEADLESS
++
++bool reader_start(JsonObjectConst, String &err) {
++    err = "nfc_headless_unavailable";
++    return false;
++}
++void reader_stop() {}
++void fill_status(JsonObject data) {
++    data["running"] = false;
++    data["ready"] = false;
++    data["state"] = "unavailable";
++}
++bool read_once(JsonObject, int) { return false; }
++bool write_ndef_text(const String &, int, String &err) {
++    err = "nfc_headless_unavailable";
++    return false;
++}
++
++#endif
++
++} // namespace teh_nfc
+diff --git a/src/core/teh_link/teh_nfc.h b/src/core/teh_link/teh_nfc.h
+new file mode 100644
+index 0000000..eb7aa51
+--- /dev/null
++++ b/src/core/teh_link/teh_nfc.h
+@@ -0,0 +1,29 @@
++#pragma once
++
++#include <Arduino.h>
++#include <ArduinoJson.h>
++
++/**
++ * TEH-NFC — lector PN532 headless para EmbedSuite (TEH-Link v3).
++ *
++ * Plugin `nfc_toolkit` ampliado:
++ *  - read: lectura única headless (uid/sak/atqa/type) — antes era un stub.
++ *  - reader_start/reader_stop: polling continuo con streaming de eventos
++ *    `nfc.card.detected` (una vez por tarjeta hasta que se retire).
++ *  - write: NDEF texto en MIFARE Ultralight/NTAG vía driver PN532 real.
++ */
++namespace teh_nfc {
++
++bool reader_start(JsonObjectConst params, String &err);
++void reader_stop();
++void fill_status(JsonObject data);
++
++/** Lectura única bloqueante con timeout (segundos). Rellena data si hay tag. */
++bool read_once(JsonObject data, int timeoutSec);
++
++/** Escritura NDEF texto bloqueante con timeout. */
++bool write_ndef_text(const String &text, int timeoutSec, String &err);
++
++bool reader_running();
++
++} // namespace teh_nfc
+diff --git a/src/core/teh_link/teh_rf.cpp b/src/core/teh_link/teh_rf.cpp
+new file mode 100644
+index 0000000..3b8dbac
+--- /dev/null
++++ b/src/core/teh_link/teh_rf.cpp
+@@ -0,0 +1,279 @@
++#include "teh_rf.h"
++
++#include "core/audio_feedback.h"
++#include "core/power_manager.h"
++#include "modules/rf/rf_utils.h"
++#include "teh_events.h"
++#include <ELECHOUSE_CC1101_SRC_DRV.h>
++#include <freertos/FreeRTOS.h>
++#include <freertos/task.h>
++#include <globals.h>
++
++#ifndef TFT_MOSI
++#define TFT_MOSI -1
++#endif
++
++// ---- Límites CC1101 ----
++static const float FREQ_MIN_MHZ = 300.0f;
++static const float FREQ_MAX_MHZ = 928.0f;
++
++// Cutoff de seguridad del jammer (máximo absoluto 5 min aunque la app pida más)
++static const uint32_t JAMMER_DEFAULT_MAX_MS = 30000;
++static const uint32_t JAMMER_HARD_MAX_MS = 300000;
++
++// Tabla PA del driver SmartRC-CC1101 (dBm soportados)
++static const int PA_DBM_TABLE[] = {-30, -20, -15, -10, -6, 0, 5, 7, 10, 11, 12};
++
++static int pa_for_dbm(int reqDbm) {
++    int best = PA_DBM_TABLE[0];
++    for (size_t i = 0; i < sizeof(PA_DBM_TABLE) / sizeof(PA_DBM_TABLE[0]); i++) {
++        if (PA_DBM_TABLE[i] <= reqDbm) best = PA_DBM_TABLE[i];
++    }
++    return best;
++}
++
++// Tras cada transacción SPI del CC1101 en T-Embed el bus se comparte con el TFT;
++// hay que tocar el display para que el bus quede consistente (ver rf_waterfall).
++static inline void spi_bus_quirk_tembed() {
++    if (bruceConfigPins.CC1101_bus.mosi == TFT_MOSI) tft.drawPixel(0, 0, 0);
++}
++
++// ============================================================================
++// RF SCANNER — barrido RSSI con streaming de muestras
++// ============================================================================
++// OJO: structs dentro del namespace teh_rf — ir_jammer.h define un
++// ::JammerState global y colisionaría por ODR en el link LTO.
++namespace teh_rf {
++
++struct ScanState {
++    volatile bool active = false;
++    float freqStart = 433.0f;
++    float freqEnd = 435.0f;
++    float step = 0.1f;
++    int rssiThreshold = -100;
++    uint32_t dwellMs = 10;
++    uint32_t samples = 0;
++    uint32_t sweeps = 0;
++    float maxFreq = 0.0f;
++    int maxRssi = -127;
++    TaskHandle_t task = nullptr;
++};
++static ScanState s_scan;
++
++static void rf_scan_task(void *) {
++    if (!initRfModule("rx", s_scan.freqStart)) {
++        teh_link_emit_event("rf.scan.error");
++        s_scan.active = false;
++        s_scan.task = nullptr;
++        vTaskDelete(nullptr);
++        return;
++    }
++    ELECHOUSE_cc1101.setRxBW(200); // 200 kHz — buen compromiso sensibilidad/velocidad
++
++    while (s_scan.active) {
++        for (float f = s_scan.freqStart; f <= s_scan.freqEnd && s_scan.active; f += s_scan.step) {
++            setMHZ(f);
++            spi_bus_quirk_tembed();
++            delayMicroseconds(150);
++
++            int rssi = ELECHOUSE_cc1101.getRssi();
++            spi_bus_quirk_tembed();
++
++            s_scan.samples++;
++            if (rssi > s_scan.maxRssi) {
++                s_scan.maxRssi = rssi;
++                s_scan.maxFreq = f;
++            }
++
++            if (rssi >= s_scan.rssiThreshold) {
++                JsonDocument ev;
++                JsonObject d = ev.to<JsonObject>();
++                d["freq"] = (double)f;
++                d["rssi"] = rssi;
++                teh_link_emit_event("rf.scan.sample", d);
++            }
++
++            // Renueva actividad para que el power manager no duerma a mitad de barrido
++            if ((s_scan.samples & 0x3F) == 0) xibalba::power::activity();
++            vTaskDelay(pdMS_TO_TICKS(s_scan.dwellMs));
++        }
++        s_scan.sweeps++;
++    }
++
++    deinitRfModule();
++    teh_link_emit_event("rf.scan.stopped");
++    xibalba::audio::scanDone();
++    s_scan.task = nullptr;
++    vTaskDelete(nullptr);
++}
++
++bool scan_start(JsonObjectConst params, String &err) {
++    if (busy()) {
++        err = "rf_busy";
++        return false;
++    }
++    float fStart = params["freq_start"] | 433.0f;
++    float fEnd = params["freq_end"] | 435.0f;
++    float step = params["step"] | 0.1f;
++
++    if (fStart < FREQ_MIN_MHZ || fEnd > FREQ_MAX_MHZ || fStart >= fEnd) {
++        err = "freq_out_of_range";
++        return false;
++    }
++    if (step <= 0.001f || step > (fEnd - fStart)) {
++        err = "invalid_step";
++        return false;
++    }
++
++    s_scan.freqStart = fStart;
++    s_scan.freqEnd = fEnd;
++    s_scan.step = step;
++    s_scan.rssiThreshold = params["rssi_threshold"] | -100;
++    s_scan.dwellMs = (uint32_t)constrain(params["dwell_ms"] | 10, 1, 1000);
++    s_scan.samples = 0;
++    s_scan.sweeps = 0;
++    s_scan.maxRssi = -127;
++    s_scan.active = true;
++
++    if (xTaskCreatePinnedToCore(rf_scan_task, "teh_rfscan", 4096, nullptr, 1, &s_scan.task, 0) !=
++        pdPASS) {
++        s_scan.active = false;
++        err = "task_create_failed";
++        return false;
++    }
++    teh_link_emit_event("rf.scan.started");
++    return true;
++}
++
++void scan_stop() { s_scan.active = false; }
++
++void scan_fill_status(JsonObject data) {
++    data["running"] = (bool)s_scan.active;
++    data["state"] = s_scan.active ? "scanning" : "idle";
++    data["freq_start"] = s_scan.freqStart;
++    data["freq_end"] = s_scan.freqEnd;
++    data["step"] = s_scan.step;
++    data["rssi_threshold"] = s_scan.rssiThreshold;
++    data["samples"] = s_scan.samples;
++    data["sweeps"] = s_scan.sweeps;
++    data["max_freq"] = s_scan.maxFreq;
++    data["max_rssi"] = s_scan.maxRssi;
++}
++
++// ============================================================================
++// RF JAMMER — TX headless con cutoff de seguridad
++// ============================================================================
++struct JammerState {  // teh_rf::JammerState (distinto del ::JammerState de IR)
++    volatile bool active = false;
++    float freq = 433.92f;
++    int powerDbm = 12;
++    bool burst = false;
++    uint32_t burstOnMs = 50;
++    uint32_t burstOffMs = 100;
++    uint32_t maxMs = JAMMER_DEFAULT_MAX_MS;
++    uint32_t startedMs = 0;
++    uint32_t pulses = 0;
++    TaskHandle_t task = nullptr;
++};
++static JammerState s_jam;
++
++static void rf_jammer_task(void *) {
++    int txPin = bruceConfigPins.rfTx;
++    if (!initRfModule("tx", s_jam.freq)) {
++        teh_link_emit_event("rf.jammer.error");
++        s_jam.active = false;
++        s_jam.task = nullptr;
++        vTaskDelete(nullptr);
++        return;
++    }
++    if (bruceConfigPins.rfModule == CC1101_SPI_MODULE) {
++        txPin = bruceConfigPins.CC1101_bus.io0;
++        pinMode(txPin, OUTPUT);
++        ELECHOUSE_cc1101.setPA(pa_for_dbm(s_jam.powerDbm));
++        ELECHOUSE_cc1101.SetTx();
++    } else {
++        pinMode(txPin, OUTPUT);
++    }
++
++    s_jam.startedMs = millis();
++    s_jam.pulses = 0;
++
++    while (s_jam.active) {
++        if (millis() - s_jam.startedMs >= s_jam.maxMs) break; // cutoff de seguridad
++
++        if (s_jam.burst) {
++            digitalWrite(txPin, HIGH);
++            s_jam.pulses++;
++            vTaskDelay(pdMS_TO_TICKS(s_jam.burstOnMs));
++            digitalWrite(txPin, LOW);
++            vTaskDelay(pdMS_TO_TICKS(s_jam.burstOffMs));
++        } else {
++            // Portadora continua: HIGH sostenido, cediendo cada 50 ms para el WDT
++            digitalWrite(txPin, HIGH);
++            s_jam.pulses++;
++            vTaskDelay(pdMS_TO_TICKS(50));
++        }
++        xibalba::power::activity();
++    }
++
++    digitalWrite(txPin, LOW);
++    deinitRfModule();
++    s_jam.active = false;
++    teh_link_emit_event("rf.jammer.stopped");
++    s_jam.task = nullptr;
++    vTaskDelete(nullptr);
++}
++
++bool jammer_start(JsonObjectConst params, String &err) {
++    if (busy()) {
++        err = "rf_busy";
++        return false;
++    }
++    float freq = params["freq"] | 433.92f;
++    if (freq < FREQ_MIN_MHZ || freq > FREQ_MAX_MHZ) {
++        err = "freq_out_of_range";
++        return false;
++    }
++
++    String mode = params["mode"] | "continuous";
++    s_jam.freq = freq;
++    s_jam.powerDbm = constrain(params["power"] | 12, -30, 12);
++    s_jam.burst = (mode == "burst");
++    s_jam.burstOnMs = (uint32_t)constrain(params["burst_on_ms"] | 50, 1, 5000);
++    s_jam.burstOffMs = (uint32_t)constrain(params["burst_interval"] | 100, 1, 5000);
++    uint32_t maxSec = (uint32_t)(params["max_seconds"] | (JAMMER_DEFAULT_MAX_MS / 1000));
++    s_jam.maxMs = min(maxSec * 1000UL, JAMMER_HARD_MAX_MS);
++    s_jam.active = true;
++
++    if (xTaskCreatePinnedToCore(rf_jammer_task, "teh_rfjam", 4096, nullptr, 1, &s_jam.task, 0) !=
++        pdPASS) {
++        s_jam.active = false;
++        err = "task_create_failed";
++        return false;
++    }
++
++    JsonDocument ev;
++    JsonObject d = ev.to<JsonObject>();
++    d["freq"] = s_jam.freq;
++    d["mode"] = mode;
++    d["max_ms"] = s_jam.maxMs;
++    teh_link_emit_event("rf.jammer.started", d);
++    return true;
++}
++
++void jammer_stop() { s_jam.active = false; }
++
++void jammer_fill_status(JsonObject data) {
++    data["running"] = (bool)s_jam.active;
++    data["state"] = s_jam.active ? "jamming" : "idle";
++    data["freq"] = s_jam.freq;
++    data["power_dbm"] = s_jam.powerDbm;
++    data["mode"] = s_jam.burst ? "burst" : "continuous";
++    data["pulses"] = s_jam.pulses;
++    data["max_ms"] = s_jam.maxMs;
++    if (s_jam.active) data["elapsed_ms"] = millis() - s_jam.startedMs;
++}
++
++bool busy() { return s_scan.active || s_jam.active; }
++
++} // namespace teh_rf
+diff --git a/src/core/teh_link/teh_rf.h b/src/core/teh_link/teh_rf.h
+new file mode 100644
+index 0000000..7a0b230
+--- /dev/null
++++ b/src/core/teh_link/teh_rf.h
+@@ -0,0 +1,32 @@
++#pragma once
++
++#include <Arduino.h>
++#include <ArduinoJson.h>
++
++/**
++ * TEH-RF — control remoto CC1101 para EmbedSuite (TEH-Link v3).
++ *
++ * Dos plugins lógicos (despachados desde teh_link.cpp):
++ *  - rf_scanner: barrido RSSI headless (freq_start/freq_end/step/threshold)
++ *    con streaming de eventos `rf.scan.sample` hacia la app (mapa RF+GPS).
++ *  - rf_jammer: jammer headless (continuous/burst) con cutoff de seguridad.
++ *
++ * El CC1101 es un recurso exclusivo: scanner, jammer y la captura legacy se
++ * serializan con teh_rf_busy().
++ */
++namespace teh_rf {
++
++// ---- Scanner ----
++bool scan_start(JsonObjectConst params, String &err);
++void scan_stop();
++void scan_fill_status(JsonObject data);
++
++// ---- Jammer ----
++bool jammer_start(JsonObjectConst params, String &err);
++void jammer_stop();
++void jammer_fill_status(JsonObject data);
++
++/** true si scanner o jammer tienen el CC1101 ocupado. */
++bool busy();
++
++} // namespace teh_rf
+diff --git a/src/core/teh_link/teh_storage.cpp b/src/core/teh_link/teh_storage.cpp
+new file mode 100644
+index 0000000..959d491
+--- /dev/null
++++ b/src/core/teh_link/teh_storage.cpp
+@@ -0,0 +1,106 @@
++#include "teh_storage.h"
++
++#include "core/sd_functions.h"
++#include <SD.h>
++#include <globals.h>
++#include <mbedtls/base64.h>
++#include <memory>
++
++namespace teh_storage {
++
++static const char *SESSION_DIR = "/embedsuite";
++static const size_t MAX_SAVE_BYTES = 256 * 1024; // 256 KB por llamada
++static const int MAX_LIST_ENTRIES = 64;
++
++bool mount(String &err) {
++    if (sdcardMounted) return true;
++    if (setupSdCard()) return true;
++    err = "sd_mount_failed";
++    return false;
++}
++
++void fill_status(JsonObject data) {
++    data["mounted"] = (bool)sdcardMounted;
++    data["state"] = sdcardMounted ? "ready" : "missing";
++    if (sdcardMounted) {
++        data["total_bytes"] = (uint64_t)SD.totalBytes();
++        data["used_bytes"] = (uint64_t)SD.usedBytes();
++    }
++}
++
++void list_dir(const String &path, JsonObject data) {
++    data["mounted"] = (bool)sdcardMounted;
++    data["path"] = path;
++    JsonArray files = data["files"].to<JsonArray>();
++    if (!sdcardMounted) return;
++
++    File dir = SD.open(path.length() ? path : "/");
++    if (!dir || !dir.isDirectory()) {
++        if (dir) dir.close();
++        data["error"] = "not_a_directory";
++        return;
++    }
++    int count = 0;
++    for (File f = dir.openNextFile(); f && count < MAX_LIST_ENTRIES; f = dir.openNextFile()) {
++        JsonObject o = files.add<JsonObject>();
++        o["name"] = String(f.name());
++        o["dir"] = f.isDirectory();
++        o["size"] = (uint32_t)f.size();
++        f.close();
++        count++;
++    }
++    dir.close();
++    data["count"] = count;
++    data["truncated"] = count >= MAX_LIST_ENTRIES;
++}
++
++bool save_file(const String &filename, const String &dataB64, JsonObject data, String &err) {
++    if (!sdcardMounted) {
++        err = "sd_not_mounted";
++        return false;
++    }
++    // Sanitizar: solo nombre de archivo, sin rutas
++    if (filename.length() == 0 || filename.length() > 64 || filename.indexOf('/') >= 0 ||
++        filename.indexOf("..") >= 0) {
++        err = "invalid_filename";
++        return false;
++    }
++
++    size_t olen = 0;
++    mbedtls_base64_decode(nullptr, 0, &olen, (const uint8_t *)dataB64.c_str(), dataB64.length());
++    if (olen == 0 || olen > MAX_SAVE_BYTES) {
++        err = "invalid_size";
++        return false;
++    }
++    std::unique_ptr<uint8_t[]> buf(new (std::nothrow) uint8_t[olen + 1]);
++    if (!buf) {
++        err = "out_of_memory";
++        return false;
++    }
++    if (mbedtls_base64_decode(
++            buf.get(), olen + 1, &olen, (const uint8_t *)dataB64.c_str(), dataB64.length()
++        ) != 0) {
++        err = "b64_error";
++        return false;
++    }
++
++    if (!SD.exists(SESSION_DIR)) SD.mkdir(SESSION_DIR);
++    String full = String(SESSION_DIR) + "/" + filename;
++    File f = SD.open(full, FILE_WRITE);
++    if (!f) {
++        err = "open_failed";
++        return false;
++    }
++    size_t wrote = f.write(buf.get(), olen);
++    f.close();
++    if (wrote != olen) {
++        err = "write_failed";
++        return false;
++    }
++
++    data["path"] = full;
++    data["bytes"] = (uint32_t)olen;
++    return true;
++}
++
++} // namespace teh_storage
+diff --git a/src/core/teh_link/teh_storage.h b/src/core/teh_link/teh_storage.h
+new file mode 100644
+index 0000000..29f3771
+--- /dev/null
++++ b/src/core/teh_link/teh_storage.h
+@@ -0,0 +1,21 @@
++#pragma once
++
++#include <Arduino.h>
++#include <ArduinoJson.h>
++
++/**
++ * TEH-Storage — microSD remota para EmbedSuite (TEH-Link v3, plugin `sd_storage`).
++ *
++ *  - mount:  monta la SD si no lo está (reintento bajo demanda desde la app).
++ *  - list:   lista un directorio (máx. 64 entradas).
++ *  - save:   guarda un payload base64 bajo /embedsuite/ (sesiones, dumps NFC).
++ *  - status: montaje + espacio.
++ */
++namespace teh_storage {
++
++bool mount(String &err);
++void list_dir(const String &path, JsonObject data);
++bool save_file(const String &filename, const String &dataB64, JsonObject data, String &err);
++void fill_status(JsonObject data);
++
++} // namespace teh_storage
+diff --git a/src/core/time_sync.cpp b/src/core/time_sync.cpp
+new file mode 100644
+index 0000000..10abf19
+--- /dev/null
++++ b/src/core/time_sync.cpp
+@@ -0,0 +1,64 @@
++#include "time_sync.h"
++
++#include <globals.h>
++#include <sys/time.h>
++
++namespace xibalba {
++namespace time_sync {
++
++static int64_t s_offset_ms = 0; // epoch_ms - millis()
++static bool s_synced = false;
++
++void begin() {
++    s_offset_ms = 0;
++    s_synced = false;
++}
++
++int64_t applyAndroidTime(uint64_t androidEpochMs) {
++    uint32_t nowMono = millis();
++    s_offset_ms = (int64_t)androidEpochMs - (int64_t)nowMono;
++    s_synced = true;
++
++    // Fijar reloj de sistema para que logs/SD usen hora real
++    struct timeval tv;
++    tv.tv_sec = (time_t)(androidEpochMs / 1000ULL);
++    tv.tv_usec = (suseconds_t)((androidEpochMs % 1000ULL) * 1000ULL);
++    settimeofday(&tv, nullptr);
++
++#if defined(HAS_RTC)
++#if defined(HAS_RTC_PCF85063A) || defined(HAS_RTC_BM8563A) || defined(HAS_RTC_BM8563)
++    // RTC hardware: persistir para sobrevivir a resets sin batería del SoC
++    struct tm *t = gmtime((const time_t *)&tv.tv_sec);
++    if (t) {
++        _time.Hours = t->tm_hour;
++        _time.Minutes = t->tm_min;
++        _time.Seconds = t->tm_sec;
++        _date.Date = t->tm_mday;
++        _date.Month = t->tm_mon + 1;
++        _date.Year = t->tm_year + 1900;
++        _rtc.SetTime(&_time);
++        _rtc.SetDate(&_date);
++    }
++#endif
++#else
++    // RTC por software (ESP32Time) — reflejar para la UI del dispositivo
++    rtc.setTime(tv.tv_sec);
++    clock_set = true;
++#endif
++
++    Serial.printf("[TIME-SYNC] Reloj fijado a %llu ms epoch (offset %lld ms)\n",
++                  (unsigned long long)androidEpochMs, (long long)s_offset_ms);
++    return s_offset_ms;
++}
++
++bool isSynced() { return s_synced; }
++
++int64_t offsetMs() { return s_offset_ms; }
++
++uint64_t eventTimestampMs() {
++    if (!s_synced) return (uint64_t)millis();
++    return (uint64_t)((int64_t)millis() + s_offset_ms);
++}
++
++} // namespace time_sync
++} // namespace xibalba
+diff --git a/src/core/time_sync.h b/src/core/time_sync.h
+new file mode 100644
+index 0000000..798921a
+--- /dev/null
++++ b/src/core/time_sync.h
+@@ -0,0 +1,36 @@
++#pragma once
++
++#include <Arduino.h>
++
++/**
++ * Time Sync — sincronización de reloj Android ↔ Xibalba (TEH-Link v3).
++ *
++ * El T-Embed CC1101 Plus no tiene GPS ni RTC con batería dedicada en todos los
++ * lotes; el reloj se pierde tras deep-sleep/reset. Android aporta la hora real:
++ * EmbedSuite envía `time_sync` con su timestamp y el firmware fija el reloj del
++ * sistema (settimeofday + ESP32Time rtc) y guarda el offset monotónico para
++ * estampar eventos RF/NFC con la hora de pared de Android.
++ */
++namespace xibalba {
++namespace time_sync {
++
++/** Inicializa el módulo (offset 0 = sin sincronizar). */
++void begin();
++
++/**
++ * Recibe el timestamp de Android en ms Unix epoch y fija el reloj local.
++ * Devuelve el offset aplicado (ms) entre reloj monotónico y hora de pared.
++ */
++int64_t applyAndroidTime(uint64_t androidEpochMs);
++
++/** true si el reloj se sincronizó con Android al menos una vez desde el boot. */
++bool isSynced();
++
++/** Offset monotónico→epoch en ms (0 si no sincronizado). */
++int64_t offsetMs();
++
++/** Timestamp de pared (ms epoch) para eventos; cae a millis() si no hay sync. */
++uint64_t eventTimestampMs();
++
++} // namespace time_sync
++} // namespace xibalba
+diff --git a/src/modules/others/clicker.cpp b/src/modules/others/clicker.cpp
+deleted file mode 100644
+index 07a45ff..0000000
+--- a/src/modules/others/clicker.cpp
++++ /dev/null
+@@ -1,905 +0,0 @@
+-// AutoClicker - v1.1 (Updated by Senape3000)
+-// Optimized for stability, readability, and dynamic GUI scaling
+-
+-#include "clicker.h"
+-#include "core/display.h"
+-#include "core/mykeyboard.h"
+-#include "globals.h"
+-#include <USB.h>
+-
+-#ifdef USB_as_HID
+-#include <USBHIDMouse.h>
+-
+-// ===== STATIC GLOBALS =====
+-// These variables persist across function calls and are safe from stack corruption
+-// during USB initialization (which can corrupt local stack variables)
+-
+-static LayoutConfig layout;          // Screen layout configuration
+-static ClickerConfig config;         // User configuration (delay, button, clicks)
+-static USBHIDMouse *Mouse = nullptr; // Lazy init to avoid global HID descriptor registration
+-
+-// Runtime tracking for CPS calculation
+-static unsigned long prevMillisec = 0; // Last second timestamp
+-static unsigned long currMillisec = 0; // Current timestamp
+-static int cpsClickCount = 0;          // Clicks performed in current second
+-
+-// ===== CONSTANTS =====
+-
+-// Mouse button display names
+-static const char *BUTTON_NAMES[] = {"LEFT", "RIGHT", "MID"};
+-
+-// Preset click count values for quick selection (0 = infinite)
+-static const int PRESET_CLICKS[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,   10,  15,  20,  25,
+-                                    30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500};
+-static const int NUM_PRESETS = sizeof(PRESET_CLICKS) / sizeof(PRESET_CLICKS[0]);
+-
+-// ===== LAYOUT CONSTRUCTOR =====
+-
+-/**
+- * @brief Initializes layout dimensions based on screen resolution
+- *
+- * Dynamically adapts margins, fonts, and spacing to ensure
+- * the UI works correctly on both small (135x240) and larger screens
+- */
+-LayoutConfig::LayoutConfig() {
+-    margin = (tftWidth > 200) ? 10 : 5;
+-    header_height = (tftHeight > 200) ? 35 : 25;
+-    item_height = (tftHeight > 200) ? 30 : 22;
+-    button_height = (tftHeight > 200) ? 40 : 30;
+-    text_size_large = (tftWidth > 200) ? 2 : 1;
+-    text_size_small = 1;
+-    start_y = header_height + ((tftHeight > 200) ? 15 : 8);
+-    item_spacing = (tftHeight > 200) ? 14 : 10;
+-}
+-
+-// ===== USB LIFECYCLE MANAGEMENT =====
+-
+-/**
+- * @brief Initializes USB HID Mouse functionality
+- *
+- * Must be called before any mouse operations.
+- * WARNING: This can corrupt stack variables, use static/global storage only.
+- */
+-void initClickerUSB() {
+-    USB.begin();
+-    if (Mouse == nullptr) Mouse = new USBHIDMouse();
+-    if (Mouse != nullptr) Mouse->begin();
+-    // Serial.println("[USB] Clicker initialized");
+-}
+-
+-/**
+- * @brief Safely tears down USB HID Mouse
+- *
+- * Properly releases USB resources and re-enables DFU/Serial for flashing.
+- * Must be called before exiting or restarting the app.
+- */
+-void cleanupClickerUSB() {
+-    // Serial.println("[USB] Starting cleanup...");
+-    if (Mouse != nullptr) {
+-        Mouse->end();
+-        // Keep instance alive to avoid deleting a polymorphic type with
+-        // non-virtual dtor and to preserve lazy HID registration behavior.
+-    }
+-    USB.~ESPUSB(); // Explicit destructor call
+-    delay(100);
+-    USB.enableDFU(); // Re-enable DFU for future uploads
+-    delay(100);
+-    // Serial.println("[USB] Cleanup complete");
+-}
+-// ===== UI DRAWING FUNCTIONS =====
+-
+-/**
+- * @brief Draws a single menu item with proper styling and values
+- *
+- * @param layout Screen layout configuration
+- * @param itemIndex Which menu item to draw
+- * @param isSelected True if this item is currently selected
+- * @param isEdit True if this item is in edit mode
+- * @param config Current configuration values
+- * @param custom_mode True if user is entering custom click count
+- */
+-void drawMenuItem(
+-    const LayoutConfig &layout, MenuItem itemIndex, bool isSelected, bool isEdit, const ClickerConfig &config,
+-    bool custom_mode
+-) {
+-    int yPos = 0;
+-
+-    // Calculate Y position dynamically
+-    if (itemIndex < ITEM_START) {
+-        // Regular menu items stacked vertically
+-        yPos = layout.start_y + itemIndex * (layout.item_height + layout.item_spacing);
+-    } else {
+-        // START button positioned at bottom with spacing
+-        yPos =
+-            layout.start_y + 3 * (layout.item_height + layout.item_spacing) + ((tftHeight > 200) ? 30 : 15);
+-
+-        // Ensure button doesn't overflow screen
+-        int bottomMargin = (tftHeight > 200) ? 10 : 5;
+-        if (yPos + layout.button_height > tftHeight - bottomMargin) {
+-            yPos = tftHeight - layout.button_height - bottomMargin;
+-        }
+-    }
+-
+-    // Clear item area to prevent visual artifacts
+-    int clearHeight = (itemIndex == ITEM_START) ? layout.button_height : layout.item_height;
+-    tft.fillRect(
+-        layout.margin - 5, yPos - 5, tftWidth - 2 * layout.margin + 10, clearHeight + 10, bruceConfig.bgColor
+-    );
+-
+-    tft.setTextSize(layout.text_size_large);
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-
+-    // Draw selection border (green when editing, white when selected)
+-    if (isSelected && itemIndex != ITEM_START) {
+-        uint16_t borderColor = isEdit ? TFT_GREEN : bruceConfig.priColor;
+-        int borderWidth = isEdit ? 2 : 1;
+-
+-        for (int i = 0; i < borderWidth; i++) {
+-            tft.drawRoundRect(
+-                layout.margin - 3 + i,
+-                yPos - 3 + i,
+-                tftWidth - 2 * layout.margin + 6 - 2 * i,
+-                layout.item_height + 6 - 2 * i,
+-                5,
+-                borderColor
+-            );
+-        }
+-    }
+-
+-    // Calculate vertical centering for text
+-    int contentY = yPos + (layout.item_height - layout.text_size_large * 8) / 2;
+-    int rightMargin = 15;
+-    int unitX = tftWidth - layout.margin - rightMargin;
+-
+-    // Draw item-specific content
+-    switch (itemIndex) {
+-        case ITEM_DELAY: {
+-            // Label on left
+-            tft.setCursor(layout.margin + 2, contentY);
+-            tft.print("Delay:");
+-
+-            // Value on right with unit
+-            char delayStr[16];
+-            snprintf(delayStr, sizeof(delayStr), "%lu", config.delay_ms);
+-            int numWidth = strlen(delayStr) * 6 * layout.text_size_large;
+-
+-            tft.setCursor(unitX - numWidth - 12, contentY);
+-            if (isEdit && isSelected) tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-            tft.print(delayStr);
+-
+-            tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-            tft.print("ms");
+-            break;
+-        }
+-
+-        case ITEM_BUTTON: {
+-            // Label on left
+-            tft.setCursor(layout.margin + 2, contentY);
+-            tft.print("Button:");
+-
+-            // Button name on right
+-            const char *btnName = BUTTON_NAMES[config.button_type];
+-            int textWidth = strlen(btnName) * 6 * layout.text_size_large;
+-
+-            tft.setCursor(unitX - textWidth, contentY);
+-            if (isEdit && isSelected) tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-            tft.print(btnName);
+-            break;
+-        }
+-
+-        case ITEM_CLICKS: {
+-            // Label on left
+-            tft.setCursor(layout.margin + 2, contentY);
+-            tft.print("Clicks:");
+-
+-            // Display value based on mode
+-            if (custom_mode) {
+-                // Show "Custom" when user is entering manual value
+-                const char *customText = "Custom";
+-                int textWidth = strlen(customText) * 6 * layout.text_size_large;
+-                tft.setCursor(unitX - textWidth, contentY);
+-                if (isEdit && isSelected) tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-                tft.print(customText);
+-            } else if (config.max_clicks == 0) {
+-                // Show "Infinite" or "INF" for unlimited clicks
+-                const char *infText = (tftWidth > 200) ? "Infinite" : "INF";
+-                int textWidth = strlen(infText) * 6 * layout.text_size_large;
+-                tft.setCursor(unitX - textWidth, contentY);
+-                if (isEdit && isSelected) tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-                tft.print(infText);
+-            } else {
+-                // Show numeric value
+-                char clicksStr[16];
+-                snprintf(clicksStr, sizeof(clicksStr), "%d", config.max_clicks);
+-                int numWidth = strlen(clicksStr) * 6 * layout.text_size_large;
+-                tft.setCursor(unitX - numWidth, contentY);
+-                if (isEdit && isSelected) tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-                tft.print(clicksStr);
+-            }
+-            break;
+-        }
+-
+-        case ITEM_START: {
+-            // Draw styled button
+-            uint16_t btnColor = isSelected ? TFT_DARKGREEN : TFT_DARKGREY;
+-            tft.fillRoundRect(
+-                layout.margin, yPos, tftWidth - 2 * layout.margin, layout.button_height, 8, btnColor
+-            );
+-
+-            // Centered text
+-            tft.setTextColor(TFT_WHITE, btnColor);
+-            const char *btnText = (tftWidth > 200) ? "START CLICK" : "START";
+-            int textWidth = strlen(btnText) * 6 * layout.text_size_large;
+-            tft.setCursor(
+-                (tftWidth - textWidth) / 2, yPos + (layout.button_height - layout.text_size_large * 8) / 2
+-            );
+-            tft.print(btnText);
+-            break;
+-        }
+-
+-        default: break;
+-    }
+-}
+-
+-/**
+- * @brief Draws the main configuration screen with header and footer
+- *
+- * @param layout Screen layout configuration
+- */
+-void drawConfigScreen(const LayoutConfig &layout) {
+-    tft.fillScreen(bruceConfig.bgColor);
+-
+-    // Header bar with app title
+-    tft.fillRect(0, 0, tftWidth, layout.header_height, bruceConfig.priColor);
+-    tft.setTextColor(bruceConfig.bgColor, bruceConfig.priColor);
+-    tft.setTextSize(layout.text_size_large);
+-    tft.setCursor(layout.margin, (layout.header_height - (layout.text_size_large * 8)) / 2);
+-    tft.println("AUTO CLICKER v1.1");
+-
+-    // Footer with control hints (only on larger screens)
+-    if (tftHeight > 200) {
+-        tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-        tft.setTextSize(layout.text_size_small);
+-        tft.setCursor(layout.margin, tftHeight - 15);
+-        tft.print("NAV: ^v | EDIT: Sel | START: Sel");
+-    }
+-}
+-
+-/**
+- * @brief Draws the active clicking screen with status info
+- *
+- * @param layout Screen layout configuration
+- * @param buttonName Name of the button being clicked (LEFT/RIGHT/MID)
+- */
+-void drawClickingScreen(const LayoutConfig &layout, const char *buttonName) {
+-    tft.fillScreen(bruceConfig.bgColor);
+-
+-    // Animated header to show active state
+-    const int headerHeight = (tftHeight > 200) ? 40 : 30;
+-    tft.fillRect(0, 0, tftWidth, headerHeight, TFT_DARKGREEN);
+-    tft.setTextSize((tftWidth > 200) ? 2 : 1);
+-    tft.setTextColor(TFT_WHITE, TFT_DARKGREEN);
+-
+-    const char *headerText = (tftWidth > 200) ? "-> CLICKING <-" : "-> CLICK <-";
+-    int headerWidth = strlen(headerText) * 6 * ((tftWidth > 200) ? 2 : 1);
+-    tft.setCursor((tftWidth - headerWidth) / 2, (headerHeight - 16) / 2);
+-    tft.print(headerText);
+-
+-    // Static configuration info
+-    const int infoY = headerHeight + 10;
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    tft.setTextSize(layout.text_size_small);
+-
+-    // Line 1: Delay and button type
+-    tft.setCursor(layout.margin, infoY);
+-    tft.print("Delay: ");
+-    tft.print(config.delay_ms);
+-    tft.print("ms | Btn: ");
+-    tft.print(buttonName);
+-
+-    // Line 2: Target (if finite)
+-    if (config.max_clicks > 0) {
+-        tft.setCursor(layout.margin, infoY + 12);
+-        tft.print("Target: ");
+-        tft.print(config.max_clicks);
+-        tft.print(" clicks");
+-    }
+-
+-    // Line 3: Stop instructions
+-    tft.setCursor(layout.margin, infoY + ((config.max_clicks > 0) ? 24 : 12));
+-    tft.print("Press SEL to stop");
+-}
+-
+-/**
+- * @brief Updates the real-time CPS display during clicking
+- *
+- * @param layout Screen layout configuration
+- * @param currentCPS Clicks per second in the last interval
+- * @param totalClicks Total clicks performed so far
+- */
+-void updateCPSDisplay(const LayoutConfig &layout, int currentCPS, unsigned long totalClicks) {
+-    const int cpsY = tftHeight / 2 + 10;
+-    const int cpsSize = (tftWidth > 200) ? 3 : 2;
+-
+-    // Clear previous CPS area to prevent overlap
+-    tft.fillRect(0, cpsY - 5, tftWidth, cpsSize * 8 + 30, bruceConfig.bgColor);
+-
+-    // Large CPS value centered
+-    char cpsStr[16];
+-    snprintf(cpsStr, sizeof(cpsStr), "%d", currentCPS);
+-    tft.setTextSize(cpsSize);
+-    tft.setTextColor(TFT_GREEN, bruceConfig.bgColor);
+-    int cpsWidth = strlen(cpsStr) * 6 * cpsSize;
+-    tft.setCursor((tftWidth - cpsWidth) / 2, cpsY);
+-    tft.print(cpsStr);
+-
+-    // Label below CPS value
+-    tft.setTextSize(layout.text_size_small);
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    const char *label = "Clicks/Second";
+-    int labelWidth = strlen(label) * 6;
+-    tft.setCursor((tftWidth - labelWidth) / 2, cpsY + cpsSize * 8 + 5);
+-    tft.print(label);
+-
+-    // Progress indicator
+-    if (config.max_clicks > 0) {
+-        // Show progress towards target
+-        char progressStr[32];
+-        snprintf(progressStr, sizeof(progressStr), "%lu / %d", totalClicks, config.max_clicks);
+-        int progressWidth = strlen(progressStr) * 6;
+-        tft.setCursor((tftWidth - progressWidth) / 2, cpsY + cpsSize * 8 + 18);
+-        tft.print(progressStr);
+-    } else {
+-        // Show total count for infinite mode
+-        char totalStr[32];
+-        snprintf(totalStr, sizeof(totalStr), "Tot: %lu", totalClicks);
+-        int totalWidth = strlen(totalStr) * 6;
+-        tft.setCursor((tftWidth - totalWidth) / 2, cpsY + cpsSize * 8 + 18);
+-        tft.print(totalStr);
+-    }
+-}
+-
+-/**
+- * @brief Draws the summary screen after clicking completes
+- *
+- * @param layout Screen layout configuration
+- * @param totalClicks Total clicks performed
+- * @param buttonName Button that was clicked
+- * @param completed True if target was reached, false if user stopped
+- * @param delay_ms Delay value used (from snapshot)
+- * @param max_clicks Max clicks value (from snapshot)
+- */
+-void drawSummaryScreen(
+-    const LayoutConfig &layout, unsigned long totalClicks, const char *buttonName, bool completed,
+-    unsigned long delay_ms, int max_clicks
+-) {
+-    tft.fillScreen(bruceConfig.bgColor);
+-
+-    // Header shows completion status
+-    uint16_t headerColor = completed ? TFT_DARKGREEN : TFT_DARKGREY;
+-    tft.fillRect(0, 0, tftWidth, layout.header_height, headerColor);
+-    tft.setTextColor(TFT_WHITE, headerColor);
+-    tft.setTextSize(layout.text_size_large);
+-
+-    const char *statusText = completed ? "COMPLETED" : "STOPPED";
+-    int statusWidth = strlen(statusText) * 6 * layout.text_size_large;
+-    tft.setCursor((tftWidth - statusWidth) / 2, (layout.header_height - 16) / 2);
+-    tft.print(statusText);
+-
+-    // Display statistics
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    tft.setTextSize(layout.text_size_small);
+-    int infoY = layout.header_height + 20;
+-
+-    // Total clicks with target (if applicable)
+-    tft.setCursor(layout.margin, infoY);
+-    tft.print("Clicks: ");
+-    tft.print(totalClicks);
+-    if (max_clicks > 0) {
+-        tft.print(" / ");
+-        tft.print(max_clicks);
+-    }
+-
+-    // Button used
+-    tft.setCursor(layout.margin, infoY + 15);
+-    tft.print("Button: ");
+-    tft.print(buttonName);
+-
+-    // Delay configuration
+-    tft.setCursor(layout.margin, infoY + 30);
+-    tft.print("Delay: ");
+-    tft.print(delay_ms);
+-    tft.print("ms");
+-}
+-
+-/**
+- * @brief Shows USB initialization screen with countdown
+- *
+- * Displays a waiting message while USB driver loads.
+- * Typical OS driver recognition time: 1-3 seconds
+- *
+- * @param layout Screen layout configuration
+- */
+-void drawUSBInitScreen(const LayoutConfig &layout) {
+-    tft.fillScreen(bruceConfig.bgColor);
+-
+-    // Header
+-    const int headerHeight = (tftHeight > 200) ? 40 : 30;
+-    tft.fillRect(0, 0, tftWidth, headerHeight, TFT_ORANGE);
+-    tft.setTextSize((tftWidth > 200) ? 2 : 1);
+-    tft.setTextColor(TFT_WHITE, TFT_ORANGE);
+-
+-    const char *headerText = "USB INIT";
+-    int headerWidth = strlen(headerText) * 6 * ((tftWidth > 200) ? 2 : 1);
+-    tft.setCursor((tftWidth - headerWidth) / 2, (headerHeight - 16) / 2);
+-    tft.print(headerText);
+-
+-    // Message
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    tft.setTextSize(layout.text_size_small);
+-    int msgY = tftHeight / 2 - 20;
+-
+-    const char *msg1 = "Initializing USB HID...";
+-    int msg1Width = strlen(msg1) * 6;
+-    tft.setCursor((tftWidth - msg1Width) / 2, msgY);
+-    tft.print(msg1);
+-
+-    const char *msg2 = "Please wait";
+-    int msg2Width = strlen(msg2) * 6;
+-    tft.setCursor((tftWidth - msg2Width) / 2, msgY + 15);
+-    tft.print(msg2);
+-
+-    // Countdown animation (3 seconds)
+-    tft.setTextSize((tftWidth > 200) ? 3 : 2);
+-    tft.setTextColor(TFT_YELLOW, bruceConfig.bgColor);
+-
+-    for (int i = 3; i > 0; i--) {
+-        // Clear previous number
+-        int numY = tftHeight / 2 + 20;
+-        tft.fillRect(0, numY - 5, tftWidth, 30, bruceConfig.bgColor);
+-
+-        // Draw countdown number
+-        char numStr[2];
+-        snprintf(numStr, sizeof(numStr), "%d", i);
+-        int numSize = (tftWidth > 200) ? 3 : 2;
+-        int numWidth = strlen(numStr) * 6 * numSize;
+-        tft.setCursor((tftWidth - numWidth) / 2, numY);
+-        tft.print(numStr);
+-
+-        delay(1000);
+-    }
+-
+-    // Serial.println("[USB] Initialization delay completed");
+-}
+-
+-// ===== INPUT HANDLING FUNCTIONS =====
+-
+-/**
+- * @brief Handles navigation through menu items
+- *
+- * @param selected_item Current selected item index (modified by reference)
+- * @param prev_selected Previous selected item (for redraw optimization)
+- * @param editing Current edit mode state (modified by reference)
+- * @param last_input Timestamp of last input (for timeout)
+- * @return true if user wants to start clicking or exit, false otherwise
+- */
+-bool handleMenuNavigation(int &selected_item, int &prev_selected, bool &editing, unsigned long &last_input) {
+-    // Navigate up
+-    if (check(PrevPress)) {
+-        prev_selected = selected_item;
+-        selected_item = (selected_item - 1 + NUM_ITEMS) % NUM_ITEMS;
+-        last_input = millis();
+-        return false;
+-    }
+-
+-    // Navigate down
+-    if (check(NextPress)) {
+-        prev_selected = selected_item;
+-        selected_item = (selected_item + 1) % NUM_ITEMS;
+-        last_input = millis();
+-        return false;
+-    }
+-
+-    // Select action
+-    if (check(SelPress)) {
+-        if (selected_item == ITEM_START) {
+-            return true; // Signal to start clicking
+-        }
+-        editing = true; // Enter edit mode for current item
+-        last_input = millis();
+-        return false;
+-    }
+-
+-    // Exit application
+-    if (check(EscPress)) { return true; }
+-
+-    return false;
+-}
+-
+-/**
+- * @brief Handles value editing for the selected menu item
+- *
+- * @param selected_item Which item is being edited
+- * @param custom_mode Custom keyboard input mode for clicks (modified by reference)
+- * @param clicks_preset_index Current index in preset array (modified by reference)
+- * @param editing Edit mode state (modified by reference)
+- * @param last_input Timestamp of last input
+- * @return true if value was changed (triggers redraw)
+- */
+-bool handleValueEditing(
+-    MenuItem selected_item, bool &custom_mode, int &clicks_preset_index, bool &editing,
+-    unsigned long &last_input
+-) {
+-    bool value_changed = false;
+-
+-    switch (selected_item) {
+-        case ITEM_DELAY:
+-            // Adjust delay in 10ms increments
+-            if (check(PrevPress)) {
+-                if (config.delay_ms > 10) { config.delay_ms -= 10; }
+-                value_changed = true;
+-            }
+-            if (check(NextPress)) {
+-                if (config.delay_ms < 60000) { // Cap at 60 seconds
+-                    config.delay_ms += 10;
+-                }
+-                value_changed = true;
+-            }
+-            break;
+-
+-        case ITEM_BUTTON:
+-            // Cycle through button types: LEFT -> RIGHT -> MIDDLE -> LEFT
+-            if (check(PrevPress) || check(NextPress)) {
+-                config.button_type = (config.button_type + 1) % 3;
+-                value_changed = true;
+-            }
+-            break;
+-
+-        case ITEM_CLICKS:
+-            // Navigate through preset values or enter custom mode
+-            if (check(PrevPress)) {
+-                if (custom_mode) {
+-                    // Exit custom mode, go to last preset
+-                    custom_mode = false;
+-                    clicks_preset_index = NUM_PRESETS - 1;
+-                    config.max_clicks = PRESET_CLICKS[clicks_preset_index];
+-                } else {
+-                    // Move to previous preset
+-                    clicks_preset_index = (clicks_preset_index - 1 + NUM_PRESETS) % NUM_PRESETS;
+-                    config.max_clicks = PRESET_CLICKS[clicks_preset_index];
+-                }
+-                value_changed = true;
+-            }
+-
+-            if (check(NextPress)) {
+-                if (clicks_preset_index == NUM_PRESETS - 1 && !custom_mode) {
+-                    // Reached end of presets, enter custom mode
+-                    custom_mode = true;
+-                } else if (custom_mode) {
+-                    // Exit custom mode, wrap to first preset
+-                    custom_mode = false;
+-                    clicks_preset_index = 0;
+-                    config.max_clicks = PRESET_CLICKS[clicks_preset_index];
+-                } else {
+-                    // Move to next preset
+-                    clicks_preset_index = (clicks_preset_index + 1) % NUM_PRESETS;
+-                    config.max_clicks = PRESET_CLICKS[clicks_preset_index];
+-                }
+-                value_changed = true;
+-            }
+-
+-            // Open keyboard for custom input
+-            if (custom_mode && check(SelPress)) {
+-                String customValue = num_keyboard(String(config.max_clicks).c_str(), 6, "Custom Click Count");
+-                if (customValue == "\x1B") return false;
+-                int val = atoi(customValue.c_str());
+-                config.max_clicks = (val < 0) ? 0 : val;
+-                custom_mode = false;
+-                editing = false;
+-                value_changed = true;
+-                return true; // Force full redraw after keyboard
+-            }
+-            break;
+-
+-        default: break;
+-    }
+-
+-    // Exit edit mode when SEL or ESC pressed (unless in custom keyboard)
+-    if (check(SelPress) || check(EscPress)) {
+-        if (selected_item != ITEM_CLICKS || !custom_mode) {
+-            editing = false;
+-            last_input = millis();
+-        }
+-    }
+-
+-    return value_changed;
+-}
+-// ===== CLICKING ENGINE =====
+-
+-/**
+- * @brief Performs the actual clicking loop with real-time feedback
+- *
+- * This function:
+- * - Executes mouse clicks at the configured interval
+- * - Updates CPS display every second
+- * - Checks for user interrupt (SEL/ESC)
+- * - Respects max_clicks limit if set
+- * - Uses responsive delay to allow quick exit
+- *
+- * @param btnNameStr Button name for logging
+- * @return Total number of clicks performed
+- */
+-unsigned long performClicking(const char *btnNameStr) {
+-    // Reset CPS tracking
+-    cpsClickCount = 0;
+-    prevMillisec = millis();
+-    unsigned long totalClicks = 0;
+-    bool shouldStop = false;
+-
+-    // Map button type to USB HID constant
+-    uint8_t mouseButton = MOUSE_LEFT;
+-    if (config.button_type == 1) {
+-        mouseButton = MOUSE_RIGHT;
+-    } else if (config.button_type == 2) {
+-        mouseButton = MOUSE_MIDDLE;
+-    }
+-
+-    // Main clicking loop
+-    while (!shouldStop) {
+-        // Step 1: Perform click
+-        if (Mouse != nullptr) Mouse->click(mouseButton);
+-        cpsClickCount++;
+-        totalClicks++;
+-
+-        // Step 2: Check if target reached (immediate check)
+-        if (config.max_clicks > 0 && totalClicks >= (unsigned long)config.max_clicks) {
+-            shouldStop = true;
+-            break;
+-        }
+-
+-        // Step 3: Update statistics every second
+-        currMillisec = millis();
+-        if (currMillisec - prevMillisec >= 1000) {
+-            updateCPSDisplay(layout, cpsClickCount, totalClicks);
+-            // Serial.printf("[CLICKER] CPS: %d | Total: %lu\n", cpsClickCount, totalClicks);
+-
+-            // Reset counter for next second
+-            cpsClickCount = 0;
+-            prevMillisec = currMillisec;
+-        }
+-
+-        // Step 4: Responsive delay with user interrupt check
+-        // Instead of blocking delay(), we check input every 1ms
+-        // This allows quick response to stop button
+-        unsigned long delayStart = millis();
+-        while (millis() - delayStart < config.delay_ms) {
+-            InputHandler();
+-            wakeUpScreen(); // Keep display active
+-
+-            // Check for stop signal
+-            if (check(EscPress) || check(SelPress) || returnToMenu) {
+-                shouldStop = true;
+-                break;
+-            }
+-
+-            delay(1); // Small sleep to prevent watchdog timeout
+-        }
+-    }
+-
+-    return totalClicks;
+-}
+-// ===== MAIN APPLICATION ENTRY POINT =====
+-
+-/**
+- * @brief Main clicker application loop
+- *
+- * Flow:
+- * 1. Configuration menu (navigate and edit settings)
+- * 2. USB initialization
+- * 3. Clicking execution
+- * 4. Summary screen with restart option
+- * 5. USB cleanup
+- *
+- * Note: config, layout, and Mouse are static globals to prevent
+- * stack corruption during USB init/cleanup operations
+- */
+-void clicker_setup() {
+-    // UI state variables
+-    int selected_item = 0;
+-    int prev_selected = 0;
+-    bool editing = false;
+-    bool custom_mode = false;
+-    int clicks_preset_index = 0;
+-    unsigned long last_input = millis();
+-
+-    // Draw initial configuration screen
+-    drawConfigScreen(layout);
+-    for (int i = 0; i < NUM_ITEMS; i++) {
+-        drawMenuItem(layout, (MenuItem)i, (i == selected_item), false, config, custom_mode);
+-    }
+-
+-    // ===== CONFIGURATION PHASE =====
+-    bool exit_menu = false;
+-    while (!exit_menu) {
+-        InputHandler();
+-        wakeUpScreen();
+-
+-        // Track what needs redrawing
+-        bool selection_changed = false;
+-        bool value_changed = false;
+-        bool edit_mode_changed = false;
+-        bool need_full_redraw = false;
+-
+-        if (!editing) {
+-            // Handle navigation mode
+-            int old_selected = selected_item;
+-            bool old_editing = editing;
+-            bool shouldExit = handleMenuNavigation(selected_item, prev_selected, editing, last_input);
+-
+-            if (shouldExit) {
+-                if (selected_item == ITEM_START) {
+-                    exit_menu = true; // Proceed to clicking
+-                } else {
+-                    return; // Exit to main menu
+-                }
+-            }
+-
+-            selection_changed = (old_selected != selected_item);
+-            edit_mode_changed = (old_editing != editing);
+-        } else {
+-            // Handle editing mode
+-            bool old_editing = editing;
+-            value_changed = handleValueEditing(
+-                (MenuItem)selected_item, custom_mode, clicks_preset_index, editing, last_input
+-            );
+-
+-            // Force full redraw after custom keyboard
+-            if (value_changed && !editing && selected_item == ITEM_CLICKS) { need_full_redraw = true; }
+-
+-            edit_mode_changed = (old_editing != editing);
+-        }
+-
+-        // Optimized redraw logic (only update what changed)
+-        if (need_full_redraw) {
+-            drawConfigScreen(layout);
+-            for (int i = 0; i < NUM_ITEMS; i++) {
+-                drawMenuItem(layout, (MenuItem)i, (i == selected_item), false, config, custom_mode);
+-            }
+-        } else {
+-            if (selection_changed) {
+-                // Redraw old and new selected items
+-                drawMenuItem(layout, (MenuItem)prev_selected, false, false, config, custom_mode);
+-                drawMenuItem(layout, (MenuItem)selected_item, true, false, config, custom_mode);
+-            }
+-            if (edit_mode_changed || value_changed) {
+-                // Redraw current item with updated state
+-                drawMenuItem(layout, (MenuItem)selected_item, true, editing, config, custom_mode);
+-                if (value_changed) { last_input = millis(); }
+-            }
+-        }
+-
+-        delay(20); // Prevent tight loop
+-
+-        // Auto-exit after 2 minutes of inactivity
+-        if (millis() - last_input > 120000) {
+-            // Serial.println("[CLICKER] Timeout, returning to menu");
+-            return;
+-        }
+-    }
+-
+-    // ===== EXECUTION PHASE =====
+-
+-    // CRITICAL: Snapshot config values BEFORE USB init
+-    // USB initialization can corrupt stack variables, so we save
+-    // all values to const locals for safe access later
+-    const unsigned long final_delay_ms = config.delay_ms;
+-    const int final_max_clicks = config.max_clicks;
+-    const int final_button_type = config.button_type;
+-    const char *btnNameStr = BUTTON_NAMES[final_button_type];
+-
+-    // Serial.printf(
+-    //     "[CLICKER] Starting with: delay=%lums, max=%d, button=%s\n",
+-    //     final_delay_ms,
+-    //     final_max_clicks,
+-    //     btnNameStr
+-    //);
+-
+-    // Initialize USB HID
+-    initClickerUSB();
+-
+-    // Show USB initialization screen with countdown
+-    drawUSBInitScreen(layout);
+-
+-    // Draw clicking screen
+-    drawClickingScreen(layout, btnNameStr);
+-
+-    // Execute clicking loop (config is static global, safe to use)
+-    unsigned long totalClicks = performClicking(btnNameStr);
+-
+-    // Serial.printf("[CLICKER] Finished: %lu clicks performed\n", totalClicks);
+-
+-    // ===== SUMMARY PHASE =====
+-
+-    // Determine completion status
+-    bool completed = (final_max_clicks > 0 && totalClicks >= (unsigned long)final_max_clicks);
+-
+-    // Draw summary with safe snapshot values (NOT config members)
+-    drawSummaryScreen(layout, totalClicks, btnNameStr, completed, final_delay_ms, final_max_clicks);
+-
+-    // Wait briefly for user to read summary
+-    delay(2000);
+-
+-    // Show restart/exit prompt
+-    tft.setTextColor(TFT_WHITE, bruceConfig.bgColor);
+-    tft.setTextSize(layout.text_size_small);
+-    int promptY = tftHeight - 20;
+-    tft.fillRect(0, promptY - 5, tftWidth, 25, bruceConfig.bgColor);
+-    tft.setCursor(layout.margin, promptY);
+-    tft.print("OK: Restart | ESC: Exit");
+-
+-    // Wait for user decision
+-    bool userChoice = false;
+-    bool restart = false;
+-    while (!userChoice) {
+-        InputHandler();
+-        wakeUpScreen();
+-
+-        if (check(SelPress)) {
+-            restart = true;
+-            userChoice = true;
+-        }
+-        if (check(EscPress)) {
+-            delay(600);
+-            displayWarning(
+-                "Turn-off to restore USB", true
+-            ); // BUG (?) - Need to restore Usb without Power-Off (reboot seems uneffective)
+-            restart = false;
+-            userChoice = true;
+-        }
+-
+-        delay(50);
+-    }
+-
+-    // ===== CLEANUP PHASE =====
+-
+-    // Always cleanup USB before exiting or restarting
+-    cleanupClickerUSB();
+-
+-    // Handle user choice
+-    if (restart) {
+-        // Serial.println("[CLICKER] Restarting application");
+-        clicker_setup(); // Recursive call to restart
+-        return;
+-    } else {
+-        // Serial.println("[CLICKER] Exiting to main menu");
+-        return;
+-    }
+-}
+-
+-/**
+- * @brief Alias for USB clicker mode
+- */
+-void usbClickerSetup() { clicker_setup(); }
+-
+-/**
+- * @brief Placeholder for BLE clicker mode
+- *
+- * TODO: Implement Bluetooth HID functionality
+- * Will require BLE HID library and pairing logic
+- */
+-void bleClickerSetup() {
+-    tft.fillScreen(bruceConfig.bgColor);
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    tft.setTextSize(2);
+-    tft.setCursor(10, tftHeight / 2 - 8);
+-    tft.print("BLE Mode");
+-
+-    tft.setTextSize(1);
+-    tft.setCursor(10, tftHeight / 2 + 20);
+-    tft.print("Not yet implemented");
+-
+-    delay(2000);
+-    // Serial.println("[CLICKER] BLE mode requested but not implemented");
+-}
+-
+-#endif // USB_as_HID
+diff --git a/src/modules/others/clicker.h b/src/modules/others/clicker.h
+deleted file mode 100644
+index 547b3dc..0000000
+--- a/src/modules/others/clicker.h
++++ /dev/null
+@@ -1,60 +0,0 @@
+-// AutoClicker - HID Mouse Automation Tool
+-// Author: Senape3000
+-// Version: 1.1
+-
+-#pragma once
+-
+-// ===== PUBLIC API =====
+-void clicker_setup();   // Main entry point for USB clicker
+-void usbClickerSetup(); // Alias for USB mode
+-void bleClickerSetup(); // BLE mode (not yet implemented)
+-
+-// ===== CONFIGURATION STRUCTURES =====
+-
+-/**
+- * @brief Stores all user-configurable click parameters
+- *
+- * This structure holds the clicking behavior settings.
+- * Default values: 100ms delay, LEFT button, infinite clicks
+- */
+-struct ClickerConfig {
+-    unsigned long delay_ms; // Delay between each click (milliseconds)
+-    int button_type;        // Mouse button: 0=LEFT, 1=RIGHT, 2=MIDDLE
+-    int max_clicks;         // Click limit: 0=infinite, >0=stop after N clicks
+-
+-    // Constructor with sensible defaults
+-    ClickerConfig() : delay_ms(100), button_type(0), max_clicks(0) {}
+-};
+-
+-/**
+- * @brief Layout configuration for dynamic screen adaptation
+- *
+- * All dimensions are calculated at runtime based on screen resolution
+- * to ensure the GUI works on different display sizes (e.g., 135x240, 320x240)
+- */
+-struct LayoutConfig {
+-    int margin;          // Horizontal margin from screen edges
+-    int header_height;   // Top bar height
+-    int item_height;     // Height of each menu item
+-    int button_height;   // Height of the START button
+-    int text_size_large; // Font size for titles (1 or 2)
+-    int text_size_small; // Font size for details (always 1)
+-    int start_y;         // Y position where menu items begin
+-    int item_spacing;    // Vertical gap between menu items
+-
+-    // Constructor calculates values based on tftWidth/tftHeight globals
+-    LayoutConfig();
+-};
+-
+-/**
+- * @brief Menu item identifiers
+- *
+- * Used to track which item is selected and being edited
+- */
+-enum MenuItem {
+-    ITEM_DELAY = 0,  // Delay configuration
+-    ITEM_BUTTON = 1, // Button type selection
+-    ITEM_CLICKS = 2, // Click count limit
+-    ITEM_START = 3,  // Start execution button
+-    NUM_ITEMS = 4    // Total number of items (for bounds checking)
+-};
+diff --git a/src/modules/others/ibutton.cpp b/src/modules/others/ibutton.cpp
+deleted file mode 100644
+index 6ebb942..0000000
+--- a/src/modules/others/ibutton.cpp
++++ /dev/null
+@@ -1,431 +0,0 @@
+-#ifndef LITE_VERSION
+-#include "ibutton.h"
+-#include "core/display.h"
+-#include "core/mykeyboard.h"
+-#include "core/sd_functions.h"
+-
+-// ---------------------------------------------------------------------------
+-// State
+-// ---------------------------------------------------------------------------
+-static OneWire *oneWire = nullptr;
+-static byte keyBuffer[8];
+-static bool keyLoaded = false;
+-
+-// ---------------------------------------------------------------------------
+-// Helpers
+-// ---------------------------------------------------------------------------
+-
+-static String bufferToHexStr(const byte *buf, int len, const char *sep = ":") {
+-    String s;
+-    for (int i = 0; i < len; i++) {
+-        if (buf[i] < 0x10) s += '0';
+-        s += String(buf[i], HEX);
+-        if (i < len - 1) s += sep;
+-    }
+-    s.toUpperCase();
+-    return s;
+-}
+-
+-static bool bufferCrcValid() { return OneWire::crc8(keyBuffer, 7) == keyBuffer[7]; }
+-
+-static void displayStatus() {
+-    drawMainBorderWithTitle("iButton");
+-    if (keyLoaded) {
+-        padprintln("UID: " + bufferToHexStr(keyBuffer, 8));
+-        if (!bufferCrcValid()) {
+-            tft.setTextColor(TFT_RED);
+-            padprintln("CRC ERROR!");
+-            tft.setTextColor(bruceConfig.priColor);
+-        } else {
+-            tft.setTextColor(TFT_GREEN);
+-            padprintln("CRC OK");
+-            tft.setTextColor(bruceConfig.priColor);
+-        }
+-    } else {
+-        padprintln("No key in buffer");
+-    }
+-    padprintln("");
+-    padprintln("Waiting for iButton...");
+-    padprintln("[NEXT] for options");
+-}
+-
+-// ---------------------------------------------------------------------------
+-// OneWire RW1990 low-level
+-// ---------------------------------------------------------------------------
+-
+-static void writeByte_RW1990(byte data) {
+-    uint8_t pin = bruceConfigPins.iButton;
+-    for (int bit = 0; bit < 8; bit++) {
+-        if (data & 1) {
+-            digitalWrite(pin, LOW);
+-            pinMode(pin, OUTPUT);
+-            delayMicroseconds(60);
+-            pinMode(pin, INPUT);
+-            digitalWrite(pin, HIGH);
+-        } else {
+-            digitalWrite(pin, LOW);
+-            pinMode(pin, OUTPUT);
+-            pinMode(pin, INPUT);
+-            digitalWrite(pin, HIGH);
+-        }
+-        delay(10);
+-        data >>= 1;
+-    }
+-}
+-
+-// ---------------------------------------------------------------------------
+-// Core operations
+-// ---------------------------------------------------------------------------
+-
+-static bool readKey(int maxRetries = 20) {
+-    for (int attempt = 0; attempt < maxRetries; attempt++) {
+-        if (check(EscPress)) return false;
+-        if (oneWire->reset() == 0) return false;
+-
+-        oneWire->write(0x33);
+-        oneWire->read_bytes(keyBuffer, 8);
+-
+-        if (bufferCrcValid()) {
+-            keyLoaded = true;
+-            return true;
+-        }
+-
+-        tft.fillScreen(bruceConfig.bgColor);
+-        drawMainBorderWithTitle("iButton");
+-        padprintln("Reading... attempt " + String(attempt + 2));
+-        padprintln("CRC mismatch, retrying...");
+-        padprintln("");
+-        padprintln("Keep key on the contact!");
+-        delay(100);
+-    }
+-
+-    // Retries exhausted — still store what we got
+-    keyLoaded = true;
+-    return false;
+-}
+-
+-static void writeKey() {
+-    uint8_t pin = bruceConfigPins.iButton;
+-
+-    oneWire->skip();
+-    oneWire->reset();
+-    oneWire->write(0x33);
+-
+-    oneWire->skip();
+-    oneWire->reset();
+-    oneWire->write(0x3C);
+-    delay(50);
+-
+-    oneWire->skip();
+-    oneWire->reset();
+-    oneWire->write(0xD1);
+-    delay(50);
+-
+-    digitalWrite(pin, LOW);
+-    pinMode(pin, OUTPUT);
+-    delayMicroseconds(60);
+-    pinMode(pin, INPUT);
+-    digitalWrite(pin, HIGH);
+-    delay(10);
+-
+-    oneWire->skip();
+-    oneWire->reset();
+-    oneWire->write(0xD5);
+-    delay(50);
+-
+-    for (byte i = 0; i < 8; i++) {
+-        writeByte_RW1990(keyBuffer[i]);
+-        delayMicroseconds(25);
+-    }
+-
+-    oneWire->reset();
+-    oneWire->skip();
+-    oneWire->write(0xD1);
+-    delayMicroseconds(16);
+-    oneWire->reset();
+-}
+-
+-// ---------------------------------------------------------------------------
+-// File I/O
+-// ---------------------------------------------------------------------------
+-
+-static const char *IBUTTON_DIR = "/BruceIButton";
+-
+-static IButtonResult saveKey() {
+-    FS *fs;
+-    if (!getFsStorage(fs)) return IBUTTON_FAILURE;
+-    if (!fs->exists(IBUTTON_DIR)) fs->mkdir(IBUTTON_DIR);
+-
+-    char fname[48];
+-    snprintf(
+-        fname,
+-        sizeof(fname),
+-        "%s/%02X%02X%02X%02X%02X%02X.ibtn",
+-        IBUTTON_DIR,
+-        keyBuffer[0],
+-        keyBuffer[1],
+-        keyBuffer[2],
+-        keyBuffer[3],
+-        keyBuffer[4],
+-        keyBuffer[5]
+-    );
+-
+-    String path = fname;
+-    if (fs->exists(path)) {
+-        int n = 1;
+-        String base = path.substring(0, path.lastIndexOf('.'));
+-        do { path = base + "_" + String(n++) + ".ibtn"; } while (fs->exists(path));
+-    }
+-
+-    File file = fs->open(path, FILE_WRITE);
+-    if (!file) return IBUTTON_FAILURE;
+-
+-    file.println("Filetype: Bruce iButton File");
+-    file.println("Version 1");
+-    file.println("Device type: DS1990A");
+-    file.print("UID: ");
+-    file.println(bufferToHexStr(keyBuffer, 8, " "));
+-    file.print("CRC: ");
+-    if (keyBuffer[7] < 0x10) file.print('0');
+-    file.println(keyBuffer[7], HEX);
+-
+-    file.close();
+-    return IBUTTON_SUCCESS;
+-}
+-
+-static IButtonResult loadKey() {
+-    FS *fs;
+-    if (!getFsStorage(fs)) return IBUTTON_FAILURE;
+-
+-    String filepath = loopSD(*fs, true, "ibtn", IBUTTON_DIR);
+-    if (filepath.length() == 0) return IBUTTON_FAILURE;
+-
+-    File file = fs->open(filepath, FILE_READ);
+-    if (!file) return IBUTTON_FAILURE;
+-
+-    byte tmp[8];
+-    bool found = false;
+-
+-    while (file.available()) {
+-        String line = file.readStringUntil('\n');
+-        line.trim();
+-        if (!line.startsWith("UID:")) continue;
+-
+-        String hex = line.substring(line.indexOf(':') + 1);
+-        hex.trim();
+-        hex.replace(" ", "");
+-        if (hex.length() != 16) continue;
+-
+-        for (int i = 0; i < 8; i++) tmp[i] = strtoul(hex.substring(i * 2, i * 2 + 2).c_str(), NULL, 16);
+-        found = true;
+-        break;
+-    }
+-    file.close();
+-
+-    if (!found) return IBUTTON_FAILURE;
+-
+-    memcpy(keyBuffer, tmp, 8);
+-    keyLoaded = true;
+-    return bufferCrcValid() ? IBUTTON_SUCCESS : IBUTTON_CRC_ERROR;
+-}
+-
+-// ---------------------------------------------------------------------------
+-// Menu actions
+-// ---------------------------------------------------------------------------
+-
+-enum MenuAction {
+-    ACTION_WRITE,
+-    ACTION_SAVE,
+-    ACTION_LOAD,
+-    ACTION_RESET,
+-    ACTION_SETUP_PIN,
+-    ACTION_CLOSE,
+-    ACTION_MAIN_MENU,
+-};
+-
+-static bool returnFromMenu = false;
+-static bool restartNeeded = false;
+-static MenuAction selectedAction;
+-
+-static void setAction(MenuAction a) { selectedAction = a; }
+-
+-static void doWrite() {
+-    if (!keyLoaded) {
+-        displayError("No key in buffer", true);
+-        delay(1500);
+-        return;
+-    }
+-
+-    tft.fillScreen(bruceConfig.bgColor);
+-    drawMainBorderWithTitle("Write iButton");
+-    padprintln("UID: " + bufferToHexStr(keyBuffer, 8));
+-    padprintln("");
+-    padprintln("Touch blank key to writer...");
+-    padprintln("[Esc] Cancel");
+-
+-    while (oneWire->reset() == 0) {
+-        if (check(EscPress)) return;
+-        delay(50);
+-    }
+-
+-    writeKey();
+-    displaySuccess("Key written!");
+-    delay(1500);
+-}
+-
+-static void doSave() {
+-    if (!keyLoaded) {
+-        displayError("No key in buffer", true);
+-        delay(1500);
+-        return;
+-    }
+-    IButtonResult r = saveKey();
+-    if (r == IBUTTON_SUCCESS) displaySuccess("Saved");
+-    else displayError("Save failed", true);
+-    delay(1500);
+-}
+-
+-static void doLoad() {
+-    IButtonResult r = loadKey();
+-    if (r == IBUTTON_SUCCESS) {
+-        displaySuccess("Key loaded");
+-        delay(1000);
+-    } else if (r == IBUTTON_CRC_ERROR) {
+-        displayWarning("Loaded (CRC mismatch)", true);
+-        delay(1500);
+-    } else {
+-        displayError("Load failed", true);
+-        delay(1500);
+-    }
+-}
+-
+-static void doReset() {
+-    memset(keyBuffer, 0, sizeof(keyBuffer));
+-    keyLoaded = false;
+-    displaySuccess("Buffer cleared");
+-    delay(1000);
+-}
+-
+-static void selectMenuOption() {
+-    options = {};
+-
+-    if (keyLoaded) {
+-        options.emplace_back("Write to key", []() { setAction(ACTION_WRITE); });
+-        options.emplace_back("Save to file", []() { setAction(ACTION_SAVE); });
+-    }
+-
+-    options.emplace_back("Load from file", []() { setAction(ACTION_LOAD); });
+-
+-    if (keyLoaded) {
+-        options.emplace_back("Reset buffer", []() { setAction(ACTION_RESET); });
+-    }
+-
+-    options.emplace_back("Setup pin", []() { setAction(ACTION_SETUP_PIN); });
+-    options.emplace_back("Close menu", []() { setAction(ACTION_CLOSE); });
+-    options.emplace_back("Main menu", []() { setAction(ACTION_MAIN_MENU); });
+-
+-    selectedAction = ACTION_CLOSE;
+-    loopOptions(options);
+-    options.clear();
+-
+-    switch (selectedAction) {
+-        case ACTION_WRITE: doWrite(); break;
+-        case ACTION_SAVE: doSave(); break;
+-        case ACTION_LOAD: doLoad(); break;
+-        case ACTION_RESET: doReset(); break;
+-        case ACTION_SETUP_PIN: restartNeeded = true; return;
+-        case ACTION_MAIN_MENU: returnFromMenu = true; return;
+-        case ACTION_CLOSE: break;
+-    }
+-}
+-
+-// ---------------------------------------------------------------------------
+-// Public entry point
+-// ---------------------------------------------------------------------------
+-
+-void setup_ibutton() {
+-    returnFromMenu = false;
+-    restartNeeded = false;
+-    keyLoaded = false;
+-
+-Restart:
+-    if (oneWire) delete oneWire;
+-    oneWire = new OneWire(bruceConfigPins.iButton);
+-
+-    tft.fillScreen(bruceConfig.bgColor);
+-    displayStatus();
+-
+-    for (;;) {
+-        if (check(EscPress) || returnFromMenu) {
+-            returnToMenu = true;
+-            break;
+-        }
+-
+-        if (check(NextPress)) {
+-            selectMenuOption();
+-            if (returnFromMenu) {
+-                returnToMenu = true;
+-                break;
+-            }
+-            if (restartNeeded) {
+-                restartNeeded = false;
+-                setiButtonPinMenu();
+-                goto Restart;
+-            }
+-            tft.fillScreen(bruceConfig.bgColor);
+-            displayStatus();
+-        }
+-
+-        // Auto-read when iButton touches the probe
+-        if (oneWire->reset() != 0) {
+-            bool ok = readKey();
+-            tft.fillScreen(bruceConfig.bgColor);
+-
+-            if (ok) {
+-                displayStatus();
+-                padprintln("");
+-                tft.setTextColor(TFT_GREEN);
+-                padprintln("Key read successfully!");
+-                tft.setTextColor(bruceConfig.priColor);
+-            } else if (keyLoaded) {
+-                // Read failed CRC but we have data
+-                displayStatus();
+-                padprintln("");
+-                tft.setTextColor(TFT_YELLOW);
+-                padprintln("Read with CRC errors");
+-                tft.setTextColor(bruceConfig.priColor);
+-            } else {
+-                displayStatus();
+-            }
+-
+-            // Wait for key removal to avoid re-reading in a loop
+-            while (oneWire->reset() != 0) {
+-                if (check(EscPress)) break;
+-                delay(100);
+-            }
+-        }
+-
+-        delay(50);
+-    }
+-
+-    delete oneWire;
+-    oneWire = nullptr;
+-}
+-
+-// ---------------------------------------------------------------------------
+-// Pin selection menu
+-// ---------------------------------------------------------------------------
+-
+-void setiButtonPinMenu() {
+-    options = {};
+-    gpio_num_t sel = GPIO_NUM_NC;
+-    for (int8_t i = -1; i <= GPIO_NUM_MAX; i++) {
+-        String label = "GPIO " + String(i);
+-        options.push_back({label.c_str(), [i, &sel]() { sel = (gpio_num_t)i; }});
+-    }
+-    loopOptions(options, bruceConfigPins.iButton + 1);
+-    options.clear();
+-    bruceConfigPins.setiButtonPin(sel);
+-}
+-
+-#endif
+diff --git a/src/modules/others/ibutton.h b/src/modules/others/ibutton.h
+deleted file mode 100644
+index 7dc2156..0000000
+--- a/src/modules/others/ibutton.h
++++ /dev/null
+@@ -1,16 +0,0 @@
+-#ifndef LITE_VERSION
+-#pragma once
+-
+-#include <OneWire.h>
+-
+-enum IButtonResult {
+-    IBUTTON_SUCCESS = 0,
+-    IBUTTON_FAILURE,
+-    IBUTTON_NO_KEY,
+-    IBUTTON_CRC_ERROR,
+-};
+-
+-void setup_ibutton();
+-void setiButtonPinMenu();
+-
+-#endif
+diff --git a/src/modules/others/tururururu.cpp b/src/modules/others/tururururu.cpp
+deleted file mode 100644
+index 7e746c6..0000000
+--- a/src/modules/others/tururururu.cpp
++++ /dev/null
+@@ -1,210 +0,0 @@
+-#include "tururururu.h"
+-#include "core/display.h"
+-#include "core/mykeyboard.h"
+-#include <globals.h>
+-
+-// By: @IncursioHack / github.com/IncursioHack
+-
+-// Configuração do personagem principal (tubarão)
+-int sharkX = 40;
+-int sharkY = 80;
+-int sharkSize = 14;
+-bool sharkUp = false;
+-bool sharkDown = false;
+-
+-// Configuração dos peixes
+-struct Fish {
+-    int x, y, size;
+-};
+-Fish fish[5]; // Array de peixes
+-
+-// Configuração de pontuação
+-int score = 0;
+-
+-void initSprites() {
+-    // sprite para desenhar a tela toda
+-    // tft.deleteSprite();
+-    // tft.createSprite(tftWidth,tftHeight);
+-    tft.fillScreen(bruceConfig.bgColor);
+-
+-    // menu_op para desenhar o tubarao
+-    sprite.deleteSprite();
+-    sprite.createSprite(32, 30);
+-    sprite.fillScreen(bruceConfig.bgColor);
+-    sprite.fillEllipse(19, 17, 10, 5, TFT_DARKGREY);
+-    sprite.fillCircle(17, 24, 5, TFT_LIGHTGREY);
+-    sprite.fillTriangle(0, 10, 0, 22, 9, 17, TFT_DARKGREY);
+-    sprite.fillTriangle(17, 6, 17, 14, 22, 14, TFT_DARKGREY);
+-    sprite.fillCircle(25, 14, 1, TFT_RED);
+-    sprite.fillTriangle(23, 18, 29, 18, 24, 21, TFT_RED);
+-    sprite.fillRect(0, 21, 32, 15, bruceConfig.bgColor);
+-
+-    // draw para desenhar o peixe
+-    draw.deleteSprite();
+-    draw.createSprite(20, 8);
+-    draw.fillScreen(bruceConfig.bgColor);
+-    draw.fillEllipse(6, 4, 6, 3, TFT_ORANGE);
+-    draw.fillTriangle(16, 0, 16, 8, 11, 5, TFT_ORANGE);
+-    draw.drawFastVLine(6, 1, 7, TFT_WHITE);
+-    draw.drawFastVLine(10, 1, 7, TFT_WHITE);
+-    draw.drawFastVLine(15, 1, 7, TFT_WHITE);
+-    draw.fillCircle(3, 3, 1, TFT_BLACK);
+-}
+-
+-// Função para desenhar o tubarão
+-void drawShark() {
+-    sprite.pushSprite(sharkX - sharkSize, sharkY - 7);
+-    // sprite.pushToSprite(&sprite,sharkX-sharkSize, sharkY,TFT_TRANSPARENT);
+-}
+-
+-// Função para desenhar peixes
+-void drawFish(Fish &f) {
+-    draw.pushSprite(f.x, f.y);
+-    // draw.pushToSprite(&sprite,f.x,f.y,TFT_TRANSPARENT);
+-}
+-#define STEP (tftHeight) / 44
+-
+-// Função para mover o tubarão
+-void detectInputs() {
+-#if defined(ARDUINO_M5STICK_C_PLUS) ||                                                                       \
+-    defined(ARDUINO_M5STICK_C_PLUS2) // check(EscPress) is the same of check(PrevPress) in these devices
+-    if (check(SelPress))
+-#else
+-    if (check(PrevPress) || check(UpPress))
+-#endif
+-    {
+-        sharkUp = true;
+-    }
+-    if (check(NextPress) || check(DownPress)) sharkDown = true;
+-}
+-
+-void moveShark() {
+-
+-    if (sharkDown) {
+-        sharkY += STEP; // Move para baixo
+-        sharkDown = false;
+-    }
+-
+-    if (sharkUp) {
+-        sharkY -= STEP; // Move para cima
+-        sharkUp = false;
+-    }
+-    if (sharkY < 0) { sharkY = 0; }
+-    if (sharkY > tftHeight - sharkSize) { sharkY = tftHeight - sharkSize; }
+-}
+-
+-// Função para mover peixes
+-void moveFish(Fish &f) {
+-    f.x -= 2; // Move o peixe para a esquerda
+-    if (f.x < -10) {
+-        tft.fillRect(f.x, f.y, 22, 11, bruceConfig.bgColor);
+-        f.x = tftWidth + random(20, 100);
+-        f.y = random(10, tftHeight - 20);
+-    }
+-}
+-
+-// Função para verificar colisões entre o tubarão e os peixes
+-void checkCollisions() {
+-    for (int i = 0; i < 5; i++) {
+-        if ((sharkX < fish[i].x + fish[i].size) && (sharkX + sharkSize > fish[i].x) &&
+-            (sharkY < fish[i].y + fish[i].size) && (sharkY + sharkSize > fish[i].y)) {
+-            // Colidiu com um peixe
+-            tft.fillRect(fish[i].x, fish[i].y, 18, 8, bruceConfig.bgColor);
+-            fish[i].x = tftWidth + random(20, 100);
+-            fish[i].y = random(10, tftHeight - 20);
+-            score++;
+-        }
+-    }
+-}
+-
+-// Função para exibir a pontuação
+-void displayScore() {
+-    tft.setTextColor(TFT_WHITE, bruceConfig.bgColor);
+-    tft.setTextSize(FM);
+-    tft.setCursor(0, 0);
+-    tft.printf("Score: %d", score);
+-}
+-
+-void shark_setup() {
+-    // Inicializa a posição dos peixes
+-    for (int i = 0; i < 5; i++) {
+-        fish[i].x = tftWidth + random(20, 100);
+-        fish[i].y = random(10, tftHeight - 20);
+-        fish[i].size = 8;
+-    }
+-    // desenha peixes e inicia o display
+-    initSprites();
+-    if (tft.getLogging()) tft.log_drawString("Not Supported", DRAWCENTRESTRING, tftWidth / 2, tftHeight / 2);
+-    // inicia o jogo
+-    shark_loop();
+-}
+-
+-void shark_loop() {
+-    int downTime = 50;
+-    unsigned long time = 0;
+-    for (;;) {
+-        // Mostra a tela
+-
+-        // Começa a desenhar o Sprite
+-        displayScore();
+-        detectInputs();
+-        if (millis() - time > downTime) {
+-            // Move o tubarão
+-            moveShark();
+-            // Desenha o tubarão
+-            drawShark();
+-            // Move e desenha os peixes
+-            for (int i = 0; i < 5; i++) {
+-                moveFish(fish[i]);
+-                drawFish(fish[i]);
+-            }
+-            // Verifica colisões
+-            checkCollisions();
+-            time = millis();
+-        }
+-
+-        // Pequeno atraso para controlar a velocidade do loop
+-        if (score < 10) downTime = 50;
+-        else if (score >= 10 && score < 20) downTime = 40;
+-        else if (score >= 20 && score < 30) downTime = 35;
+-        else if (score >= 30 && score < 40) downTime = 30;
+-        else if (score >= 40 && score < 50) downTime = 25;
+-        else if (score >= 50 && score < 100) downTime = 15;
+-        else if (score < 100) downTime = 7;
+-
+-        if (score == 99) {
+-            displaySuccess("So...");
+-            while (!check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); }
+-            while (check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); } // debounce
+-            displaySuccess("you just found");
+-            while (!check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); }
+-            while (check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); } // debounce
+-            displayInfo("hidden credits!");
+-            while (!check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); }
+-            while (check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); } // debounce
+-            displayInfo("main devs:");
+-            while (!check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); }
+-            while (check(SelPress)) { vTaskDelay(pdMS_TO_TICKS(1)); } // debounce
+-            options = {
+-                {"Pirata",       [=]() { displayError("github.com/bmorcelli", true); }   },
+-                {"pr3y",         [=]() { displaySuccess("github.com/pr3y", true); }      },
+-                {"IncursioHack", [=]() { displayInfo("github.com/IncursioHack", true); } },
+-                {"r3ck",         [=]() { displayInfo("github.com/rennancockles", true); }},
+-            };
+-
+-            loopOptions(options);
+-
+-            initSprites();
+-            score++;
+-        }
+-
+-        if (check(EscPress)) {
+-            returnToMenu = true;
+-            goto Exit;
+-        }
+-    }
+-
+-Exit:
+-    delay(150);
+-    Serial.println();
+-}
+diff --git a/src/modules/others/tururururu.h b/src/modules/others/tururururu.h
+deleted file mode 100644
+index c6f2674..0000000
+--- a/src/modules/others/tururururu.h
++++ /dev/null
+@@ -1,22 +0,0 @@
+-#include "core/display.h"
+-#include <globals.h>
+-
+-// Configuração do personagem principal (tubarão)
+-extern int sharkX;
+-extern int sharkY;
+-extern int sharkSize;
+-
+-// Configuração de pontuação
+-extern int score;
+-
+-// Funções para manipulação do jogo
+-void drawShark();
+-// void drawFish(Fish &f);
+-void drawFish();
+-void moveShark();
+-// void moveFish(Fish &f);
+-void moveFish();
+-void checkCollisions();
+-void displayScore();
+-void shark_setup();
+-void shark_loop();
+diff --git a/src/modules/others/u2f.cpp b/src/modules/others/u2f.cpp
+deleted file mode 100644
+index 982e47a..0000000
+--- a/src/modules/others/u2f.cpp
++++ /dev/null
+@@ -1,1721 +0,0 @@
+-#include "u2f.h"
+-#include "core/display.h"
+-#include "core/sd_functions.h"
+-#include <cstdio>
+-#include <cstring>
+-
+-#ifdef USB_as_HID
+-
+-#include "globals.h"
+-#include <Preferences.h>
+-#include <USB.h>
+-#include <USBHID.h>
+-#include <esp_system.h>
+-#include <mbedtls/ctr_drbg.h>
+-#include <mbedtls/ecdsa.h>
+-#include <mbedtls/ecp.h>
+-#include <mbedtls/entropy.h>
+-#include <mbedtls/md.h>
+-#include <mbedtls/pk.h>
+-#include <mbedtls/private_access.h>
+-#include <mbedtls/sha256.h>
+-#include <mbedtls/x509_crt.h>
+-#include <vector>
+-
+-namespace {
+-
+-static constexpr uint8_t kU2fReportId = HID_REPORT_ID_VENDOR;
+-static constexpr uint32_t kBroadcastCid = 0xFFFFFFFFu;
+-static constexpr uint16_t kInitPayloadSize = 57; // 64 - 7
+-static constexpr uint16_t kContPayloadSize = 59; // 64 - 5
+-static constexpr uint16_t kMaxMessageSize = 1024;
+-
+-static constexpr uint8_t CTAPHID_PING = 0x81;
+-static constexpr uint8_t CTAPHID_MSG = 0x83;
+-static constexpr uint8_t CTAPHID_LOCK = 0x84;
+-static constexpr uint8_t CTAPHID_INIT = 0x86;
+-static constexpr uint8_t CTAPHID_WINK = 0x88;
+-static constexpr uint8_t CTAPHID_CBOR = 0x90;
+-static constexpr uint8_t CTAPHID_CANCEL = 0x91;
+-static constexpr uint8_t CTAPHID_KEEPALIVE = 0xBB;
+-static constexpr uint8_t CTAPHID_ERROR = 0xBF;
+-static constexpr uint8_t CAPFLAG_WINK = 0x01;
+-static constexpr uint8_t CAPFLAG_CBOR = 0x04;
+-
+-static constexpr uint8_t U2F_INS_REGISTER = 0x01;
+-static constexpr uint8_t U2F_INS_AUTHENTICATE = 0x02;
+-static constexpr uint8_t U2F_INS_VERSION = 0x03;
+-
+-static constexpr uint8_t U2F_AUTH_CHECK_ONLY = 0x07;
+-static constexpr uint8_t U2F_AUTH_ENFORCE = 0x03;
+-static constexpr uint8_t U2F_AUTH_DONT_ENFORCE = 0x08;
+-
+-static constexpr uint8_t CTAP1_ERR_INVALID_CMD = 0x01;
+-static constexpr uint8_t CTAP1_ERR_INVALID_LEN = 0x03;
+-static constexpr uint8_t CTAP1_ERR_INVALID_SEQ = 0x04;
+-static constexpr uint8_t CTAP1_ERR_INVALID_CID = 0x0B;
+-static constexpr uint8_t CTAP1_ERR_OTHER = 0x7F;
+-
+-static constexpr uint8_t CTAP2_OK = 0x00;
+-static constexpr uint8_t CTAP2_ERR_INVALID_COMMAND = 0x01;
+-static constexpr uint8_t CTAP2_ERR_INVALID_PARAMETER = 0x02;
+-static constexpr uint8_t CTAP2_ERR_INVALID_CBOR = 0x12;
+-static constexpr uint8_t CTAP2_ERR_OPERATION_DENIED = 0x27;
+-static constexpr uint8_t CTAP2_ERR_NO_CREDENTIALS = 0x2E;
+-static constexpr uint8_t CTAP2_ERR_PIN_NOT_SET = 0x35;
+-
+-static constexpr uint16_t SW_NO_ERROR = 0x9000;
+-static constexpr uint16_t SW_WRONG_DATA = 0x6A80;
+-static constexpr uint16_t SW_WRONG_LENGTH = 0x6700;
+-static constexpr uint16_t SW_INS_NOT_SUPPORTED = 0x6D00;
+-static constexpr uint16_t SW_CONDITIONS_NOT_SATISFIED = 0x6985;
+-
+-static constexpr uint8_t kKeyHandleVersion = 0x01;
+-static constexpr size_t kKeyHandleNonceLen = 16;
+-static constexpr size_t kKeyHandleMacLen = 32;
+-static constexpr size_t kKeyHandleLen = 1 + kKeyHandleNonceLen + kKeyHandleMacLen;
+-
+-static const uint8_t U2F_REPORT_DESCRIPTOR[] = {
+-    0x06, 0xD0,         0xF1, // USAGE_PAGE (FIDO Alliance)
+-    0x09, 0x01,               // USAGE (U2F Authenticator Device)
+-    0xA1, 0x01,               // COLLECTION (Application)
+-    0x85, kU2fReportId,       //   REPORT_ID
+-    0x09, 0x20,               //   USAGE (Input Report Data)
+-    0x15, 0x00,               //   LOGICAL_MINIMUM (0)
+-    0x26, 0xFF,         0x00, //   LOGICAL_MAXIMUM (255)
+-    0x75, 0x08,               //   REPORT_SIZE (8)
+-    0x95, 0x40,               //   REPORT_COUNT (64)
+-    0x81, 0x02,               //   INPUT (Data,Var,Abs)
+-    0x09, 0x21,               //   USAGE (Output Report Data)
+-    0x15, 0x00,               //   LOGICAL_MINIMUM (0)
+-    0x26, 0xFF,         0x00, //   LOGICAL_MAXIMUM (255)
+-    0x75, 0x08,               //   REPORT_SIZE (8)
+-    0x95, 0x40,               //   REPORT_COUNT (64)
+-    0x91, 0x02,               //   OUTPUT (Data,Var,Abs)
+-    0xC0                      // END_COLLECTION
+-};
+-
+-struct RxMessageState {
+-    bool active = false;
+-    uint32_t cid = 0;
+-    uint8_t cmd = 0;
+-    uint16_t expectedLen = 0;
+-    uint16_t receivedLen = 0;
+-    uint8_t nextSeq = 0;
+-    uint8_t data[kMaxMessageSize] = {0};
+-};
+-
+-struct PendingCommandState {
+-    volatile bool ready = false;
+-    uint32_t cid = 0;
+-    uint8_t cmd = 0;
+-    uint16_t len = 0;
+-    uint8_t data[kMaxMessageSize] = {0};
+-};
+-
+-struct CredentialRecord {
+-    uint8_t credId[64] = {0};
+-    uint8_t credIdLen = 0;
+-    uint8_t rpIdHash[32] = {0};
+-    uint32_t signCount = 0;
+-    String path = "";
+-};
+-
+-struct CborCursor {
+-    const uint8_t *p = nullptr;
+-    const uint8_t *end = nullptr;
+-};
+-
+-class U2fHidDevice : public USBHIDDevice {
+-public:
+-    U2fHidDevice() : _hid(HID_ITF_PROTOCOL_NONE) { USBHID::addDevice(this, sizeof(U2F_REPORT_DESCRIPTOR)); }
+-
+-    void begin() {
+-        if (_started) return;
+-        USB.begin();
+-        _hid.begin();
+-        uint32_t t0 = millis();
+-        while (!_hid.ready() && (millis() - t0) < 4000) delay(10);
+-        loadState();
+-        _started = true;
+-    }
+-
+-    void end() {
+-        if (!_started) return;
+-        _hid.end();
+-        if (_prefsReady) {
+-            _prefs.putUInt("ctr", _counter);
+-            _prefs.end();
+-            _prefsReady = false;
+-        }
+-        _started = false;
+-    }
+-
+-    bool waitingForPresence() const { return _waitingForPresence; }
+-
+-    void poll() {
+-        if (!_pending.ready) return;
+-        handleCommand(_pending.cid, _pending.cmd, _pending.data, _pending.len);
+-        _pending.ready = false;
+-    }
+-
+-    uint16_t _onGetDescriptor(uint8_t *buffer) override {
+-        memcpy(buffer, U2F_REPORT_DESCRIPTOR, sizeof(U2F_REPORT_DESCRIPTOR));
+-        return sizeof(U2F_REPORT_DESCRIPTOR);
+-    }
+-
+-    uint16_t _onGetFeature(uint8_t, uint8_t *buffer, uint16_t len) override {
+-        // Some hosts probe HID feature reports on control endpoint.
+-        // Return zeroed data instead of STALL to maximize interoperability.
+-        if (buffer == nullptr || len == 0) return 0;
+-        memset(buffer, 0, len);
+-        return len;
+-    }
+-
+-    void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) override {
+-        if (buffer == nullptr || len < 5) return;
+-        if (kU2fReportId == 0) {
+-            if (report_id != 0) return;
+-            // Some hosts prepend a dummy report-id byte (0x00) even for report-id-less descriptors.
+-            if (len == 65 && buffer[0] == 0x00) {
+-                buffer++;
+-                len--;
+-            }
+-        } else {
+-            if (report_id != 0 && report_id != kU2fReportId) return;
+-            if (report_id == 0 && len >= 6 && buffer[0] == kU2fReportId) {
+-                // Legacy path where host prepends report-id in payload.
+-                buffer++;
+-                len--;
+-                if (len < 5) return;
+-            }
+-        }
+-
+-        // CTAPHID uses fixed-size 64-byte reports for this interface.
+-        if (len != 64) return;
+-
+-        const uint32_t cid = (uint32_t(buffer[0]) << 24) | (uint32_t(buffer[1]) << 16) |
+-                             (uint32_t(buffer[2]) << 8) | uint32_t(buffer[3]);
+-
+-        if (buffer[4] & 0x80) {
+-            if (len < 7) {
+-                sendError(cid, CTAP1_ERR_INVALID_LEN);
+-                return;
+-            }
+-            handleInitFrame(cid, buffer, len);
+-            return;
+-        }
+-        handleContFrame(cid, buffer, len);
+-    }
+-
+-private:
+-    static bool cborReadHead(CborCursor &c, uint8_t &major, uint8_t &add) {
+-        if (c.p >= c.end) return false;
+-        uint8_t b = *c.p++;
+-        major = b >> 5;
+-        add = b & 0x1F;
+-        return true;
+-    }
+-
+-    static bool cborReadLen(CborCursor &c, uint8_t add, uint32_t &len) {
+-        if (add <= 23) {
+-            len = add;
+-            return true;
+-        }
+-        if (add == 24) {
+-            if (c.p + 1 > c.end) return false;
+-            len = *c.p++;
+-            return true;
+-        }
+-        if (add == 25) {
+-            if (c.p + 2 > c.end) return false;
+-            len = (uint32_t(c.p[0]) << 8) | uint32_t(c.p[1]);
+-            c.p += 2;
+-            return true;
+-        }
+-        return false;
+-    }
+-
+-    static bool cborSkip(CborCursor &c) {
+-        uint8_t major = 0, add = 0;
+-        if (!cborReadHead(c, major, add)) return false;
+-        uint32_t n = 0;
+-        if (major <= 1) return cborReadLen(c, add, n);
+-        if (major == 2 || major == 3) {
+-            if (!cborReadLen(c, add, n)) return false;
+-            if (c.p + n > c.end) return false;
+-            c.p += n;
+-            return true;
+-        }
+-        if (major == 4) {
+-            if (!cborReadLen(c, add, n)) return false;
+-            for (uint32_t i = 0; i < n; i++) {
+-                if (!cborSkip(c)) return false;
+-            }
+-            return true;
+-        }
+-        if (major == 5) {
+-            if (!cborReadLen(c, add, n)) return false;
+-            for (uint32_t i = 0; i < n; i++) {
+-                if (!cborSkip(c) || !cborSkip(c)) return false;
+-            }
+-            return true;
+-        }
+-        if (major == 7 && add <= 23) return true;
+-        return false;
+-    }
+-
+-    static bool cborReadUint(CborCursor &c, uint32_t &v) {
+-        uint8_t major = 0, add = 0;
+-        if (!cborReadHead(c, major, add) || major != 0) return false;
+-        return cborReadLen(c, add, v);
+-    }
+-
+-    static bool cborReadInt(CborCursor &c, int32_t &v) {
+-        uint8_t major = 0, add = 0;
+-        if (!cborReadHead(c, major, add)) return false;
+-        uint32_t n = 0;
+-        if (!cborReadLen(c, add, n)) return false;
+-        if (major == 0) {
+-            v = int32_t(n);
+-            return true;
+-        }
+-        if (major == 1) {
+-            v = -1 - int32_t(n);
+-            return true;
+-        }
+-        return false;
+-    }
+-
+-    static bool cborReadBytes(CborCursor &c, const uint8_t *&ptr, uint32_t &len) {
+-        uint8_t major = 0, add = 0;
+-        if (!cborReadHead(c, major, add) || major != 2) return false;
+-        if (!cborReadLen(c, add, len)) return false;
+-        if (c.p + len > c.end) return false;
+-        ptr = c.p;
+-        c.p += len;
+-        return true;
+-    }
+-
+-    static bool cborReadText(CborCursor &c, String &out) {
+-        uint8_t major = 0, add = 0;
+-        if (!cborReadHead(c, major, add) || major != 3) return false;
+-        uint32_t len = 0;
+-        if (!cborReadLen(c, add, len)) return false;
+-        if (c.p + len > c.end) return false;
+-        out = "";
+-        for (uint32_t i = 0; i < len; i++) out += char(c.p[i]);
+-        c.p += len;
+-        return true;
+-    }
+-
+-    static void cborAppendTypeLen(std::vector<uint8_t> &o, uint8_t major, uint32_t len) {
+-        if (len <= 23) {
+-            o.push_back(uint8_t((major << 5) | len));
+-        } else if (len <= 0xFF) {
+-            o.push_back(uint8_t((major << 5) | 24));
+-            o.push_back(uint8_t(len));
+-        } else {
+-            o.push_back(uint8_t((major << 5) | 25));
+-            o.push_back(uint8_t((len >> 8) & 0xFF));
+-            o.push_back(uint8_t(len & 0xFF));
+-        }
+-    }
+-
+-    static void cborAppendMap(std::vector<uint8_t> &o, uint32_t len) { cborAppendTypeLen(o, 5, len); }
+-    static void cborAppendArray(std::vector<uint8_t> &o, uint32_t len) { cborAppendTypeLen(o, 4, len); }
+-    static void cborAppendUint(std::vector<uint8_t> &o, uint32_t v) { cborAppendTypeLen(o, 0, v); }
+-    static void cborAppendInt(std::vector<uint8_t> &o, int32_t v) {
+-        if (v >= 0) cborAppendUint(o, uint32_t(v));
+-        else cborAppendTypeLen(o, 1, uint32_t(-1 - v));
+-    }
+-    static void cborAppendText(std::vector<uint8_t> &o, const String &s) {
+-        cborAppendTypeLen(o, 3, s.length());
+-        for (size_t i = 0; i < s.length(); i++) o.push_back(uint8_t(s[i]));
+-    }
+-    static void cborAppendBytes(std::vector<uint8_t> &o, const uint8_t *p, size_t len) {
+-        cborAppendTypeLen(o, 2, uint32_t(len));
+-        for (size_t i = 0; i < len; i++) o.push_back(p[i]);
+-    }
+-    static void cborAppendBool(std::vector<uint8_t> &o, bool b) { o.push_back(b ? 0xF5 : 0xF4); }
+-
+-    static bool loadP256Generator(mbedtls_ecp_point *g) {
+-        // secp256r1 generator coordinates (uncompressed base point)
+-        static const char *kGx = "6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296";
+-        static const char *kGy = "4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
+-        return mbedtls_ecp_point_read_string(g, 16, kGx, kGy) == 0;
+-    }
+-
+-    USBHID _hid;
+-    Preferences _prefs;
+-    bool _prefsReady = false;
+-    bool _started = false;
+-    bool _masterLoaded = false;
+-    uint8_t _masterSecret[32] = {0};
+-    uint32_t _counter = 0;
+-    uint32_t _nextCid = 1;
+-    bool _waitingForPresence = false;
+-    RxMessageState _rx;
+-    PendingCommandState _pending;
+-    std::vector<uint8_t> _attestationCertDer;
+-
+-    static int rngCallback(void *, unsigned char *output, size_t len) {
+-        esp_fill_random(output, len);
+-        return 0;
+-    }
+-
+-    static bool constantTimeEqual(const uint8_t *a, const uint8_t *b, size_t len) {
+-        uint8_t diff = 0;
+-        for (size_t i = 0; i < len; i++) diff |= (a[i] ^ b[i]);
+-        return diff == 0;
+-    }
+-
+-    static bool sha256(const uint8_t *input, size_t len, uint8_t out[32]) {
+-        return mbedtls_sha256(input, len, out, 0) == 0;
+-    }
+-
+-    static bool
+-    hmacSha256(const uint8_t *key, size_t keyLen, const uint8_t *msg, size_t msgLen, uint8_t out[32]) {
+-        const mbedtls_md_info_t *md = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+-        if (md == nullptr) return false;
+-        mbedtls_md_context_t ctx;
+-        mbedtls_md_init(&ctx);
+-        if (mbedtls_md_setup(&ctx, md, 1) != 0) {
+-            mbedtls_md_free(&ctx);
+-            return false;
+-        }
+-        bool ok = (mbedtls_md_hmac_starts(&ctx, key, keyLen) == 0) &&
+-                  (mbedtls_md_hmac_update(&ctx, msg, msgLen) == 0) &&
+-                  (mbedtls_md_hmac_finish(&ctx, out) == 0);
+-        mbedtls_md_free(&ctx);
+-        return ok;
+-    }
+-
+-    void loadState() {
+-        if (!_prefsReady) _prefsReady = _prefs.begin("u2f", false);
+-        if (!_prefsReady) return;
+-
+-        size_t got = _prefs.getBytes("master", _masterSecret, sizeof(_masterSecret));
+-        if (got != sizeof(_masterSecret)) {
+-            esp_fill_random(_masterSecret, sizeof(_masterSecret));
+-            _prefs.putBytes("master", _masterSecret, sizeof(_masterSecret));
+-        }
+-        _masterLoaded = true;
+-        _counter = _prefs.getUInt("ctr", 0);
+-    }
+-
+-    bool getCredentialFs(FS *&fs) {
+-        fs = nullptr;
+-        if (setupSdCard()) {
+-            fs = &SD;
+-            return true;
+-        }
+-        if (!setupLittleFS()) return false;
+-        fs = &LittleFS;
+-        return true;
+-    }
+-
+-    bool ensureCredentialDir(FS &fs) {
+-        const String dir = "/fido_creds";
+-        if (fs.exists(dir)) return true;
+-        return fs.mkdir(dir);
+-    }
+-
+-    bool writeCredentialFile(FS &fs, const CredentialRecord &r, const String &path) {
+-        File f = fs.open(path, FILE_WRITE);
+-        if (!f) return false;
+-        const uint8_t magic[4] = {'F', '2', 'C', '1'};
+-        uint8_t version = 2;
+-        f.write(magic, sizeof(magic));
+-        f.write(&version, 1);
+-        uint8_t idLen = r.credIdLen;
+-        if (idLen == 0 || idLen > sizeof(r.credId)) {
+-            f.close();
+-            return false;
+-        }
+-        f.write(&idLen, 1);
+-        f.write(r.credId, idLen);
+-        f.write(r.rpIdHash, sizeof(r.rpIdHash));
+-        uint8_t c[4] = {
+-            uint8_t((r.signCount >> 24) & 0xFF),
+-            uint8_t((r.signCount >> 16) & 0xFF),
+-            uint8_t((r.signCount >> 8) & 0xFF),
+-            uint8_t(r.signCount & 0xFF),
+-        };
+-        f.write(c, sizeof(c));
+-        f.close();
+-        return true;
+-    }
+-
+-    bool readCredentialFile(FS &fs, const String &path, CredentialRecord &r) {
+-        File f = fs.open(path, FILE_READ);
+-        if (!f) return false;
+-        uint8_t magic[4] = {0};
+-        uint8_t version = 0;
+-        if (f.read(magic, 4) != 4 || memcmp(magic, "F2C1", 4) != 0) {
+-            f.close();
+-            return false;
+-        }
+-        if (f.read(&version, 1) != 1 || (version != 1 && version != 2)) {
+-            f.close();
+-            return false;
+-        }
+-        memset(r.credId, 0, sizeof(r.credId));
+-        r.credIdLen = 0;
+-        if (version == 1) {
+-            r.credIdLen = 16;
+-            if (f.read(r.credId, 16) != 16 ||
+-                f.read(r.rpIdHash, sizeof(r.rpIdHash)) != int(sizeof(r.rpIdHash))) {
+-                f.close();
+-                return false;
+-            }
+-        } else {
+-            uint8_t idLen = 0;
+-            if (f.read(&idLen, 1) != 1 || idLen == 0 || idLen > sizeof(r.credId)) {
+-                f.close();
+-                return false;
+-            }
+-            r.credIdLen = idLen;
+-            if (f.read(r.credId, idLen) != idLen ||
+-                f.read(r.rpIdHash, sizeof(r.rpIdHash)) != int(sizeof(r.rpIdHash))) {
+-                f.close();
+-                return false;
+-            }
+-        }
+-        uint8_t c[4] = {0};
+-        if (f.read(c, 4) != 4) {
+-            f.close();
+-            return false;
+-        }
+-        r.signCount =
+-            (uint32_t(c[0]) << 24) | (uint32_t(c[1]) << 16) | (uint32_t(c[2]) << 8) | uint32_t(c[3]);
+-        r.path = path;
+-        f.close();
+-        return true;
+-    }
+-
+-    bool saveNewCredential(CredentialRecord &r) {
+-        FS *fs = nullptr;
+-        if (!getCredentialFs(fs) || fs == nullptr) return false;
+-        if (!ensureCredentialDir(*fs)) return false;
+-
+-        for (int i = 0; i < 32; i++) {
+-            String path = "/fido_creds/cred_" + String((uint32_t)esp_random(), HEX) + "_" +
+-                          String(millis(), HEX) + "_" + String(i) + ".bin";
+-            if (fs->exists(path)) continue;
+-            if (writeCredentialFile(*fs, r, path)) {
+-                r.path = path;
+-                return true;
+-            }
+-        }
+-        return false;
+-    }
+-
+-    bool updateCredentialSignCount(const CredentialRecord &r) {
+-        if (r.path.length() == 0) return false;
+-        FS *fs = nullptr;
+-        if (!getCredentialFs(fs) || fs == nullptr) return false;
+-        if (!fs->exists(r.path)) return false;
+-        return writeCredentialFile(*fs, r, r.path);
+-    }
+-
+-    bool findCredentialById(const uint8_t *credId, size_t credIdLen, CredentialRecord &out) {
+-        if (credId == nullptr || credIdLen == 0 || credIdLen > 64) return false;
+-        FS *fs = nullptr;
+-        if (!getCredentialFs(fs) || fs == nullptr) return false;
+-        if (!ensureCredentialDir(*fs)) return false;
+-
+-        File dir = fs->open("/fido_creds", FILE_READ);
+-        if (!dir) return false;
+-
+-        File entry = dir.openNextFile();
+-        while (entry) {
+-            String path = entry.path();
+-            entry.close();
+-            CredentialRecord c;
+-            if (readCredentialFile(*fs, path, c) && c.credIdLen == credIdLen &&
+-                memcmp(c.credId, credId, credIdLen) == 0) {
+-                out = c;
+-                dir.close();
+-                return true;
+-            }
+-            entry = dir.openNextFile();
+-        }
+-        dir.close();
+-        return false;
+-    }
+-
+-    bool findFirstCredentialByRpHash(const uint8_t rpHash[32], CredentialRecord &out) {
+-        FS *fs = nullptr;
+-        if (!getCredentialFs(fs) || fs == nullptr) return false;
+-        if (!ensureCredentialDir(*fs)) return false;
+-
+-        File dir = fs->open("/fido_creds", FILE_READ);
+-        if (!dir) return false;
+-
+-        File entry = dir.openNextFile();
+-        while (entry) {
+-            String path = entry.path();
+-            entry.close();
+-            CredentialRecord c;
+-            if (readCredentialFile(*fs, path, c) && memcmp(c.rpIdHash, rpHash, 32) == 0) {
+-                out = c;
+-                dir.close();
+-                return true;
+-            }
+-            entry = dir.openNextFile();
+-        }
+-        dir.close();
+-        return false;
+-    }
+-
+-    bool
+-    waitForUserPresence(uint32_t timeoutMs = 20000, bool sendKeepalive = false, uint32_t keepaliveCid = 0) {
+-        _waitingForPresence = true;
+-
+-        auto isSelectPressedRaw = []() -> bool {
+-            bool pressed = false;
+-            if (SelPress) pressed = true; // Don't reset the variable
+-            return pressed;
+-        };
+-
+-        auto isEscPressedRaw = []() -> bool {
+-            bool pressed = false;
+-            if (EscPress) pressed = true; // Don't reset the variable
+-            return pressed;
+-        };
+-
+-        auto sendKeepaliveNonBlocking = [&](uint8_t status) {
+-            // Single-frame CTAPHID keepalive, sent with timeout=0 to avoid blocking
+-            if (keepaliveCid == 0) return;
+-            uint8_t report[64] = {0};
+-            report[0] = (keepaliveCid >> 24) & 0xFF;
+-            report[1] = (keepaliveCid >> 16) & 0xFF;
+-            report[2] = (keepaliveCid >> 8) & 0xFF;
+-            report[3] = keepaliveCid & 0xFF;
+-            report[4] = CTAPHID_KEEPALIVE;
+-            report[5] = 0x00;
+-            report[6] = 0x01;
+-            report[7] = status;
+-            _hid.SendReport(kU2fReportId, report, 64, 0);
+-        };
+-
+-        // Debounce raw selection pin directly. This avoids timing/latch issues
+-
+-        uint8_t pressedTicks = isSelectPressedRaw() ? 1 : 0;
+-        uint32_t lastKeepalive = 0;
+-        const uint32_t start = millis();
+-        while ((millis() - start) < timeoutMs && !returnToMenu) {
+-            wakeUpScreen();
+-
+-            if (sendKeepalive && keepaliveCid != 0 && (millis() - lastKeepalive) >= 100) {
+-                sendKeepaliveNonBlocking(0x02); // STATUS_UPNEEDED
+-                lastKeepalive = millis();
+-            }
+-
+-            bool selNow = isSelectPressedRaw();
+-            if (EscPress || isEscPressedRaw()) {
+-                EscPress = false;
+-                _waitingForPresence = false;
+-                return false;
+-            }
+-
+-            if (selNow) {
+-                pressedTicks = (pressedTicks < 50) ? uint8_t(pressedTicks + 1) : pressedTicks;
+-            } else {
+-                pressedTicks = 0;
+-            }
+-            // Require ~30ms stable press (3 * 10ms) to debounce.
+-            if (pressedTicks >= 3) {
+-                _waitingForPresence = false;
+-                return true;
+-            }
+-            delay(10);
+-        }
+-
+-        _waitingForPresence = false;
+-        return false;
+-    }
+-
+-    bool sendReportRaw(const uint8_t report[64]) { return _hid.SendReport(kU2fReportId, report, 64); }
+-
+-    bool sendMessage(uint32_t cid, uint8_t cmd, const uint8_t *payload, uint16_t len) {
+-        uint8_t report[64] = {0};
+-
+-        report[0] = (cid >> 24) & 0xFF;
+-        report[1] = (cid >> 16) & 0xFF;
+-        report[2] = (cid >> 8) & 0xFF;
+-        report[3] = cid & 0xFF;
+-        report[4] = cmd;
+-        report[5] = (len >> 8) & 0xFF;
+-        report[6] = len & 0xFF;
+-
+-        uint16_t offset = 0;
+-        uint16_t first = (len < kInitPayloadSize) ? len : kInitPayloadSize;
+-        if (first > 0 && payload != nullptr) memcpy(report + 7, payload, first);
+-        if (!sendReportRaw(report)) return false;
+-        offset += first;
+-
+-        uint8_t seq = 0;
+-        while (offset < len) {
+-            memset(report, 0, sizeof(report));
+-            report[0] = (cid >> 24) & 0xFF;
+-            report[1] = (cid >> 16) & 0xFF;
+-            report[2] = (cid >> 8) & 0xFF;
+-            report[3] = cid & 0xFF;
+-            report[4] = seq++;
+-            uint16_t chunk = ((len - offset) < kContPayloadSize) ? (len - offset) : kContPayloadSize;
+-            memcpy(report + 5, payload + offset, chunk);
+-            if (!sendReportRaw(report)) return false;
+-            offset += chunk;
+-        }
+-        return true;
+-    }
+-
+-    void sendError(uint32_t cid, uint8_t code) {
+-        uint8_t p[1] = {code};
+-        sendMessage(cid, CTAPHID_ERROR, p, sizeof(p));
+-    }
+-
+-    void sendApduStatus(uint32_t cid, uint16_t sw) {
+-        uint8_t p[2] = {uint8_t((sw >> 8) & 0xFF), uint8_t(sw & 0xFF)};
+-        sendMessage(cid, CTAPHID_MSG, p, sizeof(p));
+-    }
+-
+-    void sendApduDataWithStatus(uint32_t cid, const uint8_t *data, size_t dataLen, uint16_t sw) {
+-        if (dataLen + 2 > kMaxMessageSize) {
+-            sendError(cid, CTAP1_ERR_INVALID_LEN);
+-            return;
+-        }
+-        std::vector<uint8_t> out;
+-        out.reserve(dataLen + 2);
+-        for (size_t i = 0; i < dataLen; i++) out.push_back(data[i]);
+-        out.push_back(uint8_t((sw >> 8) & 0xFF));
+-        out.push_back(uint8_t(sw & 0xFF));
+-        sendMessage(cid, CTAPHID_MSG, out.data(), static_cast<uint16_t>(out.size()));
+-    }
+-
+-    void resetRx() { _rx.active = false; }
+-
+-    bool queueCommand(uint32_t cid, uint8_t cmd, const uint8_t *payload, uint16_t len) {
+-        if (_pending.ready) return false;
+-        _pending.cid = cid;
+-        _pending.cmd = cmd;
+-        _pending.len = len;
+-        if (len > 0 && payload != nullptr) memcpy(_pending.data, payload, len);
+-        _pending.ready = true;
+-        return true;
+-    }
+-
+-    void handleInitFrame(uint32_t cid, const uint8_t *buffer, uint16_t len) {
+-        const uint8_t cmd = buffer[4];
+-        const uint16_t bc = (uint16_t(buffer[5]) << 8) | uint16_t(buffer[6]);
+-        if (bc > kMaxMessageSize) {
+-            sendError(cid, CTAP1_ERR_INVALID_LEN);
+-            resetRx();
+-            return;
+-        }
+-
+-        _rx.active = true;
+-        _rx.cid = cid;
+-        _rx.cmd = cmd;
+-        _rx.expectedLen = bc;
+-        _rx.receivedLen = 0;
+-        _rx.nextSeq = 0;
+-
+-        uint16_t chunk = (len > 7) ? (len - 7) : 0;
+-        if (chunk > bc) chunk = bc;
+-        if (chunk > 0) {
+-            memcpy(_rx.data, buffer + 7, chunk);
+-            _rx.receivedLen = chunk;
+-        }
+-
+-        if (_rx.receivedLen >= _rx.expectedLen) {
+-            queueCommand(_rx.cid, _rx.cmd, _rx.data, _rx.expectedLen);
+-            resetRx();
+-        }
+-    }
+-
+-    void handleContFrame(uint32_t cid, const uint8_t *buffer, uint16_t len) {
+-        if (!_rx.active || cid != _rx.cid) {
+-            sendError(cid, CTAP1_ERR_INVALID_CID);
+-            return;
+-        }
+-        if (len < 6) {
+-            sendError(cid, CTAP1_ERR_INVALID_LEN);
+-            resetRx();
+-            return;
+-        }
+-        uint8_t seq = buffer[4];
+-        if (seq != _rx.nextSeq) {
+-            sendError(cid, CTAP1_ERR_INVALID_SEQ);
+-            resetRx();
+-            return;
+-        }
+-        uint16_t remaining = _rx.expectedLen - _rx.receivedLen;
+-        uint16_t chunk = (len > 5) ? (len - 5) : 0;
+-        if (chunk > remaining) chunk = remaining;
+-        if (chunk > 0) {
+-            memcpy(_rx.data + _rx.receivedLen, buffer + 5, chunk);
+-            _rx.receivedLen += chunk;
+-        }
+-        _rx.nextSeq++;
+-
+-        if (_rx.receivedLen >= _rx.expectedLen) {
+-            queueCommand(_rx.cid, _rx.cmd, _rx.data, _rx.expectedLen);
+-            resetRx();
+-        }
+-    }
+-
+-    bool derivePrivateScalar(
+-        const char *label, const uint8_t appParam[32], const uint8_t nonce[kKeyHandleNonceLen],
+-        uint8_t outPriv[32]
+-    ) {
+-        if (!_masterLoaded) return false;
+-
+-        uint8_t msg[8 + 32 + kKeyHandleNonceLen + 1] = {0};
+-        size_t labelLen = strlen(label);
+-        if (labelLen > 8) labelLen = 8;
+-        memcpy(msg, label, labelLen);
+-        memcpy(msg + 8, appParam, 32);
+-        memcpy(msg + 8 + 32, nonce, kKeyHandleNonceLen);
+-
+-        mbedtls_ecp_group grp;
+-        mbedtls_mpi d;
+-        mbedtls_ecp_group_init(&grp);
+-        mbedtls_mpi_init(&d);
+-
+-        if (mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1) != 0) {
+-            mbedtls_mpi_free(&d);
+-            mbedtls_ecp_group_free(&grp);
+-            return false;
+-        }
+-
+-        for (uint8_t ctr = 0; ctr < 16; ctr++) {
+-            msg[sizeof(msg) - 1] = ctr;
+-            uint8_t h[32] = {0};
+-            if (!hmacSha256(_masterSecret, sizeof(_masterSecret), msg, sizeof(msg), h)) break;
+-            if (mbedtls_mpi_read_binary(&d, h, sizeof(h)) != 0) break;
+-            if (mbedtls_ecp_check_privkey(&grp, &d) == 0) {
+-                bool ok = (mbedtls_mpi_write_binary(&d, outPriv, 32) == 0);
+-                mbedtls_mpi_free(&d);
+-                mbedtls_ecp_group_free(&grp);
+-                return ok;
+-            }
+-        }
+-
+-        mbedtls_mpi_free(&d);
+-        mbedtls_ecp_group_free(&grp);
+-        return false;
+-    }
+-
+-    bool computePublicKey(const uint8_t priv[32], uint8_t outPub[65]) {
+-        mbedtls_ecp_group grp;
+-        mbedtls_mpi d;
+-        mbedtls_ecp_point q;
+-        mbedtls_ecp_point g;
+-        mbedtls_ecp_group_init(&grp);
+-        mbedtls_mpi_init(&d);
+-        mbedtls_ecp_point_init(&q);
+-        mbedtls_ecp_point_init(&g);
+-
+-        bool ok = (mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1) == 0) &&
+-                  (mbedtls_mpi_read_binary(&d, priv, 32) == 0) && loadP256Generator(&g) &&
+-                  (mbedtls_ecp_mul(&grp, &q, &d, &g, rngCallback, nullptr) == 0);
+-        if (ok) {
+-            size_t olen = 0;
+-            ok = (mbedtls_ecp_point_write_binary(&grp, &q, MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, outPub, 65) ==
+-                  0) &&
+-                 (olen == 65);
+-        }
+-
+-        mbedtls_ecp_point_free(&g);
+-        mbedtls_ecp_point_free(&q);
+-        mbedtls_mpi_free(&d);
+-        mbedtls_ecp_group_free(&grp);
+-        return ok;
+-    }
+-
+-    bool signWithPrivate(
+-        const uint8_t priv[32], const uint8_t hash[32], uint8_t *outSig, size_t outCap, size_t &outLen
+-    ) {
+-        mbedtls_ecdsa_context ecdsa;
+-        mbedtls_ecdsa_init(&ecdsa);
+-        bool ok = (mbedtls_ecp_group_load(&ecdsa.MBEDTLS_PRIVATE(grp), MBEDTLS_ECP_DP_SECP256R1) == 0) &&
+-                  (mbedtls_mpi_read_binary(&ecdsa.MBEDTLS_PRIVATE(d), priv, 32) == 0) &&
+-                  (mbedtls_ecdsa_write_signature(
+-                       &ecdsa, MBEDTLS_MD_SHA256, hash, 32, outSig, outCap, &outLen, rngCallback, nullptr
+-                   ) == 0);
+-        mbedtls_ecdsa_free(&ecdsa);
+-        return ok;
+-    }
+-
+-    void buildKeyHandle(
+-        const uint8_t appParam[32], const uint8_t nonce[kKeyHandleNonceLen], uint8_t outHandle[kKeyHandleLen]
+-    ) {
+-        outHandle[0] = kKeyHandleVersion;
+-        memcpy(outHandle + 1, nonce, kKeyHandleNonceLen);
+-
+-        uint8_t msg[1 + 32 + kKeyHandleNonceLen] = {0};
+-        msg[0] = kKeyHandleVersion;
+-        memcpy(msg + 1, appParam, 32);
+-        memcpy(msg + 1 + 32, nonce, kKeyHandleNonceLen);
+-
+-        uint8_t mac[32] = {0};
+-        hmacSha256(_masterSecret, sizeof(_masterSecret), msg, sizeof(msg), mac);
+-        memcpy(outHandle + 1 + kKeyHandleNonceLen, mac, kKeyHandleMacLen);
+-    }
+-
+-    bool parseAndValidateKeyHandle(
+-        const uint8_t appParam[32], const uint8_t *keyHandle, size_t keyHandleLen,
+-        uint8_t outNonce[kKeyHandleNonceLen]
+-    ) {
+-        if (keyHandleLen != kKeyHandleLen) return false;
+-        if (keyHandle[0] != kKeyHandleVersion) return false;
+-
+-        uint8_t expected[kKeyHandleLen] = {0};
+-        memcpy(outNonce, keyHandle + 1, kKeyHandleNonceLen);
+-        buildKeyHandle(appParam, outNonce, expected);
+-        return constantTimeEqual(keyHandle, expected, kKeyHandleLen);
+-    }
+-
+-    bool ensureAttestationCert(const uint8_t attPriv[32]) {
+-        if (!_attestationCertDer.empty()) return true;
+-
+-        mbedtls_pk_context pk;
+-        mbedtls_x509write_cert crt;
+-        mbedtls_entropy_context entropy;
+-        mbedtls_ctr_drbg_context ctr;
+-        uint8_t serialRaw[16] = {0};
+-        uint8_t der[1024] = {0};
+-        int len = 0;
+-        int rc = 0;
+-
+-        mbedtls_pk_init(&pk);
+-        mbedtls_x509write_crt_init(&crt);
+-        mbedtls_entropy_init(&entropy);
+-        mbedtls_ctr_drbg_init(&ctr);
+-
+-        bool ok = false;
+-        const char *pers = "u2f-att";
+-        do {
+-            rc = mbedtls_ctr_drbg_seed(
+-                &ctr, mbedtls_entropy_func, &entropy, (const unsigned char *)pers, strlen(pers)
+-            );
+-            if (rc != 0) break;
+-
+-            rc = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+-            if (rc != 0) break;
+-
+-            {
+-                mbedtls_ecp_keypair *ec = mbedtls_pk_ec(pk);
+-                mbedtls_ecp_point g;
+-                mbedtls_ecp_point_init(&g);
+-                rc = mbedtls_ecp_group_load(&ec->MBEDTLS_PRIVATE(grp), MBEDTLS_ECP_DP_SECP256R1);
+-                if (rc == 0) rc = mbedtls_mpi_read_binary(&ec->MBEDTLS_PRIVATE(d), attPriv, 32);
+-                if (rc == 0 && !loadP256Generator(&g)) rc = -1;
+-                if (rc == 0) {
+-                    rc = mbedtls_ecp_mul(
+-                        &ec->MBEDTLS_PRIVATE(grp),
+-                        &ec->MBEDTLS_PRIVATE(Q),
+-                        &ec->MBEDTLS_PRIVATE(d),
+-                        &g,
+-                        rngCallback,
+-                        nullptr
+-                    );
+-                }
+-                mbedtls_ecp_point_free(&g);
+-                if (rc != 0) break;
+-            }
+-
+-            esp_fill_random(serialRaw, sizeof(serialRaw));
+-            serialRaw[0] |= 0x01;
+-
+-            mbedtls_x509write_crt_set_md_alg(&crt, MBEDTLS_MD_SHA256);
+-            mbedtls_x509write_crt_set_subject_key(&crt, &pk);
+-            mbedtls_x509write_crt_set_issuer_key(&crt, &pk);
+-            mbedtls_x509write_crt_set_version(&crt, MBEDTLS_X509_CRT_VERSION_3);
+-            rc = mbedtls_x509write_crt_set_serial_raw(&crt, serialRaw, sizeof(serialRaw));
+-            if (rc != 0) break;
+-            rc = mbedtls_x509write_crt_set_subject_name(&crt, "CN=Bruce U2F Attestation,O=BruceDevices,C=US");
+-            if (rc != 0) break;
+-            rc = mbedtls_x509write_crt_set_issuer_name(&crt, "CN=Bruce U2F Attestation,O=BruceDevices,C=US");
+-            if (rc != 0) break;
+-            rc = mbedtls_x509write_crt_set_validity(&crt, "20260101000000", "20360101000000");
+-            if (rc != 0) break;
+-            rc = mbedtls_x509write_crt_set_basic_constraints(&crt, 0, -1);
+-            if (rc != 0) break;
+-            rc = mbedtls_x509write_crt_set_key_usage(&crt, MBEDTLS_X509_KU_DIGITAL_SIGNATURE);
+-            if (rc != 0) break;
+-
+-            len = mbedtls_x509write_crt_der(&crt, der, sizeof(der), mbedtls_ctr_drbg_random, &ctr);
+-            if (len <= 0) break;
+-
+-            _attestationCertDer.assign(der + sizeof(der) - len, der + sizeof(der));
+-            ok = true;
+-        } while (false);
+-
+-        mbedtls_ctr_drbg_free(&ctr);
+-        mbedtls_entropy_free(&entropy);
+-        mbedtls_x509write_crt_free(&crt);
+-        mbedtls_pk_free(&pk);
+-        return ok;
+-    }
+-
+-    uint32_t nextCounter() {
+-        _counter++;
+-        if (_prefsReady) _prefs.putUInt("ctr", _counter);
+-        return _counter;
+-    }
+-
+-    void handleRegister(uint32_t cid, const uint8_t *data, uint32_t lc) {
+-        if (lc != 64) {
+-            sendApduStatus(cid, SW_WRONG_DATA);
+-            return;
+-        }
+-        if (!waitForUserPresence()) {
+-            sendApduStatus(cid, SW_CONDITIONS_NOT_SATISFIED);
+-            return;
+-        }
+-
+-        const uint8_t *challengeParam = data;
+-        const uint8_t *appParam = data + 32;
+-
+-        uint8_t nonce[kKeyHandleNonceLen] = {0};
+-        esp_fill_random(nonce, sizeof(nonce));
+-
+-        uint8_t userPriv[32] = {0};
+-        uint8_t userPub[65] = {0};
+-        uint8_t keyHandle[kKeyHandleLen] = {0};
+-        if (!derivePrivateScalar("U2FKEY", appParam, nonce, userPriv) ||
+-            !computePublicKey(userPriv, userPub)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-        buildKeyHandle(appParam, nonce, keyHandle);
+-
+-        uint8_t attApp[32] = {0};
+-        uint8_t attNonce[kKeyHandleNonceLen] = {0};
+-        uint8_t attPriv[32] = {0};
+-        if (!derivePrivateScalar("ATTEST", attApp, attNonce, attPriv) || !ensureAttestationCert(attPriv)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        uint8_t signMsg[1 + 32 + 32 + kKeyHandleLen + 65] = {0};
+-        size_t pos = 0;
+-        signMsg[pos++] = 0x00;
+-        memcpy(signMsg + pos, appParam, 32);
+-        pos += 32;
+-        memcpy(signMsg + pos, challengeParam, 32);
+-        pos += 32;
+-        memcpy(signMsg + pos, keyHandle, kKeyHandleLen);
+-        pos += kKeyHandleLen;
+-        memcpy(signMsg + pos, userPub, 65);
+-        pos += 65;
+-
+-        uint8_t hash[32] = {0};
+-        if (!sha256(signMsg, pos, hash)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        uint8_t sig[80] = {0};
+-        size_t sigLen = 0;
+-        if (!signWithPrivate(attPriv, hash, sig, sizeof(sig), sigLen)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        std::vector<uint8_t> resp;
+-        resp.reserve(1 + 65 + 1 + kKeyHandleLen + _attestationCertDer.size() + sigLen + 2);
+-        resp.push_back(0x05);
+-        for (size_t i = 0; i < sizeof(userPub); i++) resp.push_back(userPub[i]);
+-        resp.push_back(static_cast<uint8_t>(kKeyHandleLen));
+-        for (size_t i = 0; i < sizeof(keyHandle); i++) resp.push_back(keyHandle[i]);
+-        resp.insert(resp.end(), _attestationCertDer.begin(), _attestationCertDer.end());
+-        for (size_t i = 0; i < sigLen; i++) resp.push_back(sig[i]);
+-
+-        sendApduDataWithStatus(cid, resp.data(), static_cast<uint16_t>(resp.size()), SW_NO_ERROR);
+-    }
+-
+-    void handleAuthenticate(uint32_t cid, uint8_t p1, const uint8_t *data, uint32_t lc) {
+-        if (lc < 65) {
+-            sendApduStatus(cid, SW_WRONG_DATA);
+-            return;
+-        }
+-
+-        const uint8_t *challengeParam = data;
+-        const uint8_t *appParam = data + 32;
+-        uint8_t keyHandleLen = data[64];
+-        if (lc != (65u + keyHandleLen)) {
+-            sendApduStatus(cid, SW_WRONG_LENGTH);
+-            return;
+-        }
+-        const uint8_t *keyHandle = data + 65;
+-
+-        uint8_t nonce[kKeyHandleNonceLen] = {0};
+-        bool keyOk = parseAndValidateKeyHandle(appParam, keyHandle, keyHandleLen, nonce);
+-
+-        if (p1 == U2F_AUTH_CHECK_ONLY) {
+-            sendApduStatus(cid, keyOk ? SW_CONDITIONS_NOT_SATISFIED : SW_WRONG_DATA);
+-            return;
+-        }
+-        if (p1 != U2F_AUTH_ENFORCE && p1 != U2F_AUTH_DONT_ENFORCE) {
+-            sendApduStatus(cid, SW_WRONG_DATA);
+-            return;
+-        }
+-        if (!keyOk) {
+-            sendApduStatus(cid, SW_WRONG_DATA);
+-            return;
+-        }
+-        if (!waitForUserPresence()) {
+-            sendApduStatus(cid, SW_CONDITIONS_NOT_SATISFIED);
+-            return;
+-        }
+-
+-        uint8_t userPriv[32] = {0};
+-        if (!derivePrivateScalar("U2FKEY", appParam, nonce, userPriv)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        uint8_t userPresence = 0x01;
+-        uint32_t counter = nextCounter();
+-        uint8_t counterBe[4] = {
+-            uint8_t((counter >> 24) & 0xFF),
+-            uint8_t((counter >> 16) & 0xFF),
+-            uint8_t((counter >> 8) & 0xFF),
+-            uint8_t(counter & 0xFF),
+-        };
+-
+-        uint8_t signMsg[32 + 1 + 4 + 32] = {0};
+-        size_t pos = 0;
+-        memcpy(signMsg + pos, appParam, 32);
+-        pos += 32;
+-        signMsg[pos++] = userPresence;
+-        memcpy(signMsg + pos, counterBe, sizeof(counterBe));
+-        pos += sizeof(counterBe);
+-        memcpy(signMsg + pos, challengeParam, 32);
+-        pos += 32;
+-
+-        uint8_t hash[32] = {0};
+-        if (!sha256(signMsg, pos, hash)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        uint8_t sig[80] = {0};
+-        size_t sigLen = 0;
+-        if (!signWithPrivate(userPriv, hash, sig, sizeof(sig), sigLen)) {
+-            sendError(cid, CTAP1_ERR_OTHER);
+-            return;
+-        }
+-
+-        std::vector<uint8_t> resp;
+-        resp.reserve(1 + 4 + sigLen);
+-        resp.push_back(userPresence);
+-        resp.push_back(counterBe[0]);
+-        resp.push_back(counterBe[1]);
+-        resp.push_back(counterBe[2]);
+-        resp.push_back(counterBe[3]);
+-        for (size_t i = 0; i < sigLen; i++) resp.push_back(sig[i]);
+-
+-        sendApduDataWithStatus(cid, resp.data(), static_cast<uint16_t>(resp.size()), SW_NO_ERROR);
+-    }
+-
+-    bool parseMakeCredentialRequest(
+-        const uint8_t *payload, uint16_t len, uint8_t clientDataHash[32], uint8_t rpIdHash[32]
+-    ) {
+-        CborCursor c{payload, payload + len};
+-        uint8_t major = 0, add = 0;
+-        uint32_t pairs = 0;
+-        if (!cborReadHead(c, major, add) || major != 5 || !cborReadLen(c, add, pairs)) return false;
+-
+-        String rpId = "";
+-        bool gotClientHash = false;
+-        bool gotRpId = false;
+-
+-        for (uint32_t i = 0; i < pairs; i++) {
+-            uint32_t key = 0;
+-            if (!cborReadUint(c, key)) return false;
+-
+-            if (key == 1) {
+-                const uint8_t *b = nullptr;
+-                uint32_t bl = 0;
+-                if (!cborReadBytes(c, b, bl) || bl != 32) return false;
+-                memcpy(clientDataHash, b, 32);
+-                gotClientHash = true;
+-                continue;
+-            }
+-
+-            if (key == 2) {
+-                uint8_t m = 0, a = 0;
+-                uint32_t rpPairs = 0;
+-                if (!cborReadHead(c, m, a) || m != 5 || !cborReadLen(c, a, rpPairs)) return false;
+-                for (uint32_t r = 0; r < rpPairs; r++) {
+-                    String k = "";
+-                    if (!cborReadText(c, k)) return false;
+-                    if (k == "id") {
+-                        if (!cborReadText(c, rpId)) return false;
+-                        gotRpId = true;
+-                    } else {
+-                        if (!cborSkip(c)) return false;
+-                    }
+-                }
+-                continue;
+-            }
+-
+-            if (!cborSkip(c)) return false;
+-        }
+-
+-        if (!gotClientHash || !gotRpId || rpId.length() == 0) return false;
+-        return sha256((const uint8_t *)rpId.c_str(), rpId.length(), rpIdHash);
+-    }
+-
+-    bool parseGetAssertionRequest(
+-        const uint8_t *payload, uint16_t len, uint8_t clientDataHash[32], uint8_t rpIdHash[32],
+-        uint8_t outAllowId[64], size_t &outAllowIdLen, bool &hasAllowId
+-    ) {
+-        CborCursor c{payload, payload + len};
+-        uint8_t major = 0, add = 0;
+-        uint32_t pairs = 0;
+-        if (!cborReadHead(c, major, add) || major != 5 || !cborReadLen(c, add, pairs)) return false;
+-
+-        String rpId = "";
+-        bool gotClientHash = false;
+-        bool gotRpId = false;
+-        hasAllowId = false;
+-        outAllowIdLen = 0;
+-        bool preferredAllowIdFound = false;
+-
+-        for (uint32_t i = 0; i < pairs; i++) {
+-            uint32_t key = 0;
+-            if (!cborReadUint(c, key)) return false;
+-
+-            if (key == 1) {
+-                if (!cborReadText(c, rpId)) return false;
+-                gotRpId = true;
+-                continue;
+-            }
+-            if (key == 2) {
+-                const uint8_t *b = nullptr;
+-                uint32_t bl = 0;
+-                if (!cborReadBytes(c, b, bl) || bl != 32) return false;
+-                memcpy(clientDataHash, b, 32);
+-                gotClientHash = true;
+-                continue;
+-            }
+-            if (key == 3) {
+-                uint8_t am = 0, aa = 0;
+-                uint32_t n = 0;
+-                if (!cborReadHead(c, am, aa) || am != 4 || !cborReadLen(c, aa, n)) return false;
+-                if (n > 0) {
+-                    for (uint32_t item = 0; item < n; item++) {
+-                        uint8_t dm = 0, da = 0;
+-                        uint32_t dPairs = 0;
+-                        if (!cborReadHead(c, dm, da) || dm != 5 || !cborReadLen(c, da, dPairs)) return false;
+-
+-                        const uint8_t *candidateId = nullptr;
+-                        uint32_t candidateLen = 0;
+-
+-                        for (uint32_t d = 0; d < dPairs; d++) {
+-                            String dk = "";
+-                            if (!cborReadText(c, dk)) return false;
+-                            if (dk == "id") {
+-                                if (!cborReadBytes(c, candidateId, candidateLen)) return false;
+-                            } else {
+-                                if (!cborSkip(c)) return false;
+-                            }
+-                        }
+-
+-                        if (candidateId == nullptr || candidateLen == 0 || candidateLen > 64) continue;
+-
+-                        // Fallback: keep first valid ID.
+-                        if (!hasAllowId) {
+-                            memcpy(outAllowId, candidateId, candidateLen);
+-                            outAllowIdLen = candidateLen;
+-                            hasAllowId = true;
+-                        }
+-
+-                        // Prefer our stateless key-handle sized credential ID.
+-                        if (!preferredAllowIdFound && candidateLen == kKeyHandleLen &&
+-                            candidateId[0] == kKeyHandleVersion) {
+-                            memcpy(outAllowId, candidateId, candidateLen);
+-                            outAllowIdLen = candidateLen;
+-                            hasAllowId = true;
+-                            preferredAllowIdFound = true;
+-                        }
+-                    }
+-                }
+-                continue;
+-            }
+-            if (!cborSkip(c)) return false;
+-        }
+-
+-        if (!gotClientHash || !gotRpId || rpId.length() == 0) return false;
+-        return sha256((const uint8_t *)rpId.c_str(), rpId.length(), rpIdHash);
+-    }
+-
+-    void buildCoseEc2PublicKey(const uint8_t pubkey65[65], std::vector<uint8_t> &out) {
+-        // COSE_Key: {1:2,3:-7,-1:1,-2:x,-3:y}
+-        cborAppendMap(out, 5);
+-        cborAppendUint(out, 1);
+-        cborAppendUint(out, 2);
+-        cborAppendUint(out, 3);
+-        cborAppendInt(out, -7);
+-        cborAppendInt(out, -1);
+-        cborAppendUint(out, 1);
+-        cborAppendInt(out, -2);
+-        cborAppendBytes(out, pubkey65 + 1, 32);
+-        cborAppendInt(out, -3);
+-        cborAppendBytes(out, pubkey65 + 33, 32);
+-    }
+-
+-    void handleCtap2MakeCredential(uint32_t cid, const uint8_t *payload, uint16_t len) {
+-        uint8_t clientDataHash[32] = {0};
+-        uint8_t rpIdHash[32] = {0};
+-        if (!parseMakeCredentialRequest(payload, len, clientDataHash, rpIdHash)) {
+-            uint8_t err[1] = {CTAP2_ERR_INVALID_CBOR};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        if (!waitForUserPresence(20000, true, cid)) {
+-            uint8_t err[1] = {CTAP2_ERR_OPERATION_DENIED};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        uint8_t nonce[kKeyHandleNonceLen] = {0};
+-        uint8_t credId[kKeyHandleLen] = {0};
+-        esp_fill_random(nonce, sizeof(nonce));
+-        buildKeyHandle(rpIdHash, nonce, credId);
+-        CredentialRecord rec;
+-        memcpy(rec.rpIdHash, rpIdHash, 32);
+-        memcpy(rec.credId, credId, kKeyHandleLen);
+-        rec.credIdLen = kKeyHandleLen;
+-        rec.signCount = 0;
+-
+-        uint8_t userPriv[32] = {0};
+-        uint8_t userPub[65] = {0};
+-        if (!derivePrivateScalar("F2KEY", rpIdHash, nonce, userPriv) ||
+-            !computePublicKey(userPriv, userPub)) {
+-            uint8_t err[1] = {CTAP1_ERR_OTHER};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-        if (!saveNewCredential(rec)) {
+-            uint8_t err[1] = {CTAP1_ERR_OTHER};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        std::vector<uint8_t> authData;
+-        authData.reserve(32 + 1 + 4 + 16 + 2 + kKeyHandleLen + 80);
+-        for (int i = 0; i < 32; i++) authData.push_back(rpIdHash[i]);
+-        authData.push_back(0x41); // UP + AT
+-        authData.push_back(0x00);
+-        authData.push_back(0x00);
+-        authData.push_back(0x00);
+-        authData.push_back(0x00);                              // signCount
+-        for (int i = 0; i < 16; i++) authData.push_back(0x00); // AAGUID
+-        authData.push_back(uint8_t((kKeyHandleLen >> 8) & 0xFF));
+-        authData.push_back(uint8_t(kKeyHandleLen & 0xFF));
+-        for (int i = 0; i < int(kKeyHandleLen); i++) authData.push_back(credId[i]);
+-        buildCoseEc2PublicKey(userPub, authData);
+-
+-        std::vector<uint8_t> respCbor;
+-        cborAppendMap(respCbor, 3);
+-        cborAppendUint(respCbor, 1);
+-        cborAppendText(respCbor, "none");
+-        cborAppendUint(respCbor, 2);
+-        cborAppendBytes(respCbor, authData.data(), authData.size());
+-        cborAppendUint(respCbor, 3);
+-        cborAppendMap(respCbor, 0); // attStmt
+-
+-        std::vector<uint8_t> out;
+-        out.reserve(1 + respCbor.size());
+-        out.push_back(CTAP2_OK);
+-        out.insert(out.end(), respCbor.begin(), respCbor.end());
+-        sendMessage(cid, CTAPHID_CBOR, out.data(), uint16_t(out.size()));
+-    }
+-
+-    void handleCtap2GetAssertion(uint32_t cid, const uint8_t *payload, uint16_t len) {
+-        uint8_t clientDataHash[32] = {0};
+-        uint8_t rpIdHash[32] = {0};
+-        uint8_t allowId[64] = {0};
+-        size_t allowIdLen = 0;
+-        bool hasAllowId = false;
+-        if (!parseGetAssertionRequest(
+-                payload, len, clientDataHash, rpIdHash, allowId, allowIdLen, hasAllowId
+-            )) {
+-            uint8_t err[1] = {CTAP2_ERR_INVALID_CBOR};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        uint8_t selectedId[64] = {0};
+-        size_t selectedIdLen = 0;
+-        uint8_t nonce[kKeyHandleNonceLen] = {0};
+-
+-        if (hasAllowId && allowIdLen > 0) {
+-            memcpy(selectedId, allowId, allowIdLen);
+-            selectedIdLen = allowIdLen;
+-            if (!parseAndValidateKeyHandle(rpIdHash, selectedId, selectedIdLen, nonce)) {
+-                uint8_t err[1] = {CTAP2_ERR_NO_CREDENTIALS};
+-                sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-                return;
+-            }
+-        } else {
+-            // Fallback for flows without allowList: use first persisted credential for RP.
+-            CredentialRecord rec;
+-            if (!findFirstCredentialByRpHash(rpIdHash, rec) || rec.credIdLen == 0) {
+-                uint8_t err[1] = {CTAP2_ERR_NO_CREDENTIALS};
+-                sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-                return;
+-            }
+-            memcpy(selectedId, rec.credId, rec.credIdLen);
+-            selectedIdLen = rec.credIdLen;
+-            if (!parseAndValidateKeyHandle(rpIdHash, selectedId, selectedIdLen, nonce)) {
+-                uint8_t err[1] = {CTAP2_ERR_NO_CREDENTIALS};
+-                sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-                return;
+-            }
+-        }
+-
+-        if (!waitForUserPresence(20000, true, cid)) {
+-            uint8_t err[1] = {CTAP2_ERR_OPERATION_DENIED};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        uint8_t priv[32] = {0};
+-        if (!derivePrivateScalar("F2KEY", rpIdHash, nonce, priv)) {
+-            uint8_t err[1] = {CTAP1_ERR_OTHER};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        uint32_t signCount = nextCounter();
+-
+-        uint8_t authData[37] = {0};
+-        memcpy(authData, rpIdHash, 32);
+-        authData[32] = 0x01; // UP
+-        authData[33] = uint8_t((signCount >> 24) & 0xFF);
+-        authData[34] = uint8_t((signCount >> 16) & 0xFF);
+-        authData[35] = uint8_t((signCount >> 8) & 0xFF);
+-        authData[36] = uint8_t(signCount & 0xFF);
+-
+-        uint8_t toSign[69] = {0};
+-        memcpy(toSign, authData, 37);
+-        memcpy(toSign + 37, clientDataHash, 32);
+-        uint8_t hash[32] = {0};
+-        if (!sha256(toSign, sizeof(toSign), hash)) {
+-            uint8_t err[1] = {CTAP1_ERR_OTHER};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        uint8_t sig[80] = {0};
+-        size_t sigLen = 0;
+-        if (!signWithPrivate(priv, hash, sig, sizeof(sig), sigLen)) {
+-            uint8_t err[1] = {CTAP1_ERR_OTHER};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        std::vector<uint8_t> respCbor;
+-        cborAppendMap(respCbor, 4);
+-        cborAppendUint(respCbor, 1);
+-        cborAppendMap(respCbor, 2);
+-        cborAppendText(respCbor, "type");
+-        cborAppendText(respCbor, "public-key");
+-        cborAppendText(respCbor, "id");
+-        cborAppendBytes(respCbor, selectedId, selectedIdLen);
+-        cborAppendUint(respCbor, 2);
+-        cborAppendBytes(respCbor, authData, sizeof(authData));
+-        cborAppendUint(respCbor, 3);
+-        cborAppendBytes(respCbor, sig, sigLen);
+-        cborAppendUint(respCbor, 5);
+-        cborAppendUint(respCbor, 1);
+-
+-        std::vector<uint8_t> out;
+-        out.reserve(1 + respCbor.size());
+-        out.push_back(CTAP2_OK);
+-        out.insert(out.end(), respCbor.begin(), respCbor.end());
+-        sendMessage(cid, CTAPHID_CBOR, out.data(), uint16_t(out.size()));
+-    }
+-
+-    void handleU2fApdu(uint32_t cid, const uint8_t *payload, uint16_t len) {
+-        if (len < 7) {
+-            sendApduStatus(cid, SW_WRONG_LENGTH);
+-            return;
+-        }
+-
+-        uint8_t cla = payload[0];
+-        uint8_t ins = payload[1];
+-        uint8_t p1 = payload[2];
+-        uint32_t lc = (uint32_t(payload[4]) << 16) | (uint32_t(payload[5]) << 8) | uint32_t(payload[6]);
+-
+-        if (cla != 0x00) {
+-            sendApduStatus(cid, SW_INS_NOT_SUPPORTED);
+-            return;
+-        }
+-        if (len < (7u + lc)) {
+-            sendApduStatus(cid, SW_WRONG_LENGTH);
+-            return;
+-        }
+-        const uint8_t *data = payload + 7;
+-
+-        switch (ins) {
+-            case U2F_INS_VERSION: {
+-                static const uint8_t version[] = {'U', '2', 'F', '_', 'V', '2'};
+-                sendApduDataWithStatus(cid, version, sizeof(version), SW_NO_ERROR);
+-                return;
+-            }
+-            case U2F_INS_REGISTER: {
+-                handleRegister(cid, data, lc);
+-                return;
+-            }
+-            case U2F_INS_AUTHENTICATE: {
+-                handleAuthenticate(cid, p1, data, lc);
+-                return;
+-            }
+-            default: {
+-                sendApduStatus(cid, SW_INS_NOT_SUPPORTED);
+-                return;
+-            }
+-        }
+-    }
+-
+-    void handleCbor(uint32_t cid, const uint8_t *payload, uint16_t len) {
+-        if (len < 1) {
+-            sendError(cid, CTAP1_ERR_INVALID_LEN);
+-            return;
+-        }
+-        const uint8_t cborCmd = payload[0];
+-        if (cborCmd == 0x04) {
+-            // CTAP2 authenticatorGetInfo: strict CTAP2.0-compatible profile.
+-            std::vector<uint8_t> info;
+-            cborAppendMap(info, 7);
+-
+-            cborAppendUint(info, 0x01);
+-            cborAppendArray(info, 3);
+-            cborAppendText(info, "FIDO_2_1");
+-            cborAppendText(info, "FIDO_2_0");
+-            cborAppendText(info, "U2F_V2");
+-
+-            cborAppendUint(info, 0x03);
+-            // Derive stable per-device AAGUID from master secret.
+-            uint8_t aaguid[16] = {0};
+-            if (_masterLoaded) {
+-                uint8_t h[32] = {0};
+-                if (sha256(_masterSecret, sizeof(_masterSecret), h)) memcpy(aaguid, h, sizeof(aaguid));
+-            }
+-            cborAppendBytes(info, aaguid, sizeof(aaguid));
+-
+-            cborAppendUint(info, 0x04);
+-            cborAppendMap(info, 5);
+-            cborAppendText(info, "rk");
+-            cborAppendBool(info, true);
+-            cborAppendText(info, "up");
+-            cborAppendBool(info, true);
+-            cborAppendText(info, "uv");
+-            cborAppendBool(info, false);
+-            cborAppendText(info, "plat");
+-            cborAppendBool(info, false);
+-            cborAppendText(info, "makeCredUvNotRqd");
+-            cborAppendBool(info, true);
+-
+-            cborAppendUint(info, 0x05);
+-            cborAppendUint(info, kMaxMessageSize);
+-
+-            cborAppendUint(info, 0x08);
+-            cborAppendUint(info, 64); // max credential ID length
+-
+-            cborAppendUint(info, 0x09);
+-            cborAppendArray(info, 1);
+-            cborAppendText(info, "usb");
+-
+-            cborAppendUint(info, 0x0A);
+-            cborAppendArray(info, 1);
+-            cborAppendMap(info, 2);
+-            cborAppendText(info, "type");
+-            cborAppendText(info, "public-key");
+-            cborAppendText(info, "alg");
+-            cborAppendInt(info, -7); // ES256
+-
+-            std::vector<uint8_t> out;
+-            out.reserve(1 + info.size());
+-            out.push_back(CTAP2_OK);
+-            out.insert(out.end(), info.begin(), info.end());
+-            sendMessage(cid, CTAPHID_CBOR, out.data(), uint16_t(out.size()));
+-            return;
+-        }
+-
+-        // makeCredential
+-        if (cborCmd == 0x01) {
+-            handleCtap2MakeCredential(cid, payload + 1, len - 1);
+-            return;
+-        }
+-
+-        // getAssertion
+-        if (cborCmd == 0x02) {
+-            handleCtap2GetAssertion(cid, payload + 1, len - 1);
+-            return;
+-        }
+-
+-        // authenticatorSelection (CTAP2.1)
+-        if (cborCmd == 0x0B) {
+-            if (!waitForUserPresence(20000, true, cid)) {
+-                uint8_t err[1] = {CTAP2_ERR_OPERATION_DENIED};
+-                sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-                return;
+-            }
+-            uint8_t ok[1] = {CTAP2_OK};
+-            sendMessage(cid, CTAPHID_CBOR, ok, sizeof(ok));
+-            return;
+-        }
+-
+-        // clientPIN: we do not support PIN; report explicit status.
+-        if (cborCmd == 0x06) {
+-            uint8_t err[1] = {CTAP2_ERR_INVALID_COMMAND};
+-            sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-            return;
+-        }
+-
+-        // clientPIN / reset / selection / default
+-        uint8_t err[1] = {CTAP2_ERR_INVALID_COMMAND};
+-        sendMessage(cid, CTAPHID_CBOR, err, sizeof(err));
+-    }
+-
+-    void handleCommand(uint32_t cid, uint8_t cmd, const uint8_t *payload, uint16_t len) {
+-        switch (cmd) {
+-            case CTAPHID_INIT: {
+-                if (len != 8) {
+-                    sendError(cid, CTAP1_ERR_INVALID_LEN);
+-                    return;
+-                }
+-
+-                // Per CTAPHID, only broadcast CID allocates a new channel.
+-                // INIT on an existing CID is a sync command and must keep that CID.
+-                uint32_t assignedCid = cid;
+-                if (cid == kBroadcastCid) {
+-                    assignedCid = _nextCid++;
+-                    while (assignedCid == 0 || assignedCid == kBroadcastCid) assignedCid = _nextCid++;
+-                } else if (cid == 0) {
+-                    sendError(cid, CTAP1_ERR_INVALID_CID);
+-                    return;
+-                }
+-
+-                uint8_t response[17] = {0};
+-                memcpy(response, payload, 8); // nonce echo
+-                response[8] = (assignedCid >> 24) & 0xFF;
+-                response[9] = (assignedCid >> 16) & 0xFF;
+-                response[10] = (assignedCid >> 8) & 0xFF;
+-                response[11] = assignedCid & 0xFF;
+-                response[12] = 2; // protocol version
+-                response[13] = 1; // fw major
+-                response[14] = 0; // fw minor
+-                response[15] = 0; // fw build
+-                response[16] = (CAPFLAG_WINK | CAPFLAG_CBOR);
+-
+-                sendMessage(cid, CTAPHID_INIT, response, sizeof(response));
+-                return;
+-            }
+-            case CTAPHID_PING: {
+-                sendMessage(cid, CTAPHID_PING, payload, len);
+-                return;
+-            }
+-            case CTAPHID_WINK: {
+-                sendMessage(cid, CTAPHID_WINK, nullptr, 0);
+-                return;
+-            }
+-            case CTAPHID_LOCK: {
+-                // Optional command; accept and ignore lock for single-client usage.
+-                sendMessage(cid, CTAPHID_LOCK, nullptr, 0);
+-                return;
+-            }
+-            case CTAPHID_MSG: {
+-                handleU2fApdu(cid, payload, len);
+-                return;
+-            }
+-            case CTAPHID_CBOR: {
+-                handleCbor(cid, payload, len);
+-                return;
+-            }
+-            case CTAPHID_CANCEL: {
+-                // Host cancellation signal; acknowledge by clearing pending receive state.
+-                resetRx();
+-                return;
+-            }
+-            default: {
+-                if (cid == 0 || cid == kBroadcastCid) sendError(cid, CTAP1_ERR_INVALID_CID);
+-                else sendError(cid, CTAP1_ERR_INVALID_CMD);
+-                return;
+-            }
+-        }
+-    }
+-};
+-
+-// Do not create the object at boot time, otherwise it will break the BadUSB HID
+-U2fHidDevice *g_u2f = nullptr;
+-
+-U2fHidDevice &u2fDevice() {
+-    if (g_u2f == nullptr) { g_u2f = new U2fHidDevice(); }
+-    return *g_u2f;
+-}
+-
+-void drawU2fStatusScreen() {
+-    tft.fillScreen(bruceConfig.bgColor);
+-    tft.setTextSize(2);
+-    tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+-    tft.setCursor(6, 8);
+-    tft.print("USB U2F");
+-
+-    tft.setTextSize(1);
+-    tft.setCursor(6, 36);
+-    tft.print("Ready for registration/login");
+-    tft.setCursor(6, 50);
+-    tft.print("Press center when prompted");
+-    tft.setCursor(6, 64);
+-    tft.print("ESC: Back");
+-}
+-
+-void updateU2fRuntimeInfo(const U2fHidDevice &device) {
+-    tft.fillRect(0, 84, tftWidth, tftHeight - 84, bruceConfig.bgColor);
+-    tft.setTextSize(2);
+-    tft.setCursor(6, 94);
+-    tft.print(device.waitingForPresence() ? "Confirm now" : "Waiting...");
+-    tft.setTextSize(1);
+-}
+-
+-} // namespace
+-
+-void u2f_setup() {
+-    U2fHidDevice &device = u2fDevice();
+-    device.begin();
+-    drawU2fStatusScreen();
+-
+-    uint32_t lastDrawMs = 0;
+-    while (!check(EscPress) && !returnToMenu) {
+-        InputHandler();
+-        wakeUpScreen();
+-        device.poll();
+-
+-        if (millis() - lastDrawMs > 250) {
+-            updateU2fRuntimeInfo(device);
+-            lastDrawMs = millis();
+-        }
+-        delay(10);
+-    }
+-
+-    device.end();
+-}
+-
+-#else
+-
+-void u2f_setup() { displayError("USB HID disabled"); }
+-
+-#endif
+diff --git a/src/modules/others/u2f.h b/src/modules/others/u2f.h
+deleted file mode 100644
+index 4ebba77..0000000
+--- a/src/modules/others/u2f.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-#pragma once
+-
+-void u2f_setup();

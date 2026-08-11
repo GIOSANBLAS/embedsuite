@@ -365,6 +365,114 @@ class TehLinkClient(
         return runAction(transport, pluginId = "nfc_toolkit", action = "emulate_stop")
     }
 
+    // ===== HW bridge (flat cmds, Xibalba teh_hw) =====
+
+    suspend fun syncTime(
+        transport: TEmbedTransport,
+        timestampNs: Long = System.nanoTime()
+    ): Result<JSONObject> {
+        val params = JSONObject().put("timestamp_ns", timestampNs)
+        return execute(transport, "time.sync", JSONObject().put("params", params))
+    }
+
+    suspend fun getTime(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "time.get")
+    }
+
+    suspend fun audioBeep(
+        transport: TEmbedTransport,
+        freqHz: Int = 1000,
+        durationMs: Int = 100
+    ): Result<JSONObject> {
+        val params = JSONObject()
+            .put("freq", freqHz.coerceIn(20, 12_000))
+            .put("duration", durationMs.coerceIn(10, 1_500))
+        return execute(transport, "audio.beep", JSONObject().put("params", params))
+    }
+
+    suspend fun sdStatus(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "sd.status")
+    }
+
+    suspend fun sdList(
+        transport: TEmbedTransport,
+        path: String = "/xibalba_sessions"
+    ): Result<JSONObject> {
+        val params = JSONObject().put("path", path)
+        return execute(transport, "sd.list", JSONObject().put("params", params))
+    }
+
+    /**
+     * Guarda texto en microSD del T-Embed (`/xibalba_sessions/<filename>`).
+     * El firmware limita ~3500 bytes por llamada; usa [append] para chunking.
+     */
+    suspend fun sdSave(
+        transport: TEmbedTransport,
+        filename: String,
+        data: String,
+        append: Boolean = false
+    ): Result<JSONObject> {
+        val params = JSONObject()
+            .put("filename", filename)
+            .put("data", data)
+            .put("append", append)
+        return execute(transport, "sd.save", JSONObject().put("params", params), timeoutMs = 12_000L)
+    }
+
+    suspend fun rfScanStart(
+        transport: TEmbedTransport,
+        freqStart: Double,
+        freqEnd: Double,
+        step: Double = 0.25,
+        rssiThreshold: Int = -100,
+        dwellMs: Int = 5,
+        maxHz: Int = 25
+    ): Result<JSONObject> {
+        val params = JSONObject()
+            .put("freq_start", freqStart)
+            .put("freq_end", freqEnd)
+            .put("step", step)
+            .put("rssi_threshold", rssiThreshold)
+            .put("dwell_ms", dwellMs)
+            .put("max_hz", maxHz)
+        return execute(transport, "rf.scan.start", JSONObject().put("params", params))
+    }
+
+    suspend fun rfScanStop(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "rf.scan.stop")
+    }
+
+    suspend fun rfScanStatus(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "rf.scan.status")
+    }
+
+    suspend fun rfJammerStart(
+        transport: TEmbedTransport,
+        freqMhz: Double,
+        power: Int = 10,
+        mode: String = "continuous",
+        burstInterval: Int? = null,
+        maxSeconds: Int = 30
+    ): Result<JSONObject> {
+        val params = JSONObject()
+            .put("freq", freqMhz)
+            .put("power", power.coerceIn(1, 12))
+            .put("mode", mode)
+            .put("max_s", maxSeconds.coerceIn(1, 30))
+        if (burstInterval != null) {
+            params.put("burst_interval", burstInterval.coerceIn(5, 2000))
+        }
+        return execute(transport, "rf.jammer.start", JSONObject().put("params", params))
+    }
+
+    suspend fun rfJammerStop(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "rf.jammer.stop")
+    }
+
+    suspend fun rfJammerStatus(transport: TEmbedTransport): Result<JSONObject> {
+        return execute(transport, "rf.jammer.status")
+    }
+
     suspend fun sendRawJson(
         transport: TEmbedTransport,
         json: String,
@@ -448,6 +556,8 @@ class TehLinkClient(
         "ota_begin" -> 15_000L
         "ota_chunk" -> 30_000L
         "ota_finish" -> 60_000L
+        "sd.save" -> 12_000L
+        "rf.scan.start", "rf.jammer.start" -> 8_000L
         else -> 5_000L
     }
 

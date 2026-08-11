@@ -231,6 +231,7 @@ class DeviceConnectionManager(
                     _detectedProfile.value = detectFirmwareProfile(transport)
                     if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
                         ensureTehLinkAuth(transport)
+                        syncTimeWithDevice()
                     }
                     setSubGhzFrequency(_subGhzFrequencyMhz.value)
                     refreshSystemInfo()
@@ -265,6 +266,7 @@ class DeviceConnectionManager(
                     _detectedProfile.value = detectFirmwareProfile(transport)
                     if (_detectedProfile.value == FirmwareProfile.XIBALBA) {
                         ensureTehLinkAuth(transport)
+                        syncTimeWithDevice()
                     }
                     setSubGhzFrequency(_subGhzFrequencyMhz.value)
                     refreshSystemInfo()
@@ -731,6 +733,120 @@ class DeviceConnectionManager(
         )
     }
 
+    // ===== HW bridge flat cmds (teh_hw.cpp) =====
+
+    suspend fun syncTimeWithDevice(timestampNs: Long = System.nanoTime()): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.syncTime(transport, timestampNs).onSuccess { data ->
+            _events.tryEmit(
+                DeviceEvent.RawLine(
+                    "[TEH-Link] time.sync ok offset_ns=${data.optLong("offset_ns")}"
+                )
+            )
+        }.onFailure {
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] time.sync: ${it.message}"))
+        }
+    }
+
+    suspend fun deviceAudioBeep(freqHz: Int = 1000, durationMs: Int = 100): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.audioBeep(transport, freqHz, durationMs)
+    }
+
+    suspend fun sdCardStatus(): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.sdStatus(transport)
+    }
+
+    suspend fun sdCardList(path: String = "/xibalba_sessions"): Result<List<String>> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.sdList(transport, path).map { data ->
+            val files = data.optJSONArray("files") ?: return@map emptyList()
+            buildList {
+                for (i in 0 until files.length()) {
+                    val f = files.optJSONObject(i) ?: continue
+                    val name = f.optString("name")
+                    if (name.isNotBlank()) {
+                        val marker = if (f.optBoolean("dir")) "[D] " else ""
+                        add("$marker$name")
+                    }
+                }
+            }
+        }
+    }
+
+    /** Escribe en microSD del dispositivo (chunks de ≤3500 bytes UTF-8). */
+    suspend fun sdCardSave(filename: String, content: String): Result<Int> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        val chunkSize = 3_000
+        var offset = 0
+        var total = 0
+        var first = true
+        while (offset < content.length) {
+            val end = (offset + chunkSize).coerceAtMost(content.length)
+            val chunk = content.substring(offset, end)
+            val result = tehLinkClient.sdSave(transport, filename, chunk, append = !first)
+            if (result.isFailure) return Result.failure(result.exceptionOrNull()!!)
+            total += result.getOrThrow().optInt("bytes")
+            first = false
+            offset = end
+        }
+        return Result.success(total)
+    }
+
+    suspend fun rfScanStart(
+        freqStart: Double,
+        freqEnd: Double,
+        step: Double = 0.25,
+        rssiThreshold: Int = -100,
+        dwellMs: Int = 5,
+        maxHz: Int = 25
+    ): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.rfScanStart(
+            transport, freqStart, freqEnd, step, rssiThreshold, dwellMs, maxHz
+        ).onSuccess {
+            _events.tryEmit(DeviceEvent.RawLine("[TEH-Link] rf.scan.start ${freqStart}-${freqEnd}"))
+        }
+    }
+
+    suspend fun rfScanStop(): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.rfScanStop(transport)
+    }
+
+    suspend fun rfJammerStart(
+        freqMhz: Double,
+        power: Int = 10,
+        mode: String = "continuous",
+        burstInterval: Int? = null,
+        maxSeconds: Int = 30
+    ): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.rfJammerStart(
+            transport, freqMhz, power, mode, burstInterval, maxSeconds
+        ).onSuccess {
+            _events.tryEmit(
+                DeviceEvent.RawLine(
+                    "[TEH-Link] rf.jammer.start ${freqMhz}MHz mode=$mode (max ${maxSeconds}s)"
+                )
+            )
+            scope.launch { deviceAudioBeep(600, 80) }
+        }
+    }
+
+    suspend fun rfJammerStop(): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.rfJammerStop(transport).onSuccess {
+            scope.launch { deviceAudioBeep(400, 60) }
+        }
+    }
+
+    suspend fun rfJammerStatus(): Result<JSONObject> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.rfJammerStatus(transport)
+    }
+
     // ===== XIBALBA v0.19+ (Evil Portal API) =====
     suspend fun tehLinkRunEvilPortalStart(
         ssid: String,
@@ -1043,6 +1159,13 @@ class DeviceConnectionManager(
             return
         }
 
+        if (TehLinkResponseParser.isTehLinkEventLine(line)) {
+            _incomingRaw.tryEmit(line)
+            LinkDebugLog.appendIncoming(line)
+            dispatchTehLinkEvent(line)
+            return
+        }
+
         _incomingRaw.tryEmit(line)
         LinkDebugLog.appendIncoming(line)
         _events.tryEmit(DeviceEvent.RawLine(line))
@@ -1079,6 +1202,51 @@ class DeviceConnectionManager(
                     val (lat, lng) = locationTracker?.currentLatLng() ?: (null to null)
                     signalRepository?.saveFromDecodedLine(line, lat, lng)
                 }
+            }
+        }
+    }
+
+    private fun dispatchTehLinkEvent(line: String) {
+        val root = runCatching { JSONObject(line.trim()) }.getOrNull() ?: return
+        val type = root.optString("event")
+        val data = root.optJSONObject("data") ?: JSONObject()
+        _events.tryEmit(DeviceEvent.TehLinkAsyncEvent(type, data.toString()))
+        _events.tryEmit(DeviceEvent.RawLine(line))
+
+        when (type) {
+            "rf.scan.sample", "SubGhzSample" -> {
+                val freq = data.optDouble("freq_mhz", Double.NaN)
+                val rssi = data.optInt("rssi", Int.MIN_VALUE)
+                if (!freq.isNaN() && rssi != Int.MIN_VALUE) {
+                    _events.tryEmit(DeviceEvent.SubGhzSample(freq, rssi))
+                }
+            }
+            "rf.scan.stopped" -> {
+                _events.tryEmit(
+                    DeviceEvent.RfScanStopped(
+                        reason = data.optString("reason", "user"),
+                        sweeps = data.optLong("sweeps"),
+                        samples = data.optLong("samples")
+                    )
+                )
+            }
+            "rf.jammer.stopped" -> {
+                _events.tryEmit(
+                    DeviceEvent.RfJammerStopped(
+                        reason = data.optString("reason", "user"),
+                        elapsedMs = data.optLong("elapsed_ms")
+                    )
+                )
+            }
+            "SubGhzDecodedFrame" -> {
+                _events.tryEmit(
+                    DeviceEvent.SubGhzDecodedFrame(
+                        proto = data.optString("proto", "?"),
+                        decoded = data.optString("decoded", ""),
+                        rssi = data.optInt("rssi"),
+                        freqMhz = data.optDouble("freq_mhz")
+                    )
+                )
             }
         }
     }

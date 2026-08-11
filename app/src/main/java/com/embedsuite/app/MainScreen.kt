@@ -316,6 +316,15 @@ fun MainScreen(
                         onBack = { navController.popBackStack() }
                     )
                 }
+                composable("jammer") {
+                    com.embedsuite.app.ui.screen.JammerScreen(
+                        connectionManager = container.connectionManager,
+                        factory = com.embedsuite.app.ui.viewmodel.JammerViewModel.factory(
+                            container.connectionManager
+                        ),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable("rf") {
                     RfHubScreen(
                         viewModel = viewModel(factory = viewModelFactory),
@@ -324,7 +333,10 @@ fun MainScreen(
                         rfReplayEngine = container.rfReplayEngine,
                         aiEngine = container.aiEngine,
                         initialTab = deepLink?.rfTab,
-                        highlightSignalId = deepLink?.signalId
+                        highlightSignalId = deepLink?.signalId,
+                        onNavigateJammer = {
+                            navController.navigate("jammer") { launchSingleTop = true }
+                        }
                     )
                 }
                 composable("wireless") {
@@ -430,6 +442,9 @@ fun MainScreen(
                         },
                         onNavigateHardwareBringup = {
                             navController.navigate("hardware_bringup") { launchSingleTop = true }
+                        },
+                        onNavigateJammer = {
+                            navController.navigate("jammer") { launchSingleTop = true }
                         }
                     )
                 }

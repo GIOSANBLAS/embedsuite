@@ -191,6 +191,27 @@
     <string name="rf_tab_spectrum">RF</string>
     <string name="rf_tab_library">LIBRARY</string>
     <string name="rf_tab_analysis">ANALYSIS</string>
+    <string name="rf_tab_jammer">JAMMER</string>
+
+    <string name="jammer_title">RF JAMMER</string>
+    <string name="jammer_legal">Authorized / controlled ISM environments only. Misuse may be illegal. Firmware safety cutoff: 30 s.</string>
+    <string name="jammer_freq">Frequency: %1$s MHz</string>
+    <string name="jammer_power">PA power: %1$d</string>
+    <string name="jammer_max_s">Max: %1$d s</string>
+    <string name="jammer_mode">Mode</string>
+    <string name="jammer_mode_continuous">Continuous</string>
+    <string name="jammer_mode_burst">Burst</string>
+    <string name="jammer_start">START JAMMER</string>
+    <string name="jammer_stop">STOP JAMMER</string>
+    <string name="jammer_active_warn">JAMMER ACTIVE — %1$s MHz</string>
+
+    <string name="settings_device_beep">Test T-Embed beep</string>
+    <string name="settings_storage">SD STORAGE</string>
+    <string name="settings_storage_sub">T-Embed microSD via TEH-Link (sd.status / sd.list / sd.save)</string>
+    <string name="settings_sd_status">SD status</string>
+    <string name="settings_sd_list">List /xibalba_sessions</string>
+    <string name="settings_time_sync">Sync Android↔ESP32 clock</string>
+    <string name="settings_open_jammer">Open Jammer control</string>
 
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
     <string name="firmware_flash_sub">Official Xibalba or custom .bin for T-Embed CC1101 Plus — at your own risk</string>

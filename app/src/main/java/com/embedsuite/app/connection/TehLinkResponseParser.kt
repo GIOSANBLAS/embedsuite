@@ -299,6 +299,16 @@ object TehLinkResponseParser {
         }.getOrDefault(false)
     }
 
+    /** Eventos push del firmware (`teh_send_event`), p.ej. rf.scan.sample. */
+    fun isTehLinkEventLine(line: String): Boolean {
+        val trimmed = line.trim()
+        if (!trimmed.startsWith("{")) return false
+        return runCatching {
+            val obj = JSONObject(trimmed)
+            obj.has("event") && !obj.has("ok")
+        }.getOrDefault(false)
+    }
+
     /** Redacta campos sensibles en respuestas TEH-Link antes de log/UI. */
     fun redactSensitiveResponse(line: String): String {
         if (!isTehLinkLine(line)) return line

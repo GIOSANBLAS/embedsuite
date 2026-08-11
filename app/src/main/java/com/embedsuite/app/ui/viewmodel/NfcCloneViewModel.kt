@@ -46,7 +46,10 @@ class NfcCloneViewModel(
                     is DeviceEvent.WifiProbe,
                     is DeviceEvent.MousejackDongle,
                     is DeviceEvent.SubGhzSample,
-                    is DeviceEvent.SubGhzDecodedFrame -> Unit
+                    is DeviceEvent.SubGhzDecodedFrame,
+                    is DeviceEvent.TehLinkAsyncEvent,
+                    is DeviceEvent.RfJammerStopped,
+                    is DeviceEvent.RfScanStopped -> Unit
                 }
             }
         }

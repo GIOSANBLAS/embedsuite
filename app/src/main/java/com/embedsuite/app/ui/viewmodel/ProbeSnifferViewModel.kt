@@ -128,7 +128,10 @@ class ProbeSnifferViewModel(
                     is DeviceEvent.MousejackDongle,
                     is DeviceEvent.SubGhzSample,
                     is DeviceEvent.SubGhzDecodedFrame,
-                    is DeviceEvent.NfcCloneProgress -> Unit
+                    is DeviceEvent.NfcCloneProgress,
+                    is DeviceEvent.TehLinkAsyncEvent,
+                    is DeviceEvent.RfJammerStopped,
+                    is DeviceEvent.RfScanStopped -> Unit
                 }
             }
         }

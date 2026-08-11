@@ -1,8 +1,13 @@
 package com.embedsuite.app.connection
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -16,6 +21,8 @@ class MockTransport(
 
     override val type: TransportType = TransportType.USB
     override val isConnected: Boolean = true
+
+    private val mockScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var mockUiScreen = "Home"
     private var mockActivePlugin = ""
@@ -45,6 +52,9 @@ class MockTransport(
     private var cryptoLastDigest = ""
     private var cryptoLastResult = ""
     private var cryptoLastAlgo = "sha256"
+
+    private var mockRfScanning = false
+    private var mockJamming = false
 
     /** Simulated auth token after pair; empty until paired. */
     private var mockAuthToken = "mock-teh-link-token"
@@ -266,6 +276,106 @@ class MockTransport(
                 otaWritten = 0L
                 otaNextSeq = 0
                 JSONObject().put("state", "aborted")
+            }
+            "time.sync" -> {
+                val params = root.optJSONObject("params") ?: JSONObject()
+                JSONObject()
+                    .put("synced", true)
+                    .put("offset_ns", 0)
+                    .put("device_rx_us", System.nanoTime() / 1000)
+                    .put("device_tx_us", System.nanoTime() / 1000)
+                    .put("host_ns", params.optLong("timestamp_ns"))
+            }
+            "time.get" -> JSONObject()
+                .put("synced", true)
+                .put("offset_ns", 0)
+                .put("host_ns", System.nanoTime())
+                .put("local_us", System.nanoTime() / 1000)
+            "audio.beep" -> {
+                val params = root.optJSONObject("params") ?: JSONObject()
+                JSONObject()
+                    .put("freq", params.optInt("freq", 1000))
+                    .put("duration", params.optInt("duration", 100))
+            }
+            "sd.status" -> JSONObject()
+                .put("mounted", true)
+                .put("card_type", 3)
+                .put("total_bytes", 8L * 1024 * 1024 * 1024)
+                .put("used_bytes", 128L * 1024 * 1024)
+            "sd.list" -> JSONObject()
+                .put("path", "/xibalba_sessions")
+                .put("exists", true)
+                .put("truncated", false)
+                .put("files", JSONArray().put(
+                    JSONObject().put("name", "session_demo.json").put("dir", false).put("size", 42)
+                ))
+            "sd.save" -> {
+                val params = root.optJSONObject("params") ?: JSONObject()
+                JSONObject()
+                    .put("path", "/xibalba_sessions/" + params.optString("filename", "file.bin"))
+                    .put("bytes", params.optString("data").length)
+                    .put("size", params.optString("data").length)
+            }
+            "rf.scan.start" -> {
+                mockRfScanning = true
+                val params = root.optJSONObject("params") ?: JSONObject()
+                // Emit a couple of async scan samples for UI
+                mockScope.launch {
+                    delay(80)
+                    for (i in 0 until 5) {
+                        val freq = params.optDouble("freq_start", 433.0) + i * params.optDouble("step", 0.25)
+                        _incoming.emit(
+                            JSONObject()
+                                .put("event", "rf.scan.sample")
+                                .put("ts_ms", System.currentTimeMillis())
+                                .put(
+                                    "data",
+                                    JSONObject().put("freq_mhz", freq).put("rssi", -40 - i).put("sweep", 0)
+                                )
+                                .toString()
+                        )
+                        delay(40)
+                    }
+                }
+                JSONObject()
+                    .put("scanning", true)
+                    .put("freq_start", params.optDouble("freq_start", 300.0))
+                    .put("freq_end", params.optDouble("freq_end", 928.0))
+                    .put("step_mhz", params.optDouble("step", 0.25))
+                    .put("rssi_threshold", params.optInt("rssi_threshold", -120))
+            }
+            "rf.scan.stop", "rf.scan.status" -> JSONObject()
+                .put("scanning", false)
+                .put("sweeps", 1)
+                .put("samples", 5)
+            "rf.jammer.start" -> {
+                mockJamming = true
+                val params = root.optJSONObject("params") ?: JSONObject()
+                JSONObject()
+                    .put("jamming", true)
+                    .put("freq", params.optDouble("freq", 433.92))
+                    .put("mode", params.optString("mode", "continuous"))
+                    .put("power", params.optInt("power", 10))
+                    .put("max_s", params.optInt("max_s", 30))
+            }
+            "rf.jammer.stop", "rf.jammer.status" -> {
+                if (cmd == "rf.jammer.stop" && mockJamming) {
+                    mockJamming = false
+                    mockScope.launch {
+                        delay(30)
+                        _incoming.emit(
+                            JSONObject()
+                                .put("event", "rf.jammer.stopped")
+                                .put("ts_ms", System.currentTimeMillis())
+                                .put(
+                                    "data",
+                                    JSONObject().put("reason", "user").put("elapsed_ms", 100)
+                                )
+                                .toString()
+                        )
+                    }
+                }
+                JSONObject().put("jamming", mockJamming).put("freq", 433.92)
             }
             else -> null
         }

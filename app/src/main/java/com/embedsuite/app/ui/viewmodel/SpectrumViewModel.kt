@@ -67,6 +67,10 @@ class SpectrumViewModel(
                             _toast.tryEmit("Decode ${fr.proto} @${fr.freqMhz}MHz")
                         }
                     }
+                    is DeviceEvent.RfScanStopped -> {
+                        _specRunning.value = false
+                        _toast.tryEmit("rf.scan stopped: ${ev.reason}")
+                    }
                     is DeviceEvent.SubGhzSignal,
                     is DeviceEvent.SubGhzSignalSaved,
                     is DeviceEvent.WaveformSample,
@@ -76,7 +80,9 @@ class SpectrumViewModel(
                     is DeviceEvent.BleAdSpamProgress,
                     is DeviceEvent.WifiProbe,
                     is DeviceEvent.MousejackDongle,
-                    is DeviceEvent.NfcCloneProgress -> Unit
+                    is DeviceEvent.NfcCloneProgress,
+                    is DeviceEvent.TehLinkAsyncEvent,
+                    is DeviceEvent.RfJammerStopped -> Unit
                 }
             }
         }
@@ -86,43 +92,67 @@ class SpectrumViewModel(
         val o = runCatching { JSONObject(line.trim()) }.getOrNull() ?: return
         val event = o.optString("event")
         val d = o.optJSONObject("data") ?: return
-        if (event == "SubGhzSample") {
-            val f = d.optDouble("freq_mhz")
-            val r = d.optInt("rssi")
-            val cur = _samples.value.toMutableList()
-            if (cur.size > 4096) cur.subList(0, cur.size - 4096).clear()
-            cur += SpectrumSample(f, r)
-            _samples.value = cur
-        } else if (event == "SubGhzDecodedFrame") {
-            val fr = DecodedFrame(
-                proto = d.optString("proto", "?"),
-                decoded = d.optString("decoded", ""),
-                rssi = d.optInt("rssi"),
-                freqMhz = d.optDouble("freq_mhz"),
-                seen = d.optLong("seen", 1L)
-            )
-            val cur = _frames.value.toMutableList()
-            if (!cur.any { it.decoded == fr.decoded && it.proto == fr.proto }) {
-                if (cur.size > 200) cur.removeFirst()
-                cur += fr
-                _frames.value = cur
-                viewModelScope.launch { _toast.tryEmit("Decode ${fr.proto} @${fr.freqMhz}MHz") }
+        when (event) {
+            "SubGhzSample", "rf.scan.sample" -> {
+                val f = d.optDouble("freq_mhz")
+                val r = d.optInt("rssi")
+                val cur = _samples.value.toMutableList()
+                if (cur.size > 4096) cur.subList(0, cur.size - 4096).clear()
+                cur += SpectrumSample(f, r)
+                _samples.value = cur
+            }
+            "SubGhzDecodedFrame" -> {
+                val fr = DecodedFrame(
+                    proto = d.optString("proto", "?"),
+                    decoded = d.optString("decoded", ""),
+                    rssi = d.optInt("rssi"),
+                    freqMhz = d.optDouble("freq_mhz"),
+                    seen = d.optLong("seen", 1L)
+                )
+                val cur = _frames.value.toMutableList()
+                if (!cur.any { it.decoded == fr.decoded && it.proto == fr.proto }) {
+                    if (cur.size > 200) cur.removeFirst()
+                    cur += fr
+                    _frames.value = cur
+                    viewModelScope.launch { _toast.tryEmit("Decode ${fr.proto} @${fr.freqMhz}MHz") }
+                }
             }
         }
     }
 
     fun startSpec(start: Double = 380.0, end: Double = 450.0, stepMhz: Double = 0.025, pps: Int = 100) {
         fStart = start; fEnd = end; step = stepMhz
+        val maxHz = pps.coerceIn(1, 100)
         viewModelScope.launch {
-            connectionManager.tehLinkRunAction("subghz_tools", "spectrum_start",
-                JSONObject().put("f_start", start).put("f_end", end).put("step", stepMhz).put("pps", pps))
-                .onSuccess { _specRunning.value = true; _samples.value = emptyList() }
-                .onFailure { t -> _toast.tryEmit("spectrum_start: ${t.message ?: "?"}") }
+            // Prefer HW bridge rf.scan.* (teh_hw); fall back to plugin spectrum_start
+            connectionManager.rfScanStart(
+                freqStart = start,
+                freqEnd = end,
+                step = stepMhz.coerceAtLeast(0.02),
+                rssiThreshold = -120,
+                dwellMs = 5,
+                maxHz = maxHz
+            ).onSuccess {
+                _specRunning.value = true
+                _samples.value = emptyList()
+            }.onFailure { first ->
+                connectionManager.tehLinkRunAction(
+                    "subghz_tools",
+                    "spectrum_start",
+                    JSONObject().put("f_start", start).put("f_end", end).put("step", stepMhz).put("pps", pps)
+                ).onSuccess {
+                    _specRunning.value = true
+                    _samples.value = emptyList()
+                }.onFailure { t ->
+                    _toast.tryEmit("spectrum: ${first.message ?: t.message ?: "?"}")
+                }
+            }
         }
     }
 
     fun stopSpec() {
         viewModelScope.launch {
+            connectionManager.rfScanStop()
             connectionManager.tehLinkRunAction("subghz_tools", "spectrum_stop", JSONObject())
             _specRunning.value = false
         }

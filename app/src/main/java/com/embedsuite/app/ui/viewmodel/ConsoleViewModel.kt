@@ -62,6 +62,9 @@ class ConsoleViewModel(
                     is DeviceEvent.SubGhzDecodedFrame -> Unit
                     is DeviceEvent.SubGhzSample -> Unit
                     is DeviceEvent.WifiProbe -> Unit
+                    is DeviceEvent.TehLinkAsyncEvent -> Unit
+                    is DeviceEvent.RfJammerStopped -> Unit
+                    is DeviceEvent.RfScanStopped -> Unit
                 }
             }
         }

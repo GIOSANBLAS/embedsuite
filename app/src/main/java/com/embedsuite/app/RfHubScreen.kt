@@ -24,7 +24,8 @@ fun RfHubScreen(
     rfReplayEngine: RfReplayEngine,
     aiEngine: EmbedAiEngine,
     initialTab: Int? = null,
-    highlightSignalId: Long? = null
+    highlightSignalId: Long? = null,
+    onNavigateJammer: (() -> Unit)? = null
 ) {
     val tab by viewModel.selectedTab.collectAsState()
     val lastDecoded by viewModel.lastDecoded.collectAsState()
@@ -53,6 +54,9 @@ fun RfHubScreen(
             GlassChip(stringResource(R.string.rf_tab_spectrum), tab == 0, { viewModel.selectTab(0) }, MatrixGreen)
             GlassChip(stringResource(R.string.rf_tab_library), tab == 1, { viewModel.selectTab(1) }, NeonCyan)
             GlassChip(stringResource(R.string.rf_tab_analysis), tab == 2, { viewModel.selectTab(2) }, NeonOrange)
+            if (onNavigateJammer != null) {
+                GlassChip(stringResource(R.string.rf_tab_jammer), false, { onNavigateJammer() }, NeonRed)
+            }
         }
 
         lastDecoded?.let { decoded ->

@@ -34,7 +34,8 @@ fun SettingsScreen(
     onNavigateAbout: () -> Unit = {},
     onResetOnboarding: () -> Unit = {},
     onLanguageChanged: () -> Unit = {},
-    onNavigateHardwareBringup: () -> Unit = {}
+    onNavigateHardwareBringup: () -> Unit = {},
+    onNavigateJammer: () -> Unit = {}
 ) {
     val soundEnabled by preferences.soundEnabled.collectAsState()
     val hapticsEnabled by preferences.hapticsEnabled.collectAsState()
@@ -119,6 +120,85 @@ fun SettingsScreen(
                 }
                 SettingToggle(stringResource(R.string.settings_haptics), hapticsEnabled) {
                     preferences.setHapticsEnabled(it)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.deviceAudioBeep(1000, 120).fold(
+                                onSuccess = { repairMessage = "audio.beep OK" },
+                                onFailure = { repairMessage = "audio.beep: ${it.message}" }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        stringResource(R.string.settings_device_beep),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = NeonCyan
+                    )
+                }
+            }
+
+            GlassCard(accent = NeonCyan, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Text(stringResource(R.string.settings_storage), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
+                Text(stringResource(R.string.settings_storage_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.sdCardStatus().fold(
+                                onSuccess = { d ->
+                                    repairMessage = if (d.optBoolean("mounted")) {
+                                        "SD OK · used=${d.optLong("used_bytes") / 1024}KB / total=${d.optLong("total_bytes") / 1024}KB"
+                                    } else {
+                                        "SD no montada"
+                                    }
+                                },
+                                onFailure = { repairMessage = "sd.status: ${it.message}" }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.settings_sd_status), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.sdCardList().fold(
+                                onSuccess = { files ->
+                                    repairMessage = if (files.isEmpty()) {
+                                        "SD /xibalba_sessions vacío o sin carpeta"
+                                    } else {
+                                        "SD files:\n" + files.take(12).joinToString("\n")
+                                    }
+                                },
+                                onFailure = { repairMessage = "sd.list: ${it.message}" }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.settings_sd_list), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.syncTimeWithDevice().fold(
+                                onSuccess = { repairMessage = "time.sync OK" },
+                                onFailure = { repairMessage = "time.sync: ${it.message}" }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.settings_time_sync), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+                TextButton(onClick = onNavigateJammer, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.settings_open_jammer), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonRed)
                 }
             }
 

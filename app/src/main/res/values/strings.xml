@@ -224,6 +224,27 @@
     <string name="rf_tab_spectrum">RF</string>
     <string name="rf_tab_library">BIBLIOTECA</string>
     <string name="rf_tab_analysis">ANÁLISIS</string>
+    <string name="rf_tab_jammer">JAMMER</string>
+
+    <string name="jammer_title">JAMMER RF</string>
+    <string name="jammer_legal">Solo entornos controlados / bandas ISM autorizadas. Uso indebido puede ser ilegal. Cutoff de seguridad 30 s en firmware.</string>
+    <string name="jammer_freq">Frecuencia: %1$s MHz</string>
+    <string name="jammer_power">Potencia PA: %1$d</string>
+    <string name="jammer_max_s">Máximo: %1$d s</string>
+    <string name="jammer_mode">Modo</string>
+    <string name="jammer_mode_continuous">Continuo</string>
+    <string name="jammer_mode_burst">Ráfaga</string>
+    <string name="jammer_start">INICIAR JAMMER</string>
+    <string name="jammer_stop">DETENER JAMMER</string>
+    <string name="jammer_active_warn">JAMMER ACTIVO — %1$s MHz</string>
+
+    <string name="settings_device_beep">Probar beep del T-Embed</string>
+    <string name="settings_storage">ALMACENAMIENTO SD</string>
+    <string name="settings_storage_sub">microSD del T-Embed vía TEH-Link (sd.status / sd.list / sd.save)</string>
+    <string name="settings_sd_status">Estado SD</string>
+    <string name="settings_sd_list">Listar /xibalba_sessions</string>
+    <string name="settings_time_sync">Sincronizar reloj Android↔ESP32</string>
+    <string name="settings_open_jammer">Abrir control Jammer</string>
 
     <!-- Firmware flash -->
     <string name="firmware_flash_title">FIRMWARE FLASH</string>

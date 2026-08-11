@@ -88,4 +88,11 @@ sealed class DeviceEvent {
         val uid: String = "",
         val dumpHex: String = ""
     ) : DeviceEvent()
+
+    /** Evento TEH-Link asíncrono (`{"event":"…","data":{…}}`). */
+    data class TehLinkAsyncEvent(val type: String, val dataJson: String) : DeviceEvent()
+
+    data class RfJammerStopped(val reason: String, val elapsedMs: Long = 0) : DeviceEvent()
+
+    data class RfScanStopped(val reason: String, val sweeps: Long = 0, val samples: Long = 0) : DeviceEvent()
 }

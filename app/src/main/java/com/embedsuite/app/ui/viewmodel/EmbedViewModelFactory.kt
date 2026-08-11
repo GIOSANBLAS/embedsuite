@@ -40,7 +40,19 @@ class EmbedViewModelFactory(private val container: AppContainer) : ViewModelProv
             NfcIrViewModel(
                 connectionManager = container.connectionManager,
                 irRepository = container.irRepository,
-                nfcDumpRepository = container.nfcDumpRepository
+                nfcDumpRepository = container.nfcDumpRepository,
+                nfcService = container.nfcService
+            ) as T
+        modelClass.isAssignableFrom(JammerViewModel::class.java) ->
+            JammerViewModel(
+                connectionManager = container.connectionManager,
+                xibalba = container.xibalbaAdapter
+            ) as T
+        modelClass.isAssignableFrom(RfScannerViewModel::class.java) ->
+            RfScannerViewModel(
+                connectionManager = container.connectionManager,
+                xibalba = container.xibalbaAdapter,
+                hybridLocation = container.hybridLocation
             ) as T
         modelClass.isAssignableFrom(WirelessViewModel::class.java) ->
             WirelessViewModel(

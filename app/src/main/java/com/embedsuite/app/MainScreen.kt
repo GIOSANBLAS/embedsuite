@@ -324,7 +324,21 @@ fun MainScreen(
                         rfReplayEngine = container.rfReplayEngine,
                         aiEngine = container.aiEngine,
                         initialTab = deepLink?.rfTab,
-                        highlightSignalId = deepLink?.signalId
+                        highlightSignalId = deepLink?.signalId,
+                        onNavigateScanner = { navController.navigate("rf_scanner") { launchSingleTop = true } },
+                        onNavigateJammer = { navController.navigate("jammer") { launchSingleTop = true } }
+                    )
+                }
+                composable("rf_scanner") {
+                    com.embedsuite.app.ui.screen.RfScannerScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("jammer") {
+                    JammerScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("wireless") {
@@ -430,7 +444,10 @@ fun MainScreen(
                         },
                         onNavigateHardwareBringup = {
                             navController.navigate("hardware_bringup") { launchSingleTop = true }
-                        }
+                        },
+                        xibalbaAdapter = container.xibalbaAdapter,
+                        sdCardService = container.sdCardService,
+                        audioService = container.audioService
                     )
                 }
                 composable("about") {

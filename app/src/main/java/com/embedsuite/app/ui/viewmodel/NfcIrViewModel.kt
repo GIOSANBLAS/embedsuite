@@ -23,13 +23,17 @@ data class NfcIrUiState(
     val nfcDump: String = "",
     val parsedMifare: String = "",
     val savedDumps: List<NfcDumpEntity> = emptyList(),
-    val selectedDumpId: Long? = null
+    val selectedDumpId: Long? = null,
+    /** Lector continuo PN532 (TEH-Link nfc.reader_start) — Xibalba 0.20+. */
+    val readerActive: Boolean = false,
+    val detectedCards: List<com.embedsuite.app.connection.NfcCard> = emptyList()
 )
 
 class NfcIrViewModel(
     private val connectionManager: DeviceConnectionManager,
     private val irRepository: IrRepository,
-    private val nfcDumpRepository: NfcDumpRepository
+    private val nfcDumpRepository: NfcDumpRepository,
+    private val nfcService: com.embedsuite.app.services.NfcService? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NfcIrUiState())
@@ -82,6 +86,74 @@ class NfcIrViewModel(
             connectionManager.events.collect { event ->
                 if (event is DeviceEvent.RawLine) handleLine(event.line)
             }
+        }
+        // Lector continuo: tarjetas en tiempo real + estado del reader
+        nfcService?.let { service ->
+            viewModelScope.launch {
+                service.detectedCards.collect { cards ->
+                    _uiState.update { it.copy(detectedCards = cards) }
+                    cards.lastOrNull()?.let { card ->
+                        _uiState.update {
+                            it.copy(
+                                nfcUid = card.uid,
+                                estadoOperacion = "TARJETA: ${card.uid}"
+                            )
+                        }
+                    }
+                }
+            }
+            viewModelScope.launch {
+                service.state.collect { state ->
+                    _uiState.update {
+                        it.copy(
+                            readerActive = state is com.embedsuite.app.services.NfcService.NfcState.Reading,
+                            estadoOperacion = when (state) {
+                                is com.embedsuite.app.services.NfcService.NfcState.Reading ->
+                                    "LECTOR ACTIVO — acerca una tarjeta"
+                                is com.embedsuite.app.services.NfcService.NfcState.Error ->
+                                    "ERROR NFC: ${state.message}"
+                                is com.embedsuite.app.services.NfcService.NfcState.Idle ->
+                                    if (it.readerActive) "Lector detenido" else it.estadoOperacion
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** Lector continuo PN532 con streaming de tarjetas (Xibalba 0.20+). */
+    fun startContinuousReader(timeoutSec: Int = 120) {
+        val service = nfcService ?: return
+        viewModelScope.launch {
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "Lector continuo requiere Xibalba (TEH-Link).") }
+                return@launch
+            }
+            service.startReader(timeoutSec)
+        }
+    }
+
+    fun stopContinuousReader() {
+        val service = nfcService ?: return
+        viewModelScope.launch { service.stopReader() }
+    }
+
+    /** Escritura NDEF texto en NTAG/Ultralight (Xibalba 0.20+). */
+    fun writeNfcText(text: String) {
+        val service = nfcService ?: return
+        viewModelScope.launch {
+            if (detectedProfile.value != FirmwareProfile.XIBALBA) {
+                _uiState.update { it.copy(estadoOperacion = "Escritura NFC requiere Xibalba (TEH-Link).") }
+                return@launch
+            }
+            _uiState.update { it.copy(estadoOperacion = "Escribiendo NDEF — acerca el tag...") }
+            service.writeTag(text).fold(
+                onSuccess = { _uiState.update { it.copy(estadoOperacion = "TAG ESCRITO OK") } },
+                onFailure = { err ->
+                    _uiState.update { it.copy(estadoOperacion = "Escritura: ${err.message}") }
+                }
+            )
         }
     }
 

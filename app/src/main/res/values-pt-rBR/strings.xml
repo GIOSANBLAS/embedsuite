@@ -289,6 +289,8 @@
     <string name="map_export_status_pdf">PDF: %1$s</string>
     <string name="map_export_status_backup">Backup: %1$s</string>
     <string name="map_export_status_sub">Export .sub: %1$s</string>
+    <string name="map_export_to_device_sd">JSON → SD do T-Embed</string>
+    <string name="map_export_status_device_sd">SD dispositivo: %1$s</string>
     <string name="map_export_error">Erro: %1$s</string>
     <string name="map_export_backup_error">Erro backup: %1$s</string>
     <string name="map_export_no_rf">Sem sinais RF para exportar</string>

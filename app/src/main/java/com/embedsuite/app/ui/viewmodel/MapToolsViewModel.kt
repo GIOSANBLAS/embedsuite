@@ -93,6 +93,15 @@ class MapToolsViewModel(
     suspend fun exportSessionHtml() = sessionReportGenerator.generateHtmlReport()
     suspend fun exportSessionPdf() = sessionReportGenerator.generatePdfReport()
 
+    /** Exporta JSON de sesión al microSD del T-Embed (`/xibalba_sessions/`). */
+    suspend fun exportJsonToDeviceSd(): Result<String> {
+        val file = exportJson().getOrElse { return Result.failure(it) }
+        val name = "session_${System.currentTimeMillis()}.json"
+        return connectionManager.sdCardSave(name, file.readText()).map { bytes ->
+            "/xibalba_sessions/$name ($bytes B)"
+        }
+    }
+
     suspend fun exportSub(context: Context): File? {
         val signal = signalRepository.getLatest() ?: return null
         return FlipperFileManager.writeSubFile(context, signal)

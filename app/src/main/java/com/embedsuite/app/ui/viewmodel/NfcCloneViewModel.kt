@@ -71,9 +71,10 @@ class NfcCloneViewModel(
             val res = connectionManager.tehLinkRunAction("nfc_clone", "read_mifare",
                 JSONObject().put("keys_csv", keysCsv))
             res.onSuccess { data ->
-                val sectors = data.rawResponse?.getInt("sectors") ?: 0
-                val uid = data.rawResponse?.getString("uid") ?: ""
-                val hex = data.rawResponse?.getString("dump_hex") ?: ""
+                val raw = data.rawResponse
+                val sectors = raw?.optInt("sectors", 0) ?: 0
+                val uid = raw?.optString("uid").orEmpty()
+                val hex = raw?.optString("dump_hex").orEmpty()
                 _ui.update { it.copy(step = "read_done", sectorsRead = sectors, lastUid = uid, dumpHex = hex) }
                 _toast.tryEmit("Read OK: $sectors/16 sectors (UID $uid)")
             }
@@ -90,7 +91,7 @@ class NfcCloneViewModel(
             val res = connectionManager.tehLinkRunAction("nfc_clone", "write_mifare",
                 JSONObject().put("dump_hex", dumpHex).put("force_uid_write", if (forceUid) 1 else 0))
             res.onSuccess { data ->
-                val bw = data.rawResponse?.getInt("blocks_written") ?: 0
+                val bw = data.rawResponse?.optInt("blocks_written", 0) ?: 0
                 _ui.update { it.copy(step = "write_done", blocksWritten = bw) }
                 _toast.tryEmit("Write OK: $bw blocks written.")
             }

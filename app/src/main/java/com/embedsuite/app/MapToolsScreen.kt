@@ -284,6 +284,21 @@ fun MapToolsScreen(
                         onFailure = { viewModel.setExportStatus(context.getString(R.string.map_export_error, it.message ?: "?")) }
                     )
                 }
+            },
+            onExportToDeviceSd = {
+                scope.launch {
+                    viewModel.exportJsonToDeviceSd().fold(
+                        onSuccess = { path ->
+                            viewModel.setExportStatus(context.getString(R.string.map_export_status_device_sd, path))
+                            Toast.makeText(context, path, Toast.LENGTH_LONG).show()
+                        },
+                        onFailure = {
+                            viewModel.setExportStatus(
+                                context.getString(R.string.map_export_error, it.message ?: "?")
+                            )
+                        }
+                    )
+                }
             }
         )
 
@@ -347,7 +362,8 @@ private fun ExportCard(
     onExportSub: () -> Unit = {},
     onImport: () -> Unit = {},
     onExportHtml: () -> Unit = {},
-    onExportPdf: () -> Unit = {}
+    onExportPdf: () -> Unit = {},
+    onExportToDeviceSd: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -370,6 +386,16 @@ private fun ExportCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
                 OutlinedButton(onClick = onExportHtml, modifier = Modifier.weight(1f)) { Text("HTML", fontFamily = FontFamily.Monospace, color = MatrixGreen, fontSize = 10.sp) }
                 OutlinedButton(onClick = onExportPdf, modifier = Modifier.weight(1f)) { Text("PDF", fontFamily = FontFamily.Monospace, color = MatrixGreen, fontSize = 10.sp) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+                OutlinedButton(onClick = onExportToDeviceSd, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        stringResource(R.string.map_export_to_device_sd),
+                        fontFamily = FontFamily.Monospace,
+                        color = NeonCyan,
+                        fontSize = 10.sp
+                    )
+                }
             }
         }
     }

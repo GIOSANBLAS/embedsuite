@@ -298,6 +298,8 @@
     <string name="map_export_status_pdf">PDF: %1$s</string>
     <string name="map_export_status_backup">Backup: %1$s</string>
     <string name="map_export_status_sub">Export .sub: %1$s</string>
+    <string name="map_export_to_device_sd">JSON → device SD</string>
+    <string name="map_export_status_device_sd">Device SD: %1$s</string>
     <string name="map_export_error">Error: %1$s</string>
     <string name="map_export_backup_error">Backup error: %1$s</string>
     <string name="map_export_no_rf">No RF signals to export</string>

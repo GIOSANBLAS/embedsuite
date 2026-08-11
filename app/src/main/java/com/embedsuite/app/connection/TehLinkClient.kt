@@ -390,6 +390,38 @@ class TehLinkClient(
         return execute(transport, "audio.beep", JSONObject().put("params", params))
     }
 
+    /** Alias TEH `audio.tone` (freq_hz / duration_ms) — mismo efecto que [audioBeep]. */
+    suspend fun audioTone(
+        transport: TEmbedTransport,
+        freqHz: Int = 1000,
+        durationMs: Int = 100
+    ): Result<JSONObject> {
+        val params = JSONObject()
+            .put("freq_hz", freqHz.coerceIn(20, 12_000))
+            .put("duration_ms", durationMs.coerceIn(10, 1_500))
+        return execute(transport, "audio.tone", JSONObject().put("params", params))
+    }
+
+    suspend fun nfcWrite(
+        transport: TEmbedTransport,
+        hexData: String? = null,
+        url: String? = null,
+        block: Int = 1
+    ): Result<JSONObject> {
+        val params = JSONObject().put("block", block)
+        if (!hexData.isNullOrBlank()) params.put("data", hexData)
+        if (!url.isNullOrBlank()) params.put("url", url)
+        return execute(transport, "nfc.write", JSONObject().put("params", params), timeoutMs = 15_000L)
+    }
+
+    suspend fun nfcReadFlat(
+        transport: TEmbedTransport,
+        timeoutMs: Int = 5_000
+    ): Result<JSONObject> {
+        val params = JSONObject().put("timeout", timeoutMs.coerceIn(500, 30_000))
+        return execute(transport, "nfc.read", JSONObject().put("params", params), timeoutMs = timeoutMs + 3_000L)
+    }
+
     suspend fun sdStatus(transport: TEmbedTransport): Result<JSONObject> {
         return execute(transport, "sd.status")
     }

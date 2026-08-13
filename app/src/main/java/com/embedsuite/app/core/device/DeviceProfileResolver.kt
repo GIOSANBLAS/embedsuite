@@ -46,6 +46,8 @@ object DeviceProfileResolver {
 
     fun detectHardwareKind(deviceInfo: TehLinkDeviceInfo): DeviceHardwareKind {
         val blob = listOf(
+            deviceInfo.hardware,
+            deviceInfo.firmware,
             deviceInfo.product,
             deviceInfo.codename,
             deviceInfo.channel
@@ -53,8 +55,8 @@ object DeviceProfileResolver {
 
         return when {
             blob.contains("t-embed") || blob.contains("t_embed") || blob.contains("cc1101") ||
-                blob.contains("xibalba") || blob.contains("lilygo") -> DeviceHardwareKind.T_EMBED_CC1101
-            blob.contains("m5stack") || blob.contains("m5 stack") -> DeviceHardwareKind.M5STACK
+                blob.contains("c1101") || blob.contains("xibalba") || blob.contains("lilygo") ->
+                DeviceHardwareKind.T_EMBED_CC1101
             blob.contains("esp32-s3") || blob.contains("esp32s3") -> DeviceHardwareKind.ESP32_S3_GENERIC
             blob.contains("custom") -> DeviceHardwareKind.CUSTOM
             else -> DeviceHardwareKind.UNKNOWN

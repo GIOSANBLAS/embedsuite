@@ -131,8 +131,10 @@ class MockTransport(
             }
             "secure_handshake" -> handleSecureHandshake(root)
             "get_info" -> JSONObject()
+                .put("hardware", "lilygo-t-embed-c1101-plus")
+                .put("firmware", "Xibalba v0.19.2")
                 .put("product", "T-Embed Xibalba")
-                .put("version", "Xibalba-0.19.0")
+                .put("version", "Xibalba-0.19.2")
                 .put("codename", "Maya")
                 .put("channel", "release")
                 .put("proto", "teh-link")

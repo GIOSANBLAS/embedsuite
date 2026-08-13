@@ -28,7 +28,9 @@ object TehLinkResponseParser {
             proto = data.optString("proto"),
             protoVer = data.optInt("proto_ver", 1),
             plugins = plugins,
-            hardening = hardening
+            hardening = hardening,
+            hardware = data.optString("hardware"),
+            firmware = data.optString("firmware")
         )
     }
 

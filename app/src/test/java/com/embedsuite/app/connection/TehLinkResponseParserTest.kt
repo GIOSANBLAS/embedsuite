@@ -39,6 +39,27 @@ class TehLinkResponseParserTest {
     }
 
     @Test
+    fun parseDeviceInfo_readsHardwareAndFirmware() {
+        val data = JSONObject(
+            """
+            {
+              "hardware": "lilygo-t-embed-c1101-plus",
+              "firmware": "Xibalba v0.19.2",
+              "product": "T-Embed Xibalba",
+              "version": "Xibalba-0.19.2",
+              "codename": "Maya",
+              "channel": "release",
+              "proto": "teh-link",
+              "proto_ver": 3
+            }
+            """.trimIndent()
+        )
+        val info = TehLinkResponseParser.parseDeviceInfo(data)
+        assertEquals("lilygo-t-embed-c1101-plus", info.hardware)
+        assertEquals("Xibalba v0.19.2", info.firmware)
+    }
+
+    @Test
     fun parseScreenInfo_readsActivePlugin() {
         val data = JSONObject(
             """

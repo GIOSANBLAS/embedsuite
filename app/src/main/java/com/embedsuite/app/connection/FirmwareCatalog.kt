@@ -47,7 +47,7 @@ object FirmwareCatalog {
 
     const val RECOMMENDATION_REASON_KEY = "firmware_recommend_reason"
 
-    /** Runtime en device ahora: Xibalba-0.19.1 Maya (TEH-Link v3, get_info). */
+    /** Runtime en device ahora: Xibalba-0.19.2 (compilar desde fuente) / 0.19.1 bundled. */
     val XIBALBA_V0191: FirmwareRelease = FirmwareRelease(
         tagName = "v0.19.1",
         name = "Xibalba-0.19.1 Maya",
@@ -56,7 +56,7 @@ object FirmwareCatalog {
         isPrerelease = false,
         source = FirmwareSource.OFFICIAL_XIBALBA,
         isRecommended = true,
-        description = "T-Embed Xibalba-0.19.1 Maya — runtime Bruce + TEH-Link v3 USB (sim flags HW reales, auth pair)",
+        description = "T-Embed Xibalba — TEH-Link v3 USB. Fuente actual 0.19.2: microSD /xibalba, get_info hardware lilygo-t-embed-c1101-plus",
         sha256Hex = "cf26bd4333e1c87908bd3490553f04a76b9584768ddf8864987fe87cfe997f33",
         bundledAssetPath = "firmware/xibalba-t-embed-cc1101.bin"
     )

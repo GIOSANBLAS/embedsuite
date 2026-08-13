@@ -20,7 +20,7 @@ data class OpenSourceLicense(
 
 object AppInfo {
 
-    val tagline = "Professional platform for Xibalba / Bruce TEH-Link companion control"
+    val tagline = "Professional platform for Xibalba TEH-Link companion control"
 
     val team = listOf(
         TeamMember(

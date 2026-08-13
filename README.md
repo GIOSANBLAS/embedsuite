@@ -44,7 +44,7 @@ UI (Compose)  →  Engine (workflows / autopilot)  →  Core (device + TEH-Link)
 | **Hardware** | LilyGO T-Embed CC1101 Plus |
 | **Firmware** | [Xibalba v1.0.0](https://github.com/GIOSANBLAS/xibalba-bruce) — asset `xibalba-t-embed-cc1101.bin` @ 0x0 |
 
-> **Stock Bruce** sin parche TEH-Link se detecta como perfil **UNKNOWN** (funcionalidad limitada). Flashea Xibalba para simbiosis completa.
+> Flashea **Xibalba** (TEH-Link v3). Stock Bruce sin TEH-Link se detecta como perfil **UNKNOWN**.
 
 ---
 

@@ -17,7 +17,9 @@ data class TehLinkDeviceInfo(
     val proto: String,
     val protoVer: Int,
     val plugins: List<TehLinkPluginInfo>,
-    val hardening: TehLinkHardeningInfo = TehLinkHardeningInfo()
+    val hardening: TehLinkHardeningInfo = TehLinkHardeningInfo(),
+    val hardware: String = "",
+    val firmware: String = ""
 )
 
 /** Flags de seguridad / hardening reportados por Xibalba v0.17+. */

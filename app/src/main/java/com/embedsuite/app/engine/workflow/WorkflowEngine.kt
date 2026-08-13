@@ -1,13 +1,101 @@
 package com.embedsuite.app.engine.workflow
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.coroutines.coroutineContext
+
+/**
+ * Execution states of the workflow state machine.
+ *
+ * Transitions:
+ * ```
+ * IDLE -> RUNNING -> COMPLETED | FAILED | CANCELLED -> IDLE
+ * RUNNING -> PAUSED -> RUNNING (reserved for future interactive steps)
+ * ```
+ */
+enum class WorkflowRunState {
+    IDLE,
+    RUNNING,
+    PAUSED,
+    COMPLETED,
+    FAILED,
+    CANCELLED
+}
+
+/** Events emitted while a workflow run progresses through the state machine. */
+sealed class WorkflowRunEvent {
+    abstract val workflowId: String
+
+    data class Started(
+        override val workflowId: String,
+        val totalSteps: Int
+    ) : WorkflowRunEvent()
+
+    data class StepStarted(
+        override val workflowId: String,
+        val stepId: String,
+        val stepIndex: Int
+    ) : WorkflowRunEvent()
+
+    data class StepCompleted(
+        override val workflowId: String,
+        val stepId: String,
+        val stepIndex: Int
+    ) : WorkflowRunEvent()
+
+    data class ConditionEvaluated(
+        override val workflowId: String,
+        val stepId: String,
+        val expression: String,
+        val passed: Boolean
+    ) : WorkflowRunEvent()
+
+    data class Completed(
+        override val workflowId: String,
+        val result: WorkflowRunResult
+    ) : WorkflowRunEvent()
+
+    data class Failed(
+        override val workflowId: String,
+        val result: WorkflowRunResult
+    ) : WorkflowRunEvent()
+
+    data class Cancelled(
+        override val workflowId: String,
+        val completedSteps: Int
+    ) : WorkflowRunEvent()
+}
 
 interface WorkflowEngine {
     fun serialize(workflow: Workflow): String
     fun deserialize(raw: String): Workflow?
     suspend fun run(workflow: Workflow): WorkflowRunResult
+
+    /** Current state of the run state machine. */
+    val runState: StateFlow<WorkflowRunState>
+        get() = MutableStateFlow(WorkflowRunState.IDLE)
+
+    /** Stream of progress events for UI / logging. */
+    val runEvents: SharedFlow<WorkflowRunEvent>
+        get() = MutableSharedFlow()
+
+    /** Id of the workflow currently running, or null when IDLE. */
+    val activeWorkflowId: StateFlow<String?>
+        get() = MutableStateFlow(null)
+
+    /** Requests cancellation of the active run (cooperative, checked between steps). */
+    fun cancel() {}
 }
 
 data class WorkflowRunResult(
@@ -21,6 +109,24 @@ data class WorkflowRunResult(
 class SequentialWorkflowEngine(
     private val actionRunner: WorkflowActionRunner
 ) : WorkflowEngine {
+
+    private val runMutex = Mutex()
+
+    private val _runState = MutableStateFlow(WorkflowRunState.IDLE)
+    override val runState: StateFlow<WorkflowRunState> = _runState.asStateFlow()
+
+    private val _runEvents = MutableSharedFlow<WorkflowRunEvent>(extraBufferCapacity = 64)
+    override val runEvents: SharedFlow<WorkflowRunEvent> = _runEvents.asSharedFlow()
+
+    private val _activeWorkflowId = MutableStateFlow<String?>(null)
+    override val activeWorkflowId: StateFlow<String?> = _activeWorkflowId.asStateFlow()
+
+    @Volatile
+    private var cancelRequested = false
+
+    override fun cancel() {
+        cancelRequested = true
+    }
 
     override fun serialize(workflow: Workflow): String {
         val root = JSONObject().apply {
@@ -59,77 +165,163 @@ class SequentialWorkflowEngine(
     }.getOrNull()
 
     override suspend fun run(workflow: Workflow): WorkflowRunResult {
-        if (workflow.steps.isEmpty()) {
+        // Single-run policy: a second run request while RUNNING fails fast.
+        if (!runMutex.tryLock()) {
             return WorkflowRunResult(
+                workflowId = workflow.id,
+                completedSteps = 0,
+                totalSteps = workflow.steps.size,
+                success = false,
+                message = "Another workflow is already running."
+            )
+        }
+        try {
+            return executeStateMachine(workflow)
+        } finally {
+            runMutex.unlock()
+        }
+    }
+
+    private suspend fun executeStateMachine(workflow: Workflow): WorkflowRunResult {
+        cancelRequested = false
+        _activeWorkflowId.value = workflow.id
+        transition(WorkflowRunState.RUNNING)
+        _runEvents.tryEmit(WorkflowRunEvent.Started(workflow.id, workflow.steps.size))
+
+        if (workflow.steps.isEmpty()) {
+            val result = WorkflowRunResult(
                 workflowId = workflow.id,
                 completedSteps = 0,
                 totalSteps = 0,
                 success = true,
-                message = "Workflow vacío."
+                message = "Empty workflow."
             )
+            finish(result, WorkflowRunState.COMPLETED)
+            return result
         }
 
         var index = 0
         var completed = 0
         val visited = mutableSetOf<Int>()
 
-        while (index in workflow.steps.indices) {
-            if (!visited.add(index)) {
-                return WorkflowRunResult(
-                    workflowId = workflow.id,
-                    completedSteps = completed,
-                    totalSteps = workflow.steps.size,
-                    success = false,
-                    message = "Bucle detectado en paso ${workflow.steps[index].id}."
-                )
-            }
+        try {
+            while (index in workflow.steps.indices) {
+                coroutineContext.ensureActive()
+                if (cancelRequested) {
+                    transition(WorkflowRunState.CANCELLED)
+                    _runEvents.tryEmit(WorkflowRunEvent.Cancelled(workflow.id, completed))
+                    val result = WorkflowRunResult(
+                        workflowId = workflow.id,
+                        completedSteps = completed,
+                        totalSteps = workflow.steps.size,
+                        success = false,
+                        message = "Cancelled by user."
+                    )
+                    _runEvents.tryEmit(WorkflowRunEvent.Failed(workflow.id, result))
+                    return result
+                }
 
-            when (val step = workflow.steps[index]) {
-                is WorkflowStep.Action -> {
-                    val result = actionRunner.runAction(step.pluginId, step.action, step.params)
-                    completed++
-                    if (result.isFailure) {
-                        return WorkflowRunResult(
-                            workflowId = workflow.id,
-                            completedSteps = completed,
-                            totalSteps = workflow.steps.size,
-                            success = false,
-                            message = "Acción ${step.pluginId}/${step.action} falló: " +
-                                (result.exceptionOrNull()?.message ?: "?")
+                if (!visited.add(index)) {
+                    val result = failResult(
+                        workflow,
+                        completed,
+                        "Loop detected at step ${workflow.steps[index].id}."
+                    )
+                    finish(result, WorkflowRunState.FAILED)
+                    return result
+                }
+
+                val step = workflow.steps[index]
+                _runEvents.tryEmit(WorkflowRunEvent.StepStarted(workflow.id, step.id, index))
+
+                when (step) {
+                    is WorkflowStep.Action -> {
+                        val result = actionRunner.runAction(step.pluginId, step.action, step.params)
+                        completed++
+                        _runEvents.tryEmit(WorkflowRunEvent.StepCompleted(workflow.id, step.id, index))
+                        if (result.isFailure) {
+                            val failure = failResult(
+                                workflow,
+                                completed,
+                                "Action ${step.pluginId}/${step.action} failed: " +
+                                    (result.exceptionOrNull()?.message ?: "?")
+                            )
+                            finish(failure, WorkflowRunState.FAILED)
+                            return failure
+                        }
+                        index++
+                    }
+
+                    is WorkflowStep.Delay -> {
+                        delay(step.delayMs.coerceAtLeast(0L))
+                        completed++
+                        _runEvents.tryEmit(WorkflowRunEvent.StepCompleted(workflow.id, step.id, index))
+                        index++
+                    }
+
+                    is WorkflowStep.Condition -> {
+                        val passed = evaluateCondition(step.expression)
+                        completed++
+                        _runEvents.tryEmit(
+                            WorkflowRunEvent.ConditionEvaluated(
+                                workflow.id, step.id, step.expression, passed
+                            )
                         )
-                    }
-                    index++
-                }
-
-                is WorkflowStep.Delay -> {
-                    delay(step.delayMs.coerceAtLeast(0L))
-                    completed++
-                    index++
-                }
-
-                is WorkflowStep.Condition -> {
-                    val passed = evaluateCondition(step.expression)
-                    completed++
-                    val targetId = if (passed) step.onTrueStepId else step.onFalseStepId
-                    index = if (targetId != null) {
-                        workflow.steps.indexOfFirst { it.id == targetId }
-                            .takeIf { it >= 0 } ?: (index + 1)
-                    } else if (passed) {
-                        index + 1
-                    } else {
-                        index + 1
+                        _runEvents.tryEmit(WorkflowRunEvent.StepCompleted(workflow.id, step.id, index))
+                        val targetId = if (passed) step.onTrueStepId else step.onFalseStepId
+                        index = if (targetId != null) {
+                            workflow.steps.indexOfFirst { it.id == targetId }
+                                .takeIf { it >= 0 } ?: (index + 1)
+                        } else {
+                            index + 1
+                        }
                     }
                 }
             }
+        } catch (e: CancellationException) {
+            transition(WorkflowRunState.CANCELLED)
+            _runEvents.tryEmit(WorkflowRunEvent.Cancelled(workflow.id, completed))
+            throw e
+        } catch (e: Exception) {
+            val result = failResult(workflow, completed, "Unexpected error: ${e.message}")
+            finish(result, WorkflowRunState.FAILED)
+            return result
         }
 
-        return WorkflowRunResult(
+        val result = WorkflowRunResult(
             workflowId = workflow.id,
             completedSteps = completed,
             totalSteps = workflow.steps.size,
             success = true,
-            message = "Workflow completado."
+            message = "Workflow completed."
         )
+        finish(result, WorkflowRunState.COMPLETED)
+        return result
+    }
+
+    private fun failResult(workflow: Workflow, completed: Int, message: String) =
+        WorkflowRunResult(
+            workflowId = workflow.id,
+            completedSteps = completed,
+            totalSteps = workflow.steps.size,
+            success = false,
+            message = message
+        )
+
+    private suspend fun finish(result: WorkflowRunResult, terminal: WorkflowRunState) {
+        transition(terminal)
+        if (result.success) {
+            _runEvents.tryEmit(WorkflowRunEvent.Completed(result.workflowId, result))
+        } else {
+            _runEvents.tryEmit(WorkflowRunEvent.Failed(result.workflowId, result))
+        }
+        // Return to IDLE so observers can chain runs deterministically.
+        transition(WorkflowRunState.IDLE)
+        _activeWorkflowId.value = null
+    }
+
+    private fun transition(next: WorkflowRunState) {
+        _runState.value = next
     }
 
     private suspend fun evaluateCondition(expression: String): Boolean {

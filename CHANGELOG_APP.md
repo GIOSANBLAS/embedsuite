@@ -1,5 +1,19 @@
 # EMBED SUITE — Changelog (App)
 
+## v2.1.0 — Engine, security, transport, API 29, i18n
+> 📅 Ago 2026 · Workflow state machine, Autopilot triggers, ECDH/AES-GCM, TCP transport, tests
+
+### ✨ Cambios
+- Workflow engine: formal state machine (IDLE/RUNNING/COMPLETED/FAILED/CANCELLED) + run events
+- Autopilot trigger dispatcher: ON_CONNECT, ON_SIGNAL, SCHEDULED workflow auto-run
+- TEH-Link security: ECDH P-256 handshake + AES-256-GCM payload encryption (optional)
+- Multi-transport: TransportFactory + TcpTransport (NDJSON @ :8888) for WiFi
+- Unit tests: MockK + coroutines-test; JaCoCo coverage gate ≥80% on engine/security/connection
+- minSdk 29 (Android 10) with core library desugaring
+- i18n: explicit `values-es` + synced `values-en`
+- LICENSE GPL-3.0 + README license section
+- versionCode 3 · versionName 2.1.0
+
 ## v2.0.0 — Phases 2–4 UI + engine wiring
 > 📅 Ago 2026 · Workflows, NL console, Autopilot, Bruce sync, Smart OTA, Customizer, Fleet
 

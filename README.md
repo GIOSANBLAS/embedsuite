@@ -2,7 +2,7 @@
 
 **Plataforma de control Android para LilyGO T-Embed CC1101 Plus y firmware [Xibalba](https://github.com/GIOSANBLAS/xibalba-bruce)** (derivado de Bruce, AGPL-3.0).
 
-**Versión:** 2.0.0 · **Package:** `com.embedsuite.app`
+**Versión:** 2.1.0 · **Package:** `com.embedsuite.app`
 
 EmbedSuite es el companion oficial del ecosistema Xibalba. Comunicación exclusiva vía **TEH-Link v3** (JSON NDJSON sobre USB OTG). Sin protocolos legacy.
 
@@ -39,7 +39,7 @@ UI (Compose)  →  Engine (workflows / autopilot)  →  Core (device + TEH-Link)
 
 | Componente | Especificación |
 |------------|----------------|
-| **Teléfono** | Android 12 o superior (API 31+) |
+| **Teléfono** | Android 10 o superior (API 29+) |
 | **Conexión** | USB OTG (recomendado y prioritario) |
 | **Hardware** | LilyGO T-Embed CC1101 Plus |
 | **Firmware** | [Xibalba v1.0.0](https://github.com/GIOSANBLAS/xibalba-bruce) — asset `xibalba-t-embed-cc1101.bin` @ 0x0 |
@@ -75,8 +75,8 @@ Instrucciones completas: [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md)
 ## Transporte TEH-Link
 
 1. **USB OTG** — uso diario, captura, TX, OTA, terminal
-2. WiFi TEH-Link — experimental
-3. BLE TEH-Link — experimental
+2. **WiFi / TCP** — TEH-Link NDJSON @ puerto 8888 (experimental)
+3. **BLE UART** — Nordic UART (experimental)
 
 Emparejamiento: mantén pulsado el botón lateral del T-Embed ~2 s (ventana 120 s).
 
@@ -94,6 +94,8 @@ Emparejamiento: mantén pulsado el botón lateral del T-Embed ~2 s (ventana 120 
 
 ## Licencia
 
-Companion de uso personal / profesional autorizado. No afiliado a LilyGO ni BruceDevices.
+**EmbedSuite** se distribuye bajo [GNU General Public License v3.0](LICENSE).
+
+El firmware companion [Xibalba](https://github.com/GIOSANBLAS/xibalba-bruce) deriva de Bruce (AGPL-3.0). Esta app no está afiliada a LilyGO ni BruceDevices.
 
 Ver política de privacidad en [Manual de usuario](docs/MANUAL_USUARIO.md).

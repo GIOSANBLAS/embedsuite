@@ -13,12 +13,20 @@ import java.util.concurrent.atomic.AtomicInteger
  * Cliente TEH-Link — JSON NDJSON sobre USB CDC (firmware T-Embed Xibalba).
  */
 class TehLinkClient(
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val secureSession: com.embedsuite.app.security.TehLinkSecureSession? = null
 ) {
     private val requestId = AtomicInteger(0)
     private val linkMutex = Mutex()
 
     var authToken: String = ""
+
+    /** Optional ECDH + AES-GCM session after pairing. */
+    suspend fun establishSecureSession(transport: TEmbedTransport): Result<Unit> {
+        val session = secureSession
+            ?: return Result.failure(IllegalStateException("secure_session_unavailable"))
+        return session.handshake(this, transport).map { }
+    }
 
     suspend fun ping(transport: TEmbedTransport): Result<Boolean> {
         return execute(transport, "ping").map { data ->
@@ -529,17 +537,20 @@ class TehLinkClient(
             withTimeout(timeoutMs) {
                 delay(80)
                 buffer.clear()
-                transport.sendCommand(payload).getOrElse {
+                val outbound = secureSession?.encryptOutbound(payload) ?: payload
+                transport.sendCommand(outbound).getOrElse {
                     return@withTimeout Result.failure(it)
                 }
 
                 val deadline = System.currentTimeMillis() + (timeoutMs - 500L).coerceAtLeast(2_000L)
                 while (System.currentTimeMillis() < deadline) {
                     val match = buffer.firstOrNull { line ->
-                        runCatching { JSONObject(line).optInt("id") == id }.getOrDefault(false)
+                        val plain = secureSession?.decryptInbound(line) ?: line
+                        runCatching { JSONObject(plain).optInt("id") == id }.getOrDefault(false)
                     }
                     if (match != null) {
-                        return@withTimeout Result.success(match)
+                        val plain = secureSession?.decryptInbound(match) ?: match
+                        return@withTimeout Result.success(plain)
                     }
                     delay(30)
                 }
@@ -613,6 +624,6 @@ class TehLinkClient(
     }
 
     companion object {
-        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
+        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair", "secure_handshake")
     }
 }

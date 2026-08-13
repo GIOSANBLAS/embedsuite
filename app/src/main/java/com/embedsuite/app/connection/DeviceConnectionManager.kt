@@ -61,11 +61,13 @@ class DeviceConnectionManager(
     private val signalLogDeque = ArrayDeque<SignalEntry>(501)
 
     private val usbTransport = UsbTransport(usbSerialManager)
+    private val tcpTransport = TcpTransport()
     private val wifiTransport = WifiTransport()
     private val bleTransport = BleTransport(context)
     private val mockTransport = MockTransport()
 
-    private val tehLinkClient = TehLinkClient(scope)
+    private val tehLinkSecureSession = secureStore?.let { com.embedsuite.app.security.TehLinkSecureSession(it) }
+    private val tehLinkClient = TehLinkClient(scope, tehLinkSecureSession)
     private val tehLinkOtaUploader = TehLinkOtaUploader(tehLinkClient)
     private val deviceProfileStore = DeviceProfileStore(appContext)
 
@@ -121,7 +123,9 @@ class DeviceConnectionManager(
 
     init {
         tehLinkClient.authToken = secureStore?.getTehLinkAuthToken().orEmpty()
+        tehLinkSecureSession?.restoreFromStore()
         scope.launch { usbTransport.incomingLines().collect { handleIncomingLine(it) } }
+        scope.launch { tcpTransport.incomingLines().collect { handleIncomingLine(it) } }
         scope.launch { wifiTransport.incomingLines().collect { handleIncomingLine(it) } }
         scope.launch { bleTransport.incomingLines().collect { handleIncomingLine(it) } }
         scope.launch { mockTransport.incomingLines().collect { handleIncomingLine(it) } }
@@ -194,6 +198,7 @@ class DeviceConnectionManager(
     fun wifiHost(): String = WifiTransport.DEFAULT_HOST
 
     fun setWifiHost(host: String) {
+        tcpTransport.updateEndpoint(host)
         wifiTransport.updateHost(host)
     }
 
@@ -218,7 +223,7 @@ class DeviceConnectionManager(
                 }
                 return usbResult
             }
-            TransportType.WIFI -> wifiTransport
+            TransportType.WIFI -> tcpTransport
             TransportType.BLE -> bleTransport
         }
 
@@ -1100,6 +1105,14 @@ class DeviceConnectionManager(
                 tehLinkClient.authToken = token
                 secureStore?.setTehLinkAuthToken(token)
                 _events.tryEmit(DeviceEvent.TehLinkNotice("TEH-Link emparejado correctamente."))
+                tehLinkClient.establishSecureSession(transport).fold(
+                    onSuccess = {
+                        _events.tryEmit(DeviceEvent.TehLinkNotice("Sesión cifrada TEH-Link activa (ECDH + AES-GCM)."))
+                    },
+                    onFailure = {
+                        // Optional — firmware may not support secure_handshake yet.
+                    }
+                )
             },
             onFailure = { err ->
                 val msg = when {

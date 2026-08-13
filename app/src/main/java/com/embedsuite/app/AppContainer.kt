@@ -16,6 +16,7 @@ import com.embedsuite.app.data.*
 import com.embedsuite.app.core.device.DeviceProfileStore
 import com.embedsuite.app.engine.autopilot.AutopilotEngine
 import com.embedsuite.app.engine.autopilot.AutopilotProfile
+import com.embedsuite.app.engine.autopilot.AutopilotTriggerDispatcher
 import com.embedsuite.app.engine.autopilot.TehLinkAutopilotEngine
 import com.embedsuite.app.engine.config.BruceConfigSync
 import com.embedsuite.app.engine.customizer.FirmwareCustomizer
@@ -133,6 +134,13 @@ class AppContainer(context: Context) {
         scope = appScope,
         profile = AutopilotProfile.AUDIT
     )
+    val autopilotTriggerDispatcher = AutopilotTriggerDispatcher(
+        scope = appScope,
+        connectionState = connectionManager.connectionState,
+        deviceEvents = connectionManager.events,
+        workflowProvider = { workflowStore.listStored() },
+        engine = workflowEngine
+    )
     val bruceConfigSync = BruceConfigSync(appContext, connectionManager)
     val firmwareCustomizer = FirmwareCustomizer
     val fleetRegistry = FleetRegistry(deviceProfileStore)
@@ -147,6 +155,7 @@ class AppContainer(context: Context) {
         SoundFeedback.init()
         SoundFeedback.setEnabled(appPreferences.soundEnabled.value)
         rfAutomationEngine.start()
+        autopilotTriggerDispatcher.start()
         scope.launch {
             runCatching { profileRepository.seedDefaultsIfEmpty() }
                 .onFailure { e ->

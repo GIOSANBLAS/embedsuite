@@ -2,8 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    jacoco
 }
 
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import java.util.Properties
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -22,10 +25,10 @@ android {
 
     defaultConfig {
         applicationId = "com.embedsuite.app"
-        minSdk = 31
+        minSdk = 29
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -59,9 +62,12 @@ android {
         }
         debug {
             buildConfigField("boolean", "ENABLE_MOCK_TRANSPORT", "false")
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -69,9 +75,19 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.isReturnDefaultValues = true
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -95,6 +111,9 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("org.json:json:20240303")
     testImplementation(libs.junit)
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -103,7 +122,54 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
 
-// Changelog validation task dependency
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    val fileFilter = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*", "**/Manifest*.*",
+        "**/*Test*.*", "android/**/*.*", "**/*\$Lambda*.*", "**/*\$inlined*.*"
+    )
+    val kotlinClasses = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+    val javaClasses = fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/classes") {
+        exclude(fileFilter)
+    }
+    classDirectories.setFrom(kotlinClasses + javaClasses)
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(fileTree(layout.buildDirectory.get()) {
+        include("**/jacoco/testDebugUnitTest.exec", "**/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    })
+}
+
+tasks.register<JacocoCoverageVerification>("jacocoCoverageVerify") {
+    dependsOn("jacocoTestReport")
+    violationRules {
+        rule {
+            element = "PACKAGE"
+            includes = listOf(
+                "com.embedsuite.app.engine.workflow",
+                "com.embedsuite.app.engine.autopilot",
+                "com.embedsuite.app.security",
+                "com.embedsuite.app.connection"
+            )
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+    val fileFilter = listOf("**/*Test*.*", "**/R.class", "**/R\$*.class", "**/BuildConfig.*")
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") { exclude(fileFilter) }
+    )
+    executionData.setFrom(fileTree(layout.buildDirectory.get()) {
+        include("**/jacoco/testDebugUnitTest.exec", "**/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    })
+}
+
 tasks.named("preBuild").configure {
     dependsOn(rootProject.tasks.named("validateChangelog"))
 }

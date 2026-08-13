@@ -46,6 +46,30 @@ class SecureStore(context: Context) {
         prefs?.edit()?.remove(KEY_TEH_LINK_AUTH)?.apply()
     }
 
+    fun getTehLinkSessionId(): String = prefs?.getString(KEY_TEH_LINK_SESSION_ID, "").orEmpty()
+
+    fun getTehLinkSessionKey(): ByteArray? {
+        val b64 = prefs?.getString(KEY_TEH_LINK_SESSION_KEY, null) ?: return null
+        return runCatching {
+            android.util.Base64.decode(b64, android.util.Base64.NO_WRAP)
+        }.getOrNull()
+    }
+
+    fun setTehLinkSessionKey(sessionId: String, key: ByteArray) {
+        val b64 = android.util.Base64.encodeToString(key, android.util.Base64.NO_WRAP)
+        prefs?.edit()
+            ?.putString(KEY_TEH_LINK_SESSION_ID, sessionId)
+            ?.putString(KEY_TEH_LINK_SESSION_KEY, b64)
+            ?.apply()
+    }
+
+    fun clearTehLinkSession() {
+        prefs?.edit()
+            ?.remove(KEY_TEH_LINK_SESSION_ID)
+            ?.remove(KEY_TEH_LINK_SESSION_KEY)
+            ?.apply()
+    }
+
     fun getGithubToken(): String = prefs?.getString(KEY_GITHUB_TOKEN, "").orEmpty()
 
     fun setGithubToken(token: String) {
@@ -71,6 +95,8 @@ class SecureStore(context: Context) {
         private const val TAG = "SecureStore"
         private const val KEY_GEMINI = "gemini_api_key"
         private const val KEY_TEH_LINK_AUTH = "teh_link_auth_token"
+        private const val KEY_TEH_LINK_SESSION_ID = "teh_link_session_id"
+        private const val KEY_TEH_LINK_SESSION_KEY = "teh_link_session_key"
         private const val KEY_GITHUB_TOKEN = "github_pat_firmware"
         private const val KEY_DB_PASSPHRASE = "room_db_passphrase"
         private const val PASSPHRASE_LENGTH = 32

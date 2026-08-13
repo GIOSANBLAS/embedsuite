@@ -129,6 +129,7 @@ class MockTransport(
                     .put("proto", "teh-link")
                     .put("proto_ver", 3)
             }
+            "secure_handshake" -> handleSecureHandshake(root)
             "get_info" -> JSONObject()
                 .put("product", "T-Embed Xibalba")
                 .put("version", "Xibalba-0.19.0")
@@ -894,8 +895,25 @@ class MockTransport(
             .put("rebooting", true)
     }
 
+    private fun handleSecureHandshake(root: JSONObject): JSONObject {
+        val clientPubB64 = root.optString("client_pubkey")
+        if (clientPubB64.isBlank()) {
+            throw IllegalArgumentException("missing_client_pubkey")
+        }
+        val kpg = java.security.KeyPairGenerator.getInstance("EC")
+        kpg.initialize(java.security.spec.ECGenParameterSpec("secp256r1"))
+        val serverPair = kpg.generateKeyPair()
+        val serverPubB64 = android.util.Base64.encodeToString(serverPair.public.encoded, android.util.Base64.NO_WRAP)
+        val salt = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+        val saltB64 = android.util.Base64.encodeToString(salt, android.util.Base64.NO_WRAP)
+        return JSONObject()
+            .put("server_pubkey", serverPubB64)
+            .put("salt", saltB64)
+            .put("session_id", "mock-session-${System.currentTimeMillis()}")
+    }
+
     companion object {
-        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair")
+        private val PUBLIC_CMDS = setOf("ping", "get_info", "pair", "secure_handshake")
 
         val defaultResponses = mapOf(
             "info" to "Xibalba-0.19.0 Maya | CC1101 | TEH-Link v3 | Free heap: 120000",

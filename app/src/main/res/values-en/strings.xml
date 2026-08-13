@@ -337,4 +337,15 @@
     <string name="ai_chip_report">Report</string>
     <string name="ai_voice_prompt">Command for T-Embed…</string>
     <string name="ai_prompt_capture">Capture subghz raw 15 seconds</string>
+
+    <string name="workflow_run_state_idle">Idle</string>
+    <string name="workflow_run_state_running">Running…</string>
+    <string name="workflow_run_state_completed">Completed</string>
+    <string name="workflow_run_state_failed">Failed</string>
+    <string name="workflow_run_state_cancelled">Cancelled</string>
+    <string name="autopilot_trigger_connect">Auto: on connect</string>
+    <string name="autopilot_trigger_signal">Auto: RF signal</string>
+    <string name="autopilot_trigger_scheduled">Auto: scheduled</string>
+    <string name="teh_link_secure_session">TEH-Link encrypted session</string>
+    <string name="transport_tcp">WiFi TCP :8888</string>
 </resources>

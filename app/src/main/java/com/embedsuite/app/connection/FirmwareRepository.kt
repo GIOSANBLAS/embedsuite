@@ -209,7 +209,7 @@ class FirmwareRepository(
                 }
                 
                 if (results.isEmpty()) {
-                    android.util.Log.w("FirmwareRepository", "No valid releases from GitHub, using embedded catalog Xibalba-0.19.0")
+                    android.util.Log.w("FirmwareRepository", "No valid releases from GitHub, using embedded catalog Xibalba-0.20.1")
                     Result.success(FirmwareCatalog.fallbackReleases())
                 } else {
                     Result.success(FirmwareCatalog.mergeWithEmbedded(results))

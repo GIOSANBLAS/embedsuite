@@ -2,7 +2,7 @@
 
 **Companion Android · LilyGO T-Embed CC1101 Plus · Firmware Xibalba · TEH-Link v3**
 
-Versión app: **2.2.0** · Firmware: **Xibalba v0.20.0** · GIOSANBLAS
+Versión app: **2.2.1** · Firmware: **Xibalba v0.20.1** · GIOSANBLAS
 
 Manual operativo para pentesters, red teamers e investigadores de seguridad. Uso exclusivo en entornos autorizados.
 
@@ -14,7 +14,7 @@ Manual operativo para pentesters, red teamers e investigadores de seguridad. Uso
 
 - Teléfono **Android 10 o superior (API 29+)**
 - **USB OTG** (transporte prioritario)
-- **LilyGO T-Embed CC1101 Plus** con firmware **[Xibalba v0.20.0](https://github.com/GIOSANBLAS/xibalba-bruce)**
+- **LilyGO T-Embed CC1101 Plus** con firmware **[Xibalba v0.20.1](https://github.com/GIOSANBLAS/xibalba-bruce)**
 - Binario merged: `Bruce-lilygo-t-embed-cc1101.bin` / `xibalba-t-embed-cc1101.bin` @ **0x0**
 
 Detalle de pines y flasheo: [GUIA_HARDWARE.md](GUIA_HARDWARE.md)
@@ -74,7 +74,7 @@ La pestaña **SCRIPTS** no es un editor JS: es un catálogo de **acciones TEH-Li
 - Cada fila muestra plugin, acción y resultado (`ok` / error del firmware).
 - Macros JSON de varias líneas siguen en **Tools → Macros**.
 
-Si un script falla con `unknown_cmd` o `missing_plugin_id`, actualiza el firmware a Xibalba v0.20.0.
+Si un script falla con `unknown_cmd` o `missing_plugin_id`, actualiza el firmware a Xibalba v0.20.1.
 
 ---
 
@@ -170,4 +170,4 @@ EmbedSuite no está afiliado a LilyGO ni BruceDevices.
 
 ---
 
-*Manual de usuario · EmbedSuite v2.2.0 · Xibalba v0.20.0*
+*Manual de usuario · EmbedSuite v2.2.1 · Xibalba v0.20.1*

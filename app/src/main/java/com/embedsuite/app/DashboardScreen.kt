@@ -172,7 +172,7 @@ fun DashboardScreen(
 
             GlassCard(accent = accent, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(
-                    "🛡 XIBALBA HARDENING 0.19.0+",
+                    "🛡 XIBALBA HARDENING 0.20.1+",
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = accent, fontWeight = FontWeight.Bold
                 )
                 HardeningRow("Task Watchdog (TWDT ${h.twdtTimeoutSeconds}s)", h.twdtEnabled)

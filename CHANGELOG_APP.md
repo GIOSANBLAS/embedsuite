@@ -1,5 +1,13 @@
 # EMBED SUITE — Changelog (App)
 
+## v2.2.1 — Catálogo Xibalba v0.20.1
+> 📅 Ago 2026 · Detecta y recomienda el firmware actual
+
+### ✨ Cambios
+- Catálogo oficial: **Xibalba-0.20.1** (splash ilustrado, TEH-Link v3) como release recomendada
+- `get_info` / mock alineados a `Xibalba-0.20.1`
+- versionCode 5 · versionName 2.2.1
+
 ## v2.2.0 — Simbiosis Xibalba v0.20.0
 > 📅 Ago 2026 · SD files, i18n zh, scripts TEH-Link, sin guía Día 1
 

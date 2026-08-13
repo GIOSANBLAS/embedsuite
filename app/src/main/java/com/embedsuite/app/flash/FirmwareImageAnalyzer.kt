@@ -57,9 +57,9 @@ object FirmwareImageAnalyzer {
 
         val warning = when {
             merged -> null
-            meta?.version?.contains("0.19") == true || meta?.version?.contains("Xibalba", ignoreCase = true) == true ->
+            meta?.version?.contains("0.20") == true || meta?.version?.contains("0.19") == true || meta?.version?.contains("Xibalba", ignoreCase = true) == true ->
                 "Binario APP (${meta.version}) — se flashea en 0x10000. " +
-                    "El release oficial Xibalba-0.19 es merged @ 0x0 (estilo Bruce)."
+                    "El release oficial Xibalba-0.20.1 es merged @ 0x0 (estilo Bruce)."
             meta != null ->
                 "Binario APP (${meta.version}) — se flashea en 0x10000. " +
                     "Para instalación limpia usa el merged .bin @ 0x0 de xibalba-bruce."

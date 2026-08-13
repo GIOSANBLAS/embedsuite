@@ -32,6 +32,14 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "2.2.1",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Catálogo oficial Xibalba-0.20.1 (splash ilustrado jaguar/máscara)",
+                "La app recomienda y descarga el firmware actual desde GitHub"
+            )
+        ),
+        ChangelogEntry(
             version = "2.2.0",
             date = "Ago 2026",
             highlights = listOf(

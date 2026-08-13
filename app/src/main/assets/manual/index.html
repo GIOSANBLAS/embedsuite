@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EmbedSuite 1.0.0 — Manual Xibalba / TEH-Link</title>
+  <title>EmbedSuite 2.2.0 — Manual Xibalba / TEH-Link</title>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -83,90 +83,83 @@
 </head>
 <body>
 
-<h1>EMBED SUITE 1.0.0</h1>
-<p class="sub">Xibalba v1.0.0 · Bruce + TEH-Link v3 · T-Embed CC1101 Plus · UI dispositivo en español</p>
+<h1>EMBED SUITE 2.2.0</h1>
+<p class="sub">Xibalba v0.20.0 · TEH-Link v3 · T-Embed CC1101 Plus · ES / EN / 中文</p>
 
 <div class="card">
-  <p><strong>Requisitos:</strong> Teléfono <strong>Android 12 o superior (API 31+)</strong>, cable USB OTG, LilyGO T-Embed CC1101 Plus.</p>
-  <p><strong>Firmware:</strong> <a href="https://github.com/GIOSANBLAS/xibalba-bruce">Xibalba v1.0.0</a> — <code>xibalba-t-embed-cc1101.bin</code> merged @ 0x0.</p>
-  <p><strong>Conexión:</strong> <strong>USB OTG (prioritario)</strong>. Emparejamiento TEH-Link: botón lateral ~2 s (ventana 120 s).</p>
-  <p><strong>Perfiles:</strong> <strong>XIBALBA</strong> (Xibalba + TEH-Link) · <strong>UNKNOWN</strong> (stock Bruce sin TEH-Link — funcionalidad limitada).</p>
+  <p><strong>Requisitos:</strong> Teléfono <strong>Android 10+ (API 29+)</strong>, USB OTG, LilyGO T-Embed CC1101 Plus.</p>
+  <p><strong>Firmware:</strong> <a href="https://github.com/GIOSANBLAS/xibalba-bruce">Xibalba v0.20.0</a> — binario merged @ 0x0.</p>
+  <p><strong>Conexión:</strong> <strong>USB OTG (prioritario)</strong>. Emparejamiento: botón lateral GPIO6 ~2 s (ventana 120 s).</p>
+  <p><strong>Perfiles:</strong> <strong>XIBALBA</strong> (TEH-Link) · <strong>UNKNOWN</strong> (sin TEH-Link — limitado).</p>
   <p class="warn">Uso RF/IR/NFC solo en entornos autorizados. Eres responsable del cumplimiento legal.</p>
 </div>
 
-<h2>1. Arquitectura TEH-Link v3</h2>
-<p>JSON NDJSON línea a línea entre app y firmware. Comandos base:</p>
+<h2>1. TEH-Link v3</h2>
+<p>NDJSON. La app solo parsea líneas que empiezan por <code>{</code>. Logs <code>[INFO] [SD]</code> no rompen el parser.</p>
 <ul>
-  <li><code>ping</code>, <code>pair</code>, <code>get_info</code>, <code>get_status</code></li>
-  <li><code>open_plugin</code>, <code>back_to_menu</code>, <code>list_actions</code></li>
-  <li><code>run_action</code> — ejecuta acciones de plugins Xibalba</li>
-  <li><code>ota_begin</code> / <code>ota_chunk</code> / <code>ota_finish</code> — OTA USB</li>
-  <li><code>clear_coredump</code> — borra coredump tras reset anormal</li>
+  <li><code>ping</code>, <code>pair</code>, <code>get_info</code> (batería + <code>sd_status</code>), <code>get_status</code></li>
+  <li><code>list_files</code>, <code>download_file</code> (chunks Base64 512 B bajo <code>/xibalba</code>)</li>
+  <li><code>run_action</code> — plugins Xibalba</li>
+  <li><code>ota_begin</code> / <code>ota_chunk</code> / <code>ota_finish</code></li>
 </ul>
-<div class="cmd">{"cmd":"run_action","id":1,"plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30}}</div>
+<div class="cmd">{"cmd":"list_files","id":11,"params":{"path":"/xibalba/subghz"}}</div>
 
-<h2>2. Dashboard y radar</h2>
-<p>Estado de enlace, batería, pantalla del T-Embed, accesos rápidos a plugins.</p>
-<p><strong>Hardening:</strong> TWDT, BOD, Secure Boot, Flash/NVS Encryption, Stack Canaries, Heap Poisoning.</p>
-<p>Banner OTA cuando hay release Xibalba nuevo. Alerta de coredump pendiente.</p>
+<h2>2. Dashboard</h2>
+<p>LINK, batería BQ27220, heap, SD montada, hardening, OTA, coredump.</p>
 
-<h2>3. Modo Auditoría <span class="badge-red">GATING</span></h2>
+<h2>3. Scripts <span class="badge">FUNCIONAL</span></h2>
 <div class="card">
-  <p class="audit">Herramientas ofensivas requieren <strong>Modo Auditoría</strong> (Ajustes → Seguridad).</p>
-  <p>Cada plugin verifica <code>settings_plugin_is_allowed</code> en firmware.</p>
+  <p>La pestaña <strong>SCRIPTS</strong> envía <code>run_action</code> (plugin + acción + params) al firmware.</p>
+  <p>Evil Portal, spam BLE/WiFi, Sub-GHz, NFC, BadUSB, Mousejack. Ofensivas: <span class="audit">Modo Auditoría</span>.</p>
+  <p>Macros JSON multilínea: Tools → Macros.</p>
 </div>
 
-<h2>4. Offensive Toolkit</h2>
+<h2>4. MicroSD</h2>
+<p><code>/xibalba/{subghz,ir,wardrive,logs,gps}</code>. Ajustes → listar y descargar de <code>/xibalba/subghz</code>.</p>
+
+<h2>5. Modo Auditoría <span class="badge-red">GATING</span></h2>
+<p class="audit">Ajustes → Seguridad. El firmware también comprueba permisos por plugin.</p>
+
+<h2>6. Offensive Toolkit</h2>
 <table>
   <tr><th>Herramienta</th><th>Plugin</th><th>Acciones</th></tr>
   <tr><td>BLE AD Spam</td><td><code>ble_ad_spam</code></td><td>AppleJuice, SwiftPair, FindMy, HomeKit</td></tr>
-  <tr><td>WiFi Offensive</td><td><code>wifi_offensive</code></td><td>Deauth Broadcast, Probe Sniffer</td></tr>
+  <tr><td>WiFi Offensive</td><td><code>wifi_offensive</code></td><td>Deauth, Probe Sniffer</td></tr>
   <tr><td>Mousejack NRF24</td><td><code>mousejack</code></td><td>Scan dongles, DuckyScript</td></tr>
-  <tr><td>SubGHz Tools</td><td><code>subghz_tools</code></td><td>Spectrum, auto-decoder</td></tr>
-  <tr><td>NFC Clone</td><td><code>nfc_clone</code></td><td>Mifare read/write, NTAG</td></tr>
+  <tr><td>NFC Clone</td><td><code>nfc_clone</code></td><td>Mifare / NTAG</td></tr>
 </table>
 
-<h2>5. Sub-GHz</h2>
+<h2>7. Sub-GHz</h2>
 <table>
   <tr><th>Acción</th><th>TEH-Link</th></tr>
-  <tr><td>Captura RX</td><td><code>capture_start</code> / <code>capture_stop</code></td></tr>
+  <tr><td>Captura RX</td><td><code>capture_start</code> → <code>/xibalba/subghz</code></td></tr>
   <tr><td>TX RAW</td><td><code>subghz_tx</code> + <code>confirm:true</code></td></tr>
   <tr><td>Replay .sub</td><td><code>subghz_replay</code></td></tr>
 </table>
 
-<h2>6. WiFi / NFC / IR / BLE</h2>
-<p>Plugins: <code>wifi_toolkit</code>, <code>nfc_toolkit</code>, <code>ir_toolkit</code>, <code>ble_toolkit</code>, <code>wardriving</code>.</p>
-
-<h2>7. Terminal TEH-Link</h2>
-<p>JSON crudo con historial. Chips rápidos: ping, get_info, acciones frecuentes.</p>
-
 <h2>8. Firmware Flash</h2>
 <div class="card">
-  <h3>Xibalba v1.0.0 <span class="badge">OFICIAL</span></h3>
-  <p>Repo: <strong>GIOSANBLAS/xibalba-bruce</strong> · Asset: <code>xibalba-t-embed-cc1101.bin</code> @ 0x0.</p>
-  <p>OTA USB (TEH-Link) o Flash USB (recovery: Encoder + RST).</p>
-  <p>Confirma <code>sha256_verified=true</code> tras OTA.</p>
-  <h3>Custom .bin</h3>
-  <p>Solo Flash USB. Disclaimer obligatorio. Riesgo de brick.</p>
+  <h3>Xibalba v0.20.0 <span class="badge">OFICIAL</span></h3>
+  <p>Repo: <strong>GIOSANBLAS/xibalba-bruce</strong> · merged @ 0x0.</p>
+  <p>OTA USB (TEH-Link) o Flash USB (Encoder + RST). Confirma <code>sha256_verified=true</code>.</p>
 </div>
 
 <h2>9. Solución de problemas</h2>
 <table>
   <tr><th>Síntoma</th><th>Acción</th></tr>
-  <tr><td>OFFLINE / timeout</td><td>Reconectar USB; re-emparejar TEH-Link; Link Debug</td></tr>
-  <tr><td>Perfil UNKNOWN</td><td>Flashea Xibalba v1.0.0 — stock Bruce no tiene TEH-Link</td></tr>
-  <tr><td>OTA falla</td><td>Emparejamiento, cable datos, espacio flash; Flash USB</td></tr>
-  <tr><td>Herramienta bloqueada</td><td>Activar Modo Auditoría</td></tr>
+  <tr><td>OFFLINE / timeout</td><td>Reconectar USB; re-emparejar GPIO6; Link Debug</td></tr>
+  <tr><td>Perfil UNKNOWN</td><td>Flashea Xibalba v0.20.0</td></tr>
+  <tr><td>SD card not mounted</td><td>FAT32, CS GPIO13, reinsertar tarjeta</td></tr>
+  <tr><td>Herramienta bloqueada</td><td>Modo Auditoría</td></tr>
 </table>
 
 <h2>10. Enlaces</h2>
 <ul>
   <li><a href="https://github.com/GIOSANBLAS/embedsuite">EmbedSuite (app)</a></li>
   <li><a href="https://github.com/GIOSANBLAS/xibalba-bruce">Xibalba (firmware)</a></li>
-  <li><a href="https://github.com/BruceDevices/firmware">Bruce upstream (AGPL-3.0)</a></li>
 </ul>
 
-<p class="sub" style="margin-top:24px">EMBED SUITE 1.0.0 · Xibalba v1.0.0 · TEH-Link v3 · USB OTG prioritario · GIOSANBLAS</p>
+<p class="sub" style="margin-top:24px">EMBED SUITE 2.2.0 · Xibalba v0.20.0 · TEH-Link v3 · GIOSANBLAS</p>
 
 </body>
 </html>

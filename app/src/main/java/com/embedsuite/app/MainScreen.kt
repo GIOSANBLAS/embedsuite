@@ -134,7 +134,7 @@ fun MainScreen(
     }
 
     val tabs = mainTabs()
-    val isSettings = currentRoute == "settings" || currentRoute == "about" || currentRoute == "hardware_bringup" || currentRoute == "manual"
+    val isSettings = currentRoute == "settings" || currentRoute == "about" || currentRoute == "manual"
     val isMainTab = tabs.any { it.route == currentRoute }
     val fieldActive by FieldOperationManager.isActiveFlow.collectAsState()
 
@@ -284,9 +284,6 @@ fun MainScreen(
                         appPreferences = container.appPreferences,
                         onNavigateRf = { navController.navigate("rf") },
                         onNavigateTools = { navController.navigate("map_tools") },
-                        onNavigateHardwareBringup = {
-                            navController.navigate("hardware_bringup") { launchSingleTop = true }
-                        },
                         onNavigateProbeSniffer = { navController.navigate("probe_sniffer") { launchSingleTop = true } },
                         onNavigateSpectrum = { navController.navigate("spectrum_analyzer") { launchSingleTop = true } },
                         onNavigateNfcClone = { navController.navigate("nfc_clone") { launchSingleTop = true } }
@@ -440,9 +437,6 @@ fun MainScreen(
                         onLanguageChanged = {
                             (context as? androidx.activity.ComponentActivity)?.recreate()
                         },
-                        onNavigateHardwareBringup = {
-                            navController.navigate("hardware_bringup") { launchSingleTop = true }
-                        },
                         onNavigateJammer = {
                             navController.navigate("jammer") { launchSingleTop = true }
                         }
@@ -458,9 +452,6 @@ fun MainScreen(
                 }
                 composable("manual") {
                     ManualScreen(onBack = { navController.popBackStack() })
-                }
-                composable("hardware_bringup") {
-                    HardwareBringupScreen(onBack = { navController.popBackStack() })
                 }
             }
         }

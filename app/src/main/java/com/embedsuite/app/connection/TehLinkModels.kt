@@ -9,6 +9,11 @@ data class TehLinkPluginInfo(
     val author: String
 )
 
+data class TehLinkBatteryInfo(
+    val voltage: Double = 0.0,
+    val percentage: Int = 0
+)
+
 data class TehLinkDeviceInfo(
     val product: String,
     val version: String,
@@ -19,7 +24,9 @@ data class TehLinkDeviceInfo(
     val plugins: List<TehLinkPluginInfo>,
     val hardening: TehLinkHardeningInfo = TehLinkHardeningInfo(),
     val hardware: String = "",
-    val firmware: String = ""
+    val firmware: String = "",
+    val battery: TehLinkBatteryInfo? = null,
+    val sdStatus: String = ""
 )
 
 /** Flags de seguridad / hardening reportados por Xibalba v0.17+. */

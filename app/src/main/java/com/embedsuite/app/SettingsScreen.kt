@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +26,7 @@ import com.embedsuite.app.core.SoundFeedback
 import com.embedsuite.app.ui.components.*
 import com.embedsuite.app.ui.theme.*
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun SettingsScreen(
@@ -34,7 +36,6 @@ fun SettingsScreen(
     onNavigateAbout: () -> Unit = {},
     onResetOnboarding: () -> Unit = {},
     onLanguageChanged: () -> Unit = {},
-    onNavigateHardwareBringup: () -> Unit = {},
     onNavigateJammer: () -> Unit = {}
 ) {
     val soundEnabled by preferences.soundEnabled.collectAsState()
@@ -49,6 +50,7 @@ fun SettingsScreen(
     var useMockTransport by remember { mutableStateOf(preferences.useMockTransport) }
     var repairMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -168,12 +170,12 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            connectionManager.sdCardList().fold(
+                            connectionManager.sdCardList("/xibalba").fold(
                                 onSuccess = { files ->
                                     repairMessage = if (files.isEmpty()) {
-                                        "SD /xibalba_sessions vacío o sin carpeta"
+                                        "SD /xibalba vacío o sin carpeta"
                                     } else {
-                                        "SD files:\n" + files.take(12).joinToString("\n")
+                                        "SD /xibalba:\n" + files.take(12).joinToString("\n")
                                     }
                                 },
                                 onFailure = { repairMessage = "sd.list: ${it.message}" }
@@ -183,6 +185,35 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.settings_sd_list), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            connectionManager.sdCardList("/xibalba/subghz").fold(
+                                onSuccess = { files ->
+                                    val first = files.firstOrNull { !it.startsWith("[D]") }
+                                    if (first.isNullOrBlank()) {
+                                        repairMessage = "No hay archivos en /xibalba/subghz"
+                                        return@fold
+                                    }
+                                    val name = first.removePrefix("[D] ").trim()
+                                    val path = "/xibalba/subghz/$name"
+                                    connectionManager.downloadDeviceFile(path).fold(
+                                        onSuccess = { bytes ->
+                                            val out = File(context.cacheDir, name)
+                                            out.writeBytes(bytes)
+                                            repairMessage = "Descargado ${bytes.size} B → ${out.absolutePath}"
+                                        },
+                                        onFailure = { repairMessage = "download_file: ${it.message}" }
+                                    )
+                                },
+                                onFailure = { repairMessage = "list_files: ${it.message}" }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Descargar de /xibalba/subghz", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
                 }
                 TextButton(
                     onClick = {
@@ -362,19 +393,6 @@ fun SettingsScreen(
 
             GlassCard(accent = MatrixGreen, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(stringResource(R.string.settings_system), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
-                TextButton(onClick = onNavigateHardwareBringup, modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(stringResource(R.string.settings_hardware_bringup), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MatrixGreen)
-                                Text(stringResource(R.string.settings_hardware_bringup_sub), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                            }
-                            Text("→", fontFamily = FontFamily.Monospace, color = NeonCyan)
-                        }
-                    }
                 TextButton(onClick = onNavigateAbout, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

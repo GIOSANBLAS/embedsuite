@@ -6,7 +6,7 @@ enum class AppLanguage(val tag: String, val labelRes: Int) {
     SYSTEM("system", R.string.lang_system),
     SPANISH("es", R.string.lang_spanish),
     ENGLISH("en", R.string.lang_english),
-    PORTUGUESE("pt", R.string.lang_portuguese);
+    CHINESE("zh", R.string.lang_chinese);
 
     companion object {
         fun fromTag(tag: String?): AppLanguage =

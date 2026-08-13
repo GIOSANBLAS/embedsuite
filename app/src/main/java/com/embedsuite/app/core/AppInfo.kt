@@ -32,6 +32,25 @@ object AppInfo {
 
     val changelog = listOf(
         ChangelogEntry(
+            version = "2.2.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Firmware Xibalba v0.20.0: list_files / download_file, batería y sd_status en get_info",
+                "Descarga de archivos de la microSD del T-Embed desde Ajustes",
+                "Idiomas: español, inglés y chino (se retira portugués)",
+                "Tab Scripts funcional: presets TEH-Link (plugins, auditoría, params)",
+                "Se retira la guía in-app Día 1 Hardware"
+            )
+        ),
+        ChangelogEntry(
+            version = "2.1.0",
+            date = "Ago 2026",
+            highlights = listOf(
+                "Workflow engine, Autopilot, ECDH/AES-GCM, TCP transport",
+                "minSdk 29, i18n es/en, JaCoCo en motor/seguridad"
+            )
+        ),
+        ChangelogEntry(
             version = "2.0.0",
             date = "Ago 2026",
             highlights = listOf(

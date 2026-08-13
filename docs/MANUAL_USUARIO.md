@@ -2,7 +2,7 @@
 
 **Companion Android · LilyGO T-Embed CC1101 Plus · Firmware Xibalba · TEH-Link v3**
 
-Versión: **1.0.0** · GIOSANBLAS
+Versión app: **2.2.0** · Firmware: **Xibalba v0.20.0** · GIOSANBLAS
 
 Manual operativo para pentesters, red teamers e investigadores de seguridad. Uso exclusivo en entornos autorizados.
 
@@ -12,24 +12,26 @@ Manual operativo para pentesters, red teamers e investigadores de seguridad. Uso
 
 ## 1. Requisitos
 
-- Teléfono **Android 12 o superior (API 31+)**
+- Teléfono **Android 10 o superior (API 29+)**
 - **USB OTG** (transporte prioritario)
-- **LilyGO T-Embed CC1101 Plus** con firmware **[Xibalba v1.0.0](https://github.com/GIOSANBLAS/xibalba-bruce)**
-- Binario: `xibalba-t-embed-cc1101.bin` @ 0x0
+- **LilyGO T-Embed CC1101 Plus** con firmware **[Xibalba v0.20.0](https://github.com/GIOSANBLAS/xibalba-bruce)**
+- Binario merged: `Bruce-lilygo-t-embed-cc1101.bin` / `xibalba-t-embed-cc1101.bin` @ **0x0**
 
-Detalle hardware: [GUIA_HARDWARE.md](GUIA_HARDWARE.md)
+Detalle de pines y flasheo: [GUIA_HARDWARE.md](GUIA_HARDWARE.md)
 
 ---
 
 ## 2. Primer arranque
 
-1. Instala EmbedSuite v1.0.0.
+1. Instala EmbedSuite v2.2.0.
 2. Conecta T-Embed por USB OTG.
 3. Concede permiso USB.
-4. Mantén pulsado el botón lateral del T-Embed ~2 s para **emparejar TEH-Link**.
-5. Verifica en Dashboard: perfil **XIBALBA**, estado **LINK**.
+4. Mantén pulsado el botón lateral del T-Embed (**GPIO6**) ~2 s para **emparejar TEH-Link**.
+5. Verifica en Dashboard: perfil **XIBALBA**, estado **LINK**, batería y SD.
 
 Si aparece **UNKNOWN**, flashea Xibalba desde **Tools → Firmware**.
+
+Idioma: Ajustes → Español / English / 中文 (el sistema del teléfono si eliges «Sistema»).
 
 ---
 
@@ -39,7 +41,7 @@ El dashboard centraliza el estado operativo:
 
 | Elemento | Función |
 |----------|---------|
-| **Estado de enlace** | USB / LINK / batería / heap |
+| **Estado de enlace** | USB / LINK / batería (BQ27220) / heap / `sd_status` |
 | **Radar** | Vista rápida de actividad RF y plugins |
 | **Hardening** | TWDT, BOD, Secure Boot, Flash/NVS encryption, stack canaries |
 | **OTA banner** | Actualización Xibalba disponible |
@@ -56,102 +58,101 @@ El dashboard centraliza el estado operativo:
 | **WiFi** | Scanner del teléfono, wardriving |
 | **NFC** | NFC / IR vía plugins TEH-Link |
 | **CLI** | Terminal JSON TEH-Link |
+| **SCRIPTS** | Presets que ejecutan `run_action` en el firmware (ver §5) |
+| **Ops** | Workflows, Autopilot, config, fleet |
 | **AI** | Asistente local / remoto (auto-ejecutar OFF por defecto) |
-| **Tools** | Mapas, flash OTA, Link Debug, conexión |
+| **Tools** | Mapas, flash OTA, Link Debug, conexión, microSD |
 
 ---
 
-## 5. Terminal TEH-Link
+## 5. Scripts (funcional)
 
-Consola JSON línea a línea. Comandos frecuentes:
+La pestaña **SCRIPTS** no es un editor JS: es un catálogo de **acciones TEH-Link** (`plugin_id` + `action` + params) que EmbedSuite envía al T-Embed cuando hay LINK y token.
+
+- Evil Portal, beacon/BLE spam, Sub-GHz, NFC clone, BadUSB, Mousejack, etc.
+- Las herramientas ofensivas piden **Modo Auditoría** (Ajustes → Seguridad).
+- Cada fila muestra plugin, acción y resultado (`ok` / error del firmware).
+- Macros JSON de varias líneas siguen en **Tools → Macros**.
+
+Si un script falla con `unknown_cmd` o `missing_plugin_id`, actualiza el firmware a Xibalba v0.20.0.
+
+---
+
+## 6. Terminal TEH-Link
+
+Consola JSON línea a línea. La app **solo parsea líneas que empiezan por `{`**. Los logs USB `[INFO] [SD] …` se muestran en Link Debug y no rompen el protocolo.
 
 ```json
 {"cmd":"ping"}
 {"cmd":"get_info"}
-{"cmd":"get_status"}
+{"cmd":"list_files","params":{"path":"/xibalba/subghz"}}
+{"cmd":"download_file","params":{"path":"/xibalba/subghz/captura.sub"}}
 {"cmd":"run_action","plugin_id":"subghz_analyzer","action":"capture_start","params":{"seconds":30}}
 ```
 
-Chips rápidos en UI: ping, get_info, acciones de plugins.
-
-Historial ↑↓. Macros ejecutan secuencias TEH-Link almacenadas localmente.
+`get_info` incluye `hardware`, `firmware`, `battery.voltage` / `percentage`, `sd_status`.
 
 ---
 
-## 6. Sub-GHz
+## 7. MicroSD del T-Embed
+
+Árbol creado al boot:
+
+```
+/xibalba/subghz  /xibalba/ir  /xibalba/wardrive  /xibalba/logs  /xibalba/gps
+```
+
+En **Ajustes → SD STORAGE**:
+
+- Estado de la tarjeta
+- Listar `/xibalba`
+- Descargar un archivo de `/xibalba/subghz` (chunks Base64 de 512 B)
+
+---
+
+## 8. Sub-GHz
 
 | Acción | TEH-Link |
 |--------|----------|
-| Captura RX | `capture_start` / `capture_stop` |
+| Captura RX | `capture_start` / `capture_stop` → `.sub` en `/xibalba/subghz` |
 | TX RAW | `subghz_tx` (requiere `confirm:true`) |
 | Replay | `subghz_replay` (archivo en SD del dispositivo) |
 
-Biblioteca local en el teléfono para señales favoritas. TX requiere enlace activo y confirmación explícita.
+Sin microSD montada, la captura remota responde `SD card not mounted`.
 
 ---
 
-## 7. WiFi, BLE, NFC, IR
+## 9. WiFi, BLE, NFC, IR
 
 Plugins firmware vía `run_action`:
 
 - `wifi_toolkit` — scan, probes
 - `ble_toolkit` — scan BLE del dispositivo
-- `nfc_toolkit` — read / emulate
+- `nfc_toolkit` — read / emulate (PN532 I2C SDA=8 SCL=18)
 - `ir_toolkit` — send / rx
 
-**Modo Auditoría** (Ajustes → Seguridad) desbloquea herramientas ofensivas. Cada plugin verifica permiso en firmware.
+**Modo Auditoría** desbloquea herramientas ofensivas. Pairing: GPIO6.
 
 ---
 
-## 8. OTA de firmware
+## 10. OTA de firmware
 
 1. **Tools → Firmware**.
-2. Selecciona release **Xibalba v1.0.0** o importa `.bin`.
-3. OTA USB vía TEH-Link o Flash USB (recovery).
+2. Selecciona release Xibalba o importa `.bin`.
+3. OTA USB vía TEH-Link o Flash USB (recovery: Encoder + RST).
 4. Confirma **`sha256_verified=true`** antes de reiniciar.
 
-Solo USB. No reinicies si la verificación falla — repite flash.
+Solo USB. No reinicies si la verificación falla.
 
 ---
 
-## 9. Hardening
+## 11. Hardening, wardriving, backup
 
-Panel de 6 flags reportados por Xibalba:
-
-- Task Watchdog (TWDT)
-- Brown-out detector (BOD)
-- Secure Boot
-- Flash encryption
-- NVS encryption
-- Stack canaries / heap poisoning
-
-Útil para auditorías de superficie de ataque del firmware en campo.
+Panel de flags (TWDT, BOD, Secure Boot, cifrado flash/NVS, canaries). Wardriving: plugin + GPS del teléfono. Backup JSON/CSV local; DB cifrada (SQLCipher).
 
 ---
 
-## 10. Wardriving y mapas
-
-- Plugin `wardriving` + GPS del teléfono.
-- MapTools: heatmap WiFi/BLE, Link Debug (200 líneas serial).
-- Export de sesión vía Data layer.
-
----
-
-## 11. Backup y export
-
-- Backup JSON: señales, IR, macros, perfiles.
-- Export CSV / informes de sesión.
-- Base de datos cifrada (SQLCipher).
-
----
-
-## 12. Widget de escritorio
-
-Acceso rápido a captura RX 15 s y TX favorito. Requiere app activa, LINK y token anti-broadcast. Preferir USB conectado.
-
----
-
-## 13. Uso legal
+## 12. Uso legal
 
 Solo en sistemas y redes propias o con autorización escrita. Eres responsable del cumplimiento de leyes locales sobre radiofrecuencia, interceptación y acceso a sistemas.
 
@@ -159,7 +160,7 @@ EmbedSuite no está afiliado a LilyGO ni BruceDevices.
 
 ---
 
-## 14. Soporte
+## 13. Soporte
 
 | Recurso | URL |
 |---------|-----|
@@ -169,4 +170,4 @@ EmbedSuite no está afiliado a LilyGO ni BruceDevices.
 
 ---
 
-*Manual de usuario · EmbedSuite v1.0.0*
+*Manual de usuario · EmbedSuite v2.2.0 · Xibalba v0.20.0*

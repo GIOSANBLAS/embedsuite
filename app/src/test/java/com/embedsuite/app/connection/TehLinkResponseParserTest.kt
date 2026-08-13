@@ -44,9 +44,9 @@ class TehLinkResponseParserTest {
             """
             {
               "hardware": "lilygo-t-embed-c1101-plus",
-              "firmware": "Xibalba v0.19.2",
+              "firmware": "Xibalba v0.20.0",
               "product": "T-Embed Xibalba",
-              "version": "Xibalba-0.19.2",
+              "version": "Xibalba-0.20.0",
               "codename": "Maya",
               "channel": "release",
               "proto": "teh-link",
@@ -56,7 +56,25 @@ class TehLinkResponseParserTest {
         )
         val info = TehLinkResponseParser.parseDeviceInfo(data)
         assertEquals("lilygo-t-embed-c1101-plus", info.hardware)
-        assertEquals("Xibalba v0.19.2", info.firmware)
+        assertEquals("Xibalba v0.20.0", info.firmware)
+    }
+
+    @Test
+    fun parseDeviceInfo_readsBatteryAndSdStatus() {
+        val data = JSONObject(
+            """
+            {
+              "hardware": "lilygo-t-embed-c1101-plus",
+              "firmware": "Xibalba v0.20.0",
+              "battery": {"voltage": 3.78, "percentage": 78},
+              "sd_status": "mounted"
+            }
+            """.trimIndent()
+        )
+        val info = TehLinkResponseParser.parseDeviceInfo(data)
+        assertEquals(3.78, info.battery?.voltage)
+        assertEquals(78, info.battery?.percentage)
+        assertEquals("mounted", info.sdStatus)
     }
 
     @Test

@@ -435,7 +435,14 @@ class DeviceConnectionManager(
                 channel = device.channel,
                 profile = FirmwareProfile.XIBALBA,
                 xibalbaPlugins = device.plugins,
-                hardening = device.hardening
+                hardening = device.hardening,
+                battery = device.battery?.let { "${it.percentage}% · ${"%.2f".format(it.voltage)}V" }
+                    ?: info.battery,
+                sdMounted = when (device.sdStatus) {
+                    "mounted" -> "OK"
+                    "error" -> "MISSING"
+                    else -> info.sdMounted
+                }
             )
             _systemInfo.value = info
             _events.tryEmit(DeviceEvent.SystemInfoUpdate(info))
@@ -766,9 +773,11 @@ class DeviceConnectionManager(
         return tehLinkClient.sdStatus(transport)
     }
 
-    suspend fun sdCardList(path: String = "/xibalba_sessions"): Result<List<String>> {
+    suspend fun sdCardList(path: String = "/xibalba"): Result<List<String>> {
         val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
-        return tehLinkClient.sdList(transport, path).map { data ->
+        return tehLinkClient.listFiles(transport, path).recoverCatching {
+            tehLinkClient.sdList(transport, path).getOrThrow()
+        }.map { data ->
             val files = data.optJSONArray("files") ?: return@map emptyList()
             buildList {
                 for (i in 0 until files.length()) {
@@ -781,6 +790,11 @@ class DeviceConnectionManager(
                 }
             }
         }
+    }
+
+    suspend fun downloadDeviceFile(path: String): Result<ByteArray> {
+        val transport = activeTransport ?: return Result.failure(Exception("No hay transporte activo."))
+        return tehLinkClient.downloadFile(transport, path)
     }
 
     /** Escribe en microSD del dispositivo (chunks de ≤3500 bytes UTF-8). */

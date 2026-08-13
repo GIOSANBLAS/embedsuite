@@ -44,7 +44,6 @@ fun DashboardScreen(
     appPreferences: AppPreferences,
     onNavigateRf: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
-    onNavigateHardwareBringup: () -> Unit = {},
     onNavigateProbeSniffer: () -> Unit = {},
     onNavigateSpectrum: () -> Unit = {},
     onNavigateNfcClone: () -> Unit = {}
@@ -81,17 +80,6 @@ fun DashboardScreen(
             .padding(12.dp)
     ) {
         HackerSectionHeader(stringResource(R.string.dash_command_center), accent = MatrixGreen)
-
-        if (detectedProfile == com.embedsuite.app.connection.FirmwareProfile.XIBALBA) {
-            TextButton(onClick = onNavigateHardwareBringup, modifier = Modifier.padding(bottom = 4.dp)) {
-                Text(
-                    stringResource(R.string.dash_hardware_bringup),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp,
-                    color = NeonCyan
-                )
-            }
-        }
 
         when (val ota = uiState.otaStatus) {
             is OtaUpdateStatus.UpdateAvailable -> {

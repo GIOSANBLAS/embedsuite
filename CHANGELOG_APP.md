@@ -1,5 +1,17 @@
 # EMBED SUITE — Changelog (App)
 
+## v2.2.0 — Simbiosis Xibalba v0.20.0
+> 📅 Ago 2026 · SD files, i18n zh, scripts TEH-Link, sin guía Día 1
+
+### ✨ Cambios
+- `list_files` / `download_file`: listar `/xibalba` y descargar capturas desde Ajustes
+- `get_info` parser: `battery` (voltaje/%) y `sd_status` en Dashboard
+- Idiomas: español, inglés y **chino simplificado**. Se retira portugués
+- Tab **Scripts** documentado y operativo: presets que llaman `run_action` TEH-Link (auditoría, params)
+- Se elimina la pantalla in-app «Guía Día 1 · Hardware»
+- Manual de usuario y manual HTML alineados a Xibalba v0.20.0
+- versionCode 4 · versionName 2.2.0
+
 ## v2.1.0 — Engine, security, transport, API 29, i18n
 > 📅 Ago 2026 · Workflow state machine, Autopilot triggers, ECDH/AES-GCM, TCP transport, tests
 

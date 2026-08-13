@@ -77,6 +77,14 @@ fun ScriptExplorerScreen(
             )
         )
 
+        Text(
+            "Presets TEH-Link: cada script llama run_action en el firmware. Ofensivas: Ajustes → Modo Auditoría.",
+            color = TextMuted,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+        )
+
         AssistChipRow(
             modifier = Modifier.padding(horizontal = 12.dp),
             allLabel = "TODOS",

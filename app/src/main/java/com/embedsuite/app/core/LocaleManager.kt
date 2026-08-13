@@ -18,7 +18,7 @@ object LocaleManager {
         val locale = when (language) {
             AppLanguage.SPANISH -> Locale("es")
             AppLanguage.ENGLISH -> Locale.ENGLISH
-            AppLanguage.PORTUGUESE -> Locale("pt", "BR")
+            AppLanguage.CHINESE -> Locale.SIMPLIFIED_CHINESE
             AppLanguage.SYSTEM -> return context
         }
         Locale.setDefault(locale)
@@ -34,7 +34,7 @@ object LocaleManager {
         if (tag != AppLanguage.SYSTEM.tag) return AppLanguage.fromTag(tag)
         return when (context.resources.configuration.locales.get(0).language) {
             "en" -> AppLanguage.ENGLISH
-            "pt" -> AppLanguage.PORTUGUESE
+            "zh" -> AppLanguage.CHINESE
             else -> AppLanguage.SPANISH
         }
     }

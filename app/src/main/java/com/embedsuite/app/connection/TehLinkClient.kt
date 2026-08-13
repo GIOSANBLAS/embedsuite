@@ -7,6 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
+import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -436,14 +437,98 @@ class TehLinkClient(
 
     suspend fun sdList(
         transport: TEmbedTransport,
-        path: String = "/xibalba_sessions"
+        path: String = "/xibalba"
     ): Result<JSONObject> {
         val params = JSONObject().put("path", path)
         return execute(transport, "sd.list", JSONObject().put("params", params))
     }
 
+    suspend fun listFiles(
+        transport: TEmbedTransport,
+        path: String = "/"
+    ): Result<JSONObject> {
+        val params = JSONObject().put("path", path)
+        return execute(transport, "list_files", JSONObject().put("params", params), timeoutMs = 12_000L)
+    }
+
     /**
-     * Guarda texto en microSD del T-Embed (`/xibalba_sessions/<filename>`).
+     * Descarga un archivo de `/xibalba` en chunks Base64 (`event: file_chunk`).
+     * Reensambla en orden y devuelve los bytes.
+     */
+    suspend fun downloadFile(
+        transport: TEmbedTransport,
+        path: String
+    ): Result<ByteArray> = linkMutex.withLock {
+        val id = requestId.incrementAndGet()
+        val payload = JSONObject()
+            .put("cmd", "download_file")
+            .put("id", id)
+            .put("params", JSONObject().put("path", path))
+        if (authToken.isNotBlank()) payload.put("auth", authToken)
+        val outboundJson = payload.toString()
+
+        val chunks = sortedMapOf<Int, ByteArray>()
+        val replies = mutableListOf<String>()
+        val job = scope.launch {
+            transport.incomingLines().collect { line ->
+                val trimmed = line.trim()
+                if (!trimmed.startsWith("{")) return@collect
+                val obj = runCatching { JSONObject(trimmed) }.getOrNull() ?: return@collect
+                when {
+                    obj.optString("event") == "file_chunk" -> {
+                        val d = obj.optJSONObject("data") ?: return@collect
+                        val b64 = d.optString("data")
+                        if (b64.isNotBlank()) {
+                            runCatching { Base64.getDecoder().decode(b64) }.onSuccess { bytes ->
+                                chunks[d.optInt("index")] = bytes
+                            }
+                        }
+                    }
+                    TehLinkResponseParser.isTehLinkLine(trimmed) -> replies.add(trimmed)
+                }
+            }
+        }
+
+        try {
+            withTimeout(90_000L) {
+                delay(80)
+                replies.clear()
+                chunks.clear()
+                val outbound = secureSession?.encryptOutbound(outboundJson) ?: outboundJson
+                transport.sendCommand(outbound).getOrElse {
+                    return@withTimeout Result.failure(it)
+                }
+                val deadline = System.currentTimeMillis() + 85_000L
+                while (System.currentTimeMillis() < deadline) {
+                    val match = replies.firstOrNull { line ->
+                        val plain = secureSession?.decryptInbound(line) ?: line
+                        runCatching { JSONObject(plain).optInt("id") == id }.getOrDefault(false)
+                    }
+                    if (match != null) {
+                        val plain = secureSession?.decryptInbound(match) ?: match
+                        val root = JSONObject(plain)
+                        if (!root.optBoolean("ok")) {
+                            return@withTimeout Result.failure(
+                                Exception(root.optString("error", "download_failed"))
+                            )
+                        }
+                        val ordered = chunks.toSortedMap()
+                        val out = ordered.values.fold(ByteArray(0)) { acc, part -> acc + part }
+                        return@withTimeout Result.success(out)
+                    }
+                    delay(30)
+                }
+                Result.failure(Exception("TEH-Link timeout"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("TEH-Link: ${e.message}"))
+        } finally {
+            job.cancel()
+        }
+    }
+
+    /**
+     * Guarda texto en microSD del T-Embed (`/xibalba/logs/<filename>`).
      * El firmware limita ~3500 bytes por llamada; usa [append] para chunking.
      */
     suspend fun sdSave(
@@ -600,6 +685,8 @@ class TehLinkClient(
         "ota_chunk" -> 30_000L
         "ota_finish" -> 60_000L
         "sd.save" -> 12_000L
+        "list_files" -> 12_000L
+        "download_file" -> 90_000L
         "rf.scan.start", "rf.jammer.start" -> 8_000L
         else -> 5_000L
     }

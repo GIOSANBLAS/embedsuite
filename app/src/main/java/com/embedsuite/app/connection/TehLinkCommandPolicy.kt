@@ -16,7 +16,10 @@ object TehLinkCommandPolicy {
         "get_screen",
         "list_actions",
         "get_action_state",
-        "back_to_menu"
+        "back_to_menu",
+        "list_files",
+        "sd.list",
+        "sd.status"
     )
 
     fun validateConsoleRequest(json: String): Result<Unit> {

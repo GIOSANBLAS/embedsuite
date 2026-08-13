@@ -12,7 +12,7 @@ class UsbTransport(
 
     override val type = TransportType.USB
 
-    private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 512)
+    private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 2048)
     private var connectedDevice: UsbDevice? = null
 
     /** Buffer acumulador para líneas parciales (USB CDC envía chunks arbitrarios). */

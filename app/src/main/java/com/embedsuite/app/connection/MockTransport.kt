@@ -132,13 +132,18 @@ class MockTransport(
             "secure_handshake" -> handleSecureHandshake(root)
             "get_info" -> JSONObject()
                 .put("hardware", "lilygo-t-embed-c1101-plus")
-                .put("firmware", "Xibalba v0.19.2")
+                .put("firmware", "Xibalba v0.20.0")
                 .put("product", "T-Embed Xibalba")
-                .put("version", "Xibalba-0.19.2")
+                .put("version", "Xibalba-0.20.0")
                 .put("codename", "Maya")
                 .put("channel", "release")
                 .put("proto", "teh-link")
                 .put("proto_ver", 3)
+                .put(
+                    "battery",
+                    JSONObject().put("voltage", 3.78).put("percentage", 78)
+                )
+                .put("sd_status", "mounted")
                 .put("plugins", JSONArray().apply {
                     put(JSONObject().put("id", "subghz_analyzer").put("name", "Sub-GHz").put("version", "1.0.0").put("author", "Xibalba"))
                     put(JSONObject().put("id", "badusb").put("name", "BadUSB").put("version", "1.0.0").put("author", "Xibalba"))
@@ -305,13 +310,63 @@ class MockTransport(
                 .put("card_type", 3)
                 .put("total_bytes", 8L * 1024 * 1024 * 1024)
                 .put("used_bytes", 128L * 1024 * 1024)
-            "sd.list" -> JSONObject()
-                .put("path", "/xibalba_sessions")
-                .put("exists", true)
-                .put("truncated", false)
-                .put("files", JSONArray().put(
-                    JSONObject().put("name", "session_demo.json").put("dir", false).put("size", 42)
-                ))
+            "sd.list", "list_files" -> {
+                val params = root.optJSONObject("params") ?: JSONObject()
+                val path = params.optString("path", if (cmd == "list_files") "/" else "/xibalba")
+                JSONObject()
+                    .put("path", path.ifBlank { "/" })
+                    .put("exists", true)
+                    .put("truncated", false)
+                    .put(
+                        "files",
+                        JSONArray()
+                            .put(
+                                JSONObject()
+                                    .put("name", "subghz")
+                                    .put("dir", true)
+                                    .put("size", 0)
+                                    .put("modified", "2026-08-13T10:00:00")
+                            )
+                            .put(
+                                JSONObject()
+                                    .put("name", "demo.sub")
+                                    .put("dir", false)
+                                    .put("size", 18)
+                                    .put("modified", "2026-08-13T10:00:00")
+                            )
+                    )
+            }
+            "download_file" -> {
+                val params = root.optJSONObject("params") ?: JSONObject()
+                val path = params.optString("path", "/xibalba/subghz/demo.sub")
+                val payload = "Xibalba demo capture"
+                val b64 = java.util.Base64.getEncoder().encodeToString(payload.toByteArray())
+                _incoming.emit(
+                    JSONObject()
+                        .put("event", "file_chunk")
+                        .put("ts_ms", System.currentTimeMillis())
+                        .put(
+                            "data",
+                            JSONObject()
+                                .put("index", 0)
+                                .put("total", 1)
+                                .put("data", b64)
+                                .put("path", path)
+                        )
+                        .toString()
+                )
+                _incoming.emit(
+                    JSONObject()
+                        .put("event", "file_download_complete")
+                        .put("ts_ms", System.currentTimeMillis())
+                        .put("data", JSONObject().put("path", path))
+                        .toString()
+                )
+                JSONObject()
+                    .put("path", path)
+                    .put("bytes", payload.length)
+                    .put("chunks", 1)
+            }
             "sd.save" -> {
                 val params = root.optJSONObject("params") ?: JSONObject()
                 JSONObject()
@@ -614,6 +669,20 @@ class MockTransport(
         val action = root.optString("action")
         val params = root.optJSONObject("params") ?: JSONObject()
 
+        if (action == "list_files") {
+            val path = params.optString("path", "/")
+            return JSONObject()
+                .put("path", path.ifBlank { "/" })
+                .put("exists", true)
+                .put("truncated", false)
+                .put(
+                    "files",
+                    JSONArray().put(
+                        JSONObject().put("name", "demo.sub").put("dir", false).put("size", 18)
+                            .put("modified", "2026-08-13T10:00:00")
+                    )
+                )
+        }
         return when (pluginId) {
             "badusb" -> when (action) {
                 "run_script" -> {

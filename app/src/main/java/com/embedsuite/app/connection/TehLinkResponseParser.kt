@@ -20,6 +20,13 @@ object TehLinkResponseParser {
             }
         }
         val hardening = parseHardeningInfo(data.optJSONObject("hardening"))
+        val batObj = data.optJSONObject("battery")
+        val battery = batObj?.let {
+            TehLinkBatteryInfo(
+                voltage = it.optDouble("voltage", 0.0),
+                percentage = it.optInt("percentage", 0)
+            )
+        }
         return TehLinkDeviceInfo(
             product = data.optString("product"),
             version = data.optString("version"),
@@ -30,7 +37,9 @@ object TehLinkResponseParser {
             plugins = plugins,
             hardening = hardening,
             hardware = data.optString("hardware"),
-            firmware = data.optString("firmware")
+            firmware = data.optString("firmware"),
+            battery = battery,
+            sdStatus = data.optString("sd_status")
         )
     }
 

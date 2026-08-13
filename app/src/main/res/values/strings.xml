@@ -6,7 +6,7 @@
     <string name="lang_system">Sistema</string>
     <string name="lang_spanish">Español</string>
     <string name="lang_english">English</string>
-    <string name="lang_portuguese">Português</string>
+    <string name="lang_chinese">中文</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_language_sub">Interfaz de la app</string>
 
@@ -100,21 +100,6 @@
     <string name="teh_link_pairing_step3">3. La app enviará pair automáticamente; verás «TEH-Link emparejado».</string>
     <string name="teh_link_pairing_mock_hint">Modo mock: usa «Simular long-press» en Ajustes o el botón inferior.</string>
     <string name="teh_link_pairing_mock_btn">Simular long-press</string>
-
-    <!-- Hardware bring-up (Xibalba Day 1) -->
-    <string name="hardware_bringup_title">GUÍA DÍA 1 · HARDWARE</string>
-    <string name="hardware_bringup_subtitle">T-Embed CC1101 Plus · Xibalba-0.19.0 Maya (Bruce)</string>
-    <string name="hardware_bringup_flash_header">1 · FLASHEAR FIRMWARE</string>
-    <string name="hardware_bringup_flash_body">• Map &amp; Tools → Firmware → Xibalba-0.19.0 Maya ★\n• OTA TEH-Link (USB) o Flash USB (binario merged @ 0x0)\n• Repo: GIOSANBLAS/xibalba-bruce · asset xibalba-t-embed-cc1101.bin\n• Boot: animación Xibalba (pirámide Maya) + UI español\n• Si ves flags SIM en Dashboard, re-flashea el perfil CC1101 Plus real</string>
-    <string name="hardware_bringup_pairing_header">2 · EMPAREJAR TEH-LINK</string>
-    <string name="hardware_bringup_pairing_body">• Long-press GPIO6 (botón lateral) ~2 s — o ventana auto al boot sin token\n• Conecta USB OTG y abre EmbedSuite (120 s)\n• La app envía pair automáticamente\n• Re-emparejar: Ajustes → Re-emparejar TEH-Link</string>
-    <string name="hardware_bringup_checklist_header">3 · CHECKLIST RÁPIDO</string>
-    <string name="hardware_bringup_checklist_body">□ Dashboard: LINK verde, firmware Xibalba\n□ ping / get_info (product T-Embed Xibalba, proto teh-link)\n□ Captura Sub-GHz TEH-Link (RX 15 s)\n□ WiFi scan + Wardriving (GPS teléfono)\n□ NFC / IR en dispositivo o vía TEH-Link según capabilities\n□ Tools ofensivas: preferir menú del T-Embed si la acción remota es parcial\n□ OTA: solo catálogo oficial xibalba-bruce</string>
-    <string name="hardware_bringup_test_log">ABRIR DOCS HARDWARE</string>
-    <string name="hardware_bringup_test_log_sub">Registro / guía en GitHub (xibalba-bruce + EmbedSuite)</string>
-    <string name="settings_hardware_bringup">Guía Día 1 · Hardware</string>
-    <string name="settings_hardware_bringup_sub">Flash Xibalba-0.19.0 Maya, pairing GPIO6, checklist CC1101 Plus</string>
-    <string name="dash_hardware_bringup">Guía hardware Día 1 →</string>
 
     <!-- Dashboard -->
     <string name="dash_command_center">CENTRO DE MANDO</string>
@@ -242,7 +227,7 @@
     <string name="settings_storage">ALMACENAMIENTO SD</string>
     <string name="settings_storage_sub">microSD del T-Embed vía TEH-Link (sd.status / sd.list / sd.save)</string>
     <string name="settings_sd_status">Estado SD</string>
-    <string name="settings_sd_list">Listar /xibalba_sessions</string>
+    <string name="settings_sd_list">Listar /xibalba</string>
     <string name="settings_time_sync">Sincronizar reloj Android↔ESP32</string>
     <string name="settings_open_jammer">Abrir control Jammer</string>
 

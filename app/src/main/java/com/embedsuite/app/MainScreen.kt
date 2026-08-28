@@ -71,7 +71,7 @@ fun MainScreen(
         PermissionsFlowScreen(onComplete = {
             container.appPreferences.permissionsComplete = true
             showPermissions = false
-        }, modifier = Modifier.background(BlackAMOLED))
+        }, modifier = Modifier.background(EmbedTheme.palette.background))
         return
     }
 
@@ -83,7 +83,9 @@ fun MainScreen(
     val bruceLinkReady by container.connectionManager.bruceLinkReady.collectAsState()
     val transportAvailability by container.connectionManager.transportAvailability.collectAsState()
     val scanlinesEnabled by container.appPreferences.scanlinesEnabled.collectAsState()
+    val glassIntensity by container.appPreferences.glassIntensity.collectAsState()
     val developerMode by container.appPreferences.developerMode.collectAsState()
+    val systemInfo by container.connectionManager.systemInfo.collectAsState()
     val context = LocalContext.current
     val activity = context as? androidx.activity.ComponentActivity
     val scope = rememberCoroutineScope()
@@ -184,8 +186,10 @@ fun MainScreen(
         is ConnectionState.Error -> stringResource(R.string.status_err) to NeonRed
     }
 
-    Box(Modifier.fillMaxSize().background(BlackAMOLED)) {
-        GlassBackground()
+    val palette = EmbedTheme.palette
+
+    Box(Modifier.fillMaxSize().background(palette.background)) {
+        GlassBackground(intensity = glassIntensity)
         if (scanlinesEnabled) ScanlineOverlay(Modifier.fillMaxSize())
 
         Scaffold(
@@ -198,6 +202,9 @@ fun MainScreen(
                         subtitle = stringResource(R.string.topbar_subtitle),
                         statusText = statusText,
                         statusColor = statusColor,
+                        batteryText = systemInfo.battery.takeIf { it.isNotBlank() },
+                        temperatureText = systemInfo.temperatureC.takeIf { it.isNotBlank() },
+                        transportLabel = (connectionState as? ConnectionState.Connected)?.type?.name,
                         onSettingsClick = {
                             navController.navigate("settings") { launchSingleTop = true }
                         }
@@ -206,10 +213,10 @@ fun MainScreen(
             },
             bottomBar = {
                 if (isMainTab) {
-                    Column(Modifier.background(DarkSurface)) {
-                        HorizontalDivider(color = MatrixGreen.copy(alpha = 0.25f), thickness = 1.dp)
+                    Column(Modifier.background(palette.surface)) {
+                        HorizontalDivider(color = palette.accentGreen.copy(alpha = 0.25f), thickness = 1.dp)
                         NavigationBar(
-                            containerColor = DarkSurface,
+                            containerColor = palette.surface,
                             tonalElevation = 0.dp,
                             modifier = Modifier.navigationBarsPadding()
                         ) {
@@ -231,9 +238,11 @@ fun MainScreen(
                                     },
                                     icon = { Icon(tab.icon, label, Modifier.size(22.dp)) },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MatrixGreen, selectedTextColor = MatrixGreen,
-                                        unselectedIconColor = TextGray, unselectedTextColor = TextGray,
-                                        indicatorColor = MatrixGreen.copy(alpha = 0.18f)
+                                        selectedIconColor = palette.accentGreen,
+                                        selectedTextColor = palette.accentGreen,
+                                        unselectedIconColor = palette.textSecondary,
+                                        unselectedTextColor = palette.textSecondary,
+                                        indicatorColor = palette.accentGreen.copy(alpha = 0.18f)
                                     )
                                 )
                             }
@@ -253,6 +262,7 @@ fun MainScreen(
                         developerMode = developerMode,
                         onNavigateRf = { navController.navigate("subghz_analyzer") { launchSingleTop = true } },
                         onNavigateTools = { navController.navigate("map_tools") },
+                        onNavigateFirmwareFlash = { navController.navigate("firmware_flash") { launchSingleTop = true } },
                         onNavigateCompanion = { route -> navController.navigate(route) { launchSingleTop = true } },
                         onNavigateBruceFiles = {
                             if (developerMode) navController.navigate("bruce_files") { launchSingleTop = true }
@@ -265,6 +275,14 @@ fun MainScreen(
                     ToolsHubScreen(
                         onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
                         isRootTab = true
+                    )
+                }
+                composable("firmware_flash") {
+                    FirmwareFlashScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
+                        connectionManager = container.connectionManager,
+                        flashCoordinator = container.firmwareFlashCoordinator,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("terminal") {
@@ -440,9 +458,6 @@ fun MainScreen(
                             navController.navigate(route) { launchSingleTop = true }
                         },
                         onResetOnboarding = {
-                            (context as? androidx.activity.ComponentActivity)?.recreate()
-                        },
-                        onLanguageChanged = {
                             (context as? androidx.activity.ComponentActivity)?.recreate()
                         }
                     )

@@ -14,9 +14,10 @@ import androidx.room.RoomDatabase
         BleProfileEntity::class,
         RfAutomationRuleEntity::class,
         BruceCustomCommandEntity::class,
-        IrdbEntryEntity::class
+        IrdbEntryEntity::class,
+        IrdbEntryFts::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 /** Room local; cifrado at-rest vía SQLCipher cuando [SecureStore] está disponible. */

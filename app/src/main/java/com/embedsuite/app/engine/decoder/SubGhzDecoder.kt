@@ -17,7 +17,7 @@ object SubGhzDecoder {
     )
 
     fun decodeSubFile(content: String, fileName: String = ""): Result<DecodeResult> =
-        SubFileParser.parse(content, fileName).map { cap ->
+        SubFileParser.parseLegacy(content, fileName).map { cap ->
             decodeFromTimings(cap.protocol, cap.rawTimings, cap.frequencyHz)
                 ?: DecodeResult(
                     protocol = cap.protocol,

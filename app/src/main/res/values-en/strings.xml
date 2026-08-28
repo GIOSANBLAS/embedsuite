@@ -72,6 +72,10 @@
     <string name="settings_sound">Retro sounds (beeps)</string>
     <string name="settings_haptics">Haptic vibration</string>
     <string name="settings_ui">INTERFACE</string>
+    <string name="settings_theme_mode">Visual theme</string>
+    <string name="settings_theme_mode_sub">Obscuro: AMOLED terminal · Diurnal: daytime readability</string>
+    <string name="theme_mode_obscuro">OBSCURO</string>
+    <string name="theme_mode_diurnal">DIURNAL</string>
     <string name="settings_scanlines">CRT scanlines</string>
     <string name="settings_glass">Background intensity: %1$d%%</string>
     <string name="settings_field">FIELD MODE</string>

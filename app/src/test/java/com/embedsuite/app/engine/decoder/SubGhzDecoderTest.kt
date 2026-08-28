@@ -2,6 +2,7 @@ package com.embedsuite.app.engine.decoder
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SubGhzDecoderTest {
@@ -17,6 +18,22 @@ class SubGhzDecoderTest {
         val result = SubGhzDecoder.decodeSubFile(sub, "test.sub").getOrThrow()
         assertEquals("RAW", result.protocol)
         assertNotNull(result.summary)
+    }
+
+    @Test
+    fun decodeSubFile_keyProtocol() {
+        val sub = """
+            Filetype: Flipper SubGhz Key File
+            Frequency: 433920000
+            Protocol: Princeton
+            Bit: 24
+            Key: A1B2C3
+        """.trimIndent()
+        val flipper = SubFileParser.parseFlipperSub(sub)
+        assertEquals("Princeton", flipper.protocol)
+        assertEquals("A1B2C3", flipper.key)
+        val captured = com.embedsuite.app.core.orchestrator.CapturedSignal(flipper)
+        assertTrue(captured.buildSubContent().contains("Key: A1B2C3"))
     }
 
     @Test

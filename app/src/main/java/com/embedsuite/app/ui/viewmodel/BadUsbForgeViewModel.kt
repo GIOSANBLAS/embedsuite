@@ -46,6 +46,11 @@ class BadUsbForgeViewModel(
         refreshPreview()
     }
 
+    fun updateBlock(index: Int, block: DuckyBlock) {
+        val updated = _state.value.blocks.mapIndexed { i, b -> if (i == index) block else b }
+        setBlocks(updated)
+    }
+
     fun setRemoteFileName(name: String) {
         _state.value = _state.value.copy(remoteFileName = name)
     }

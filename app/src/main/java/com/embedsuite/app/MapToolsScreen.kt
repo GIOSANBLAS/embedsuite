@@ -39,7 +39,6 @@ import com.embedsuite.app.flipper.FlipperFileManager
 import com.embedsuite.app.flash.FirmwareFlashCoordinator
 import com.embedsuite.app.macro.MacroEngine
 import com.embedsuite.app.scan.LocationTracker
-import com.embedsuite.app.ui.components.FirmwareFlashCard
 import com.embedsuite.app.ui.components.LinkDebugPanel
 import com.embedsuite.app.ui.components.HeatmapMapView
 import com.embedsuite.app.ui.components.OfflineMapCard
@@ -47,6 +46,7 @@ import com.embedsuite.app.ui.components.RfAutomationCard
 import com.embedsuite.app.ui.components.ScanPermissionsGate
 import com.embedsuite.app.ui.components.HackerSectionHeader
 import com.embedsuite.app.ui.components.WarDrivingMapView
+import com.embedsuite.app.ui.screen.FirmwareFlashSection
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.MapToolsViewModel
 import kotlinx.coroutines.launch
@@ -77,18 +77,11 @@ fun MapToolsScreen(
 
     var wifiHost by remember { mutableStateOf(WifiTransport.DEFAULT_HOST) }
     var selectedTransport by remember { mutableStateOf(TransportType.USB) }
-    val otaProgress by flashCoordinator.otaProgress.collectAsState()
-    val isFlashing by flashCoordinator.isFlashing.collectAsState()
-    val flashStatus by flashCoordinator.flashStatus.collectAsState()
     var showHeatmapFullscreen by remember { mutableStateOf(false) }
     var mapLayer by remember { mutableStateOf("ALL") }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.parseImportFile(context, it) }
-    }
-
-    val customFirmwareLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { viewModel.importCustomFirmware(context, it) }
     }
 
     if (showHeatmapFullscreen) {
@@ -193,6 +186,14 @@ fun MapToolsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
         SystemMonitorCard(systemInfo, connectionState)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        FirmwareFlashSection(
+            viewModel = viewModel,
+            connectionManager = connectionManager,
+            flashCoordinator = flashCoordinator
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -316,38 +317,6 @@ fun MapToolsScreen(
             profileRepository = profileRepository,
             macroEngine = macroEngine,
             isConnected = connectionState is ConnectionState.Connected
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        FirmwareFlashCard(
-            otaProgress = otaProgress,
-            flashStatus = flashStatus.ifBlank { stringResource(R.string.firmware_status_ready) },
-            lastOta = systemInfo.lastOta,
-            hardening = systemInfo.hardening,
-            firmwareOptions = uiState.allFirmwareOptions,
-            selectedRelease = uiState.selectedRelease,
-            recommendedRelease = uiState.recommendedRelease,
-            isLoadingReleases = uiState.isLoadingReleases,
-            isFlashing = isFlashing,
-            onLoadReleases = {
-                viewModel.loadReleases()
-                flashCoordinator.setStatusMessage(context.getString(R.string.firmware_status_fetching))
-            },
-            onSelectRelease = { viewModel.selectRelease(it) },
-            onPickCustomBin = { customFirmwareLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
-            onClearCustom = { viewModel.clearCustomFirmware() },
-            onFlashOta = { release ->
-                val previous = uiState.recommendedRelease ?: uiState.releases.firstOrNull()
-                scope.launch {
-                    val result = flashCoordinator.flashWithRollback(
-                        release = release,
-                        previousRelease = if (release.identityKey() != previous?.identityKey()) previous else null
-                    )
-                    flashCoordinator.setStatusMessage(result.message)
-                }
-            },
-            onFlashUsb = { release -> flashCoordinator.flashUsb(context, release) }
         )
     }
 }

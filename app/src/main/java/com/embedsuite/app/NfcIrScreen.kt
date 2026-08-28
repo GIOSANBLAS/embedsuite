@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.embedsuite.app.connection.ConnectionState
 import com.embedsuite.app.data.IrButtonEntity
+import com.embedsuite.app.ui.components.MifareHexEditor
 import com.embedsuite.app.ui.theme.*
 import com.embedsuite.app.ui.viewmodel.NfcIrViewModel
 import kotlinx.coroutines.launch
@@ -109,6 +110,7 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 nfcUid = uiState.nfcUid,
                 nfcDump = uiState.nfcDump,
                 parsedMifare = uiState.parsedMifare,
+                mifareSectors = uiState.mifareSectors,
                 isConnected = isConnected,
                 controlsEnabled = isConnected && nfcDeviceEnabled,
                 waitingHint = stringResource(R.string.nfc_waiting_teh_link),
@@ -116,6 +118,9 @@ fun NfcIrScreen(viewModel: NfcIrViewModel) {
                 onEmulate = { viewModel.emulateUid() },
                 onClearDump = { viewModel.clearDump() },
                 onSaveDump = { viewModel.saveDump() },
+                onBlockChanged = { sector, block, hex ->
+                    viewModel.updateMifareBlock(sector, block, hex)
+                },
                 onExportNfc = {
                     if (uiState.nfcUid == "—" || uiState.nfcDump.isBlank()) {
                         Toast.makeText(context, "No hay dump para exportar", Toast.LENGTH_SHORT).show()
@@ -188,6 +193,7 @@ private fun NfcPanel(
     nfcUid: String,
     nfcDump: String,
     parsedMifare: String,
+    mifareSectors: List<com.embedsuite.app.nfc.MifareParser.SectorInfo>,
     isConnected: Boolean,
     controlsEnabled: Boolean = isConnected,
     waitingHint: String = "",
@@ -195,6 +201,7 @@ private fun NfcPanel(
     onEmulate: () -> Unit,
     onClearDump: () -> Unit,
     onSaveDump: () -> Unit,
+    onBlockChanged: (sectorIndex: Int, blockIndex: Int, hex: String) -> Unit,
     onExportNfc: () -> Unit = {}
 ) {
     Box(
@@ -225,17 +232,41 @@ private fun NfcPanel(
     Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("NFC DUMP VIEWER", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
+                Text("MIFARE HEX EDITOR", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonCyan)
                 Row {
                     TextButton(onClick = onSaveDump) { Text("GUARDAR", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen) }
                     TextButton(onClick = onClearDump) { Text("LIMPIAR", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray) }
                 }
             }
-            if (parsedMifare.isNotBlank()) {
+            if (mifareSectors.isNotEmpty()) {
+                MifareHexEditor(
+                    sectors = mifareSectors,
+                    onBlockChanged = onBlockChanged,
+                    enabled = true,
+                    modifier = Modifier.heightIn(max = 320.dp)
+                )
+            } else if (parsedMifare.isNotBlank()) {
                 Text(parsedMifare, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = NeonOrange, modifier = Modifier.padding(bottom = 4.dp))
             }
-            Text(nfcDump.ifBlank { waitingHint }, fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = MatrixGreen,
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()))
+            if (nfcDump.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text("RAW DUMP", fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = TextMuted)
+                Text(
+                    nfcDump,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 8.sp,
+                    color = MatrixGreen,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 80.dp).verticalScroll(rememberScrollState())
+                )
+            } else if (mifareSectors.isEmpty()) {
+                Text(
+                    waitingHint,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = TextMuted,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
         }
     }
 }

@@ -54,16 +54,26 @@ sealed class SubGhzIntent : Intent {
 
 /** Señal capturada con forma de onda derivada del RAW Flipper .sub */
 data class CapturedSignal(
-    val subContent: String,
-    val freqMhz: Double,
-    val pulses: List<Long>,
+    val flipperSub: com.embedsuite.app.engine.decoder.FlipperSubFile,
     val localFile: File? = null
 ) {
-    fun buildSubContent(): String = subContent
+    val subContent: String get() = flipperSub.toSubContent()
+    val freqMhz: Double get() = flipperSub.frequencyMhz()
+    val pulses: List<Long> get() = flipperSub.rawTimings.map { it.toLong() }
+
+    fun buildSubContent(): String = flipperSub.toSubContent()
+
+    fun withFlipperSub(updated: com.embedsuite.app.engine.decoder.FlipperSubFile): CapturedSignal =
+        copy(flipperSub = updated)
 
     fun trimSilence(thresholdUs: Long = 5_000L): CapturedSignal {
-        val trimmed = pulses.filter { abs(it) > thresholdUs }
-        return copy(pulses = trimmed.ifEmpty { pulses })
+        if (flipperSub.rawTimings.isEmpty()) return this
+        val trimmed = flipperSub.rawTimings.filter { abs(it.toLong()) > thresholdUs }
+        return copy(
+            flipperSub = flipperSub.copy(
+                rawTimings = trimmed.ifEmpty { flipperSub.rawTimings }
+            )
+        )
     }
 
     fun toWaveformBitmap(width: Int = 512, height: Int = 128): Bitmap {
@@ -90,17 +100,15 @@ data class CapturedSignal(
     }
 
     companion object {
-        fun fromSubContent(content: String, freqMhz: Double): CapturedSignal {
-            val pulses = mutableListOf<Long>()
-            Regex("""RAW_Data:\s*([0-9\s-]+)""", RegexOption.IGNORE_CASE).find(content)?.let { m ->
-                m.groupValues[1].trim().split(Regex("\\s+")).mapNotNull { it.toLongOrNull() }.forEach { pulses += it }
+        fun fromSubContent(content: String, freqMhz: Double = 433.92): CapturedSignal {
+            val parsed = runCatching {
+                com.embedsuite.app.engine.decoder.SubFileParser.parseFlipperSub(content)
+            }.getOrElse {
+                com.embedsuite.app.engine.decoder.FlipperSubFile(
+                    frequencyHz = (freqMhz * 1_000_000).toLong()
+                )
             }
-            if (pulses.isEmpty()) {
-                Regex("""(?i)RAW:\s*([0-9\s-]+)""").find(content)?.let { m ->
-                    m.groupValues[1].trim().split(Regex("\\s+")).mapNotNull { it.toLongOrNull() }.forEach { pulses += it }
-                }
-            }
-            return CapturedSignal(content, freqMhz, pulses)
+            return CapturedSignal(parsed)
         }
     }
 }

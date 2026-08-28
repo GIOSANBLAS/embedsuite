@@ -45,6 +45,7 @@ fun DashboardScreen(
     developerMode: Boolean = false,
     onNavigateRf: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
+    onNavigateFirmwareFlash: () -> Unit = {},
     onNavigateCompanion: (String) -> Unit = {},
     onNavigateBruceFiles: () -> Unit = {},
     onNavigateBleWizard: () -> Unit = {},
@@ -111,12 +112,34 @@ fun DashboardScreen(
                 GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                     Text(stringResource(R.string.dash_ota_title_bruce), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
                     Text(stringResource(R.string.dash_ota_body, ota.deviceVersion, ota.latestVersion), fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextGray)
-                    TextButton(onClick = onNavigateTools) {
-                        Text(stringResource(R.string.dash_ota_action), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onNavigateFirmwareFlash) {
+                            Text(stringResource(R.string.dash_firmware_flash), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeonOrange)
+                        }
+                        TextButton(onClick = onNavigateTools) {
+                            Text(stringResource(R.string.dash_ota_action), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)
+                        }
                     }
                 }
             }
             else -> {}
+        }
+
+        GlassCard(accent = NeonOrange, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+            Text(stringResource(R.string.firmware_flash_title), fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeonOrange)
+            Text(
+                stringResource(R.string.dash_firmware_flash_sub),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                color = TextGray,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+            NeonButton(
+                text = stringResource(R.string.dash_firmware_flash),
+                onClick = onNavigateFirmwareFlash,
+                color = NeonOrange,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         val simActive = uiState.systemInfo.simFlags.any { it.value }
@@ -179,10 +202,22 @@ fun DashboardScreen(
                         }
                     )
                     DeviceTelemetryChip(
+                        label = stringResource(R.string.dash_sd_free),
+                        value = uiState.systemInfo.sdFreeSpace.ifBlank { na },
+                        color = if (bruceLinkReady && uiState.systemInfo.sdFreeSpace.isNotBlank()) NeonCyan else TextMuted
+                    )
+                    DeviceTelemetryChip(
                         label = stringResource(R.string.dash_temperature),
                         value = uiState.systemInfo.temperatureC.ifBlank { na },
                         color = if (bruceLinkReady) NeonCyan else TextMuted
                     )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     DeviceTelemetryChip(
                         label = stringResource(R.string.dash_transport),
                         value = activeTransport.name,
@@ -228,7 +263,14 @@ fun DashboardScreen(
                 StatRow("UI", uiState.systemInfo.uiScreen)
             }
             if (uiState.systemInfo.sdMounted.isNotBlank()) {
-                StatRow("SD", uiState.systemInfo.sdMounted)
+                val sdValue = buildString {
+                    append(uiState.systemInfo.sdMounted)
+                    if (uiState.systemInfo.sdFreeSpace.isNotBlank()) {
+                        append(" · ")
+                        append(uiState.systemInfo.sdFreeSpace)
+                    }
+                }
+                StatRow("SD", sdValue)
             }
             TextButton(onClick = { viewModel.refreshSystemInfo() }) {
                 Text(stringResource(R.string.action_refresh), fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = MatrixGreen)

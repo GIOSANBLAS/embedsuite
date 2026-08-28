@@ -9,6 +9,10 @@
     <string name="lang_chinese">中文</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_language_sub">Interfaz de la app</string>
+    <string name="settings_locale_auto">Idioma del dispositivo</string>
+    <string name="settings_locale_auto_sub">La app sigue el locale del sistema (es / en / zh).</string>
+    <string name="settings_locale_detected">Detectado: %1$s</string>
+    <string name="settings_transport_usb_only">Transporte: USB OTG (recomendado). WiFi y BLE no se configuran aquí.</string>
 
     <!-- Navegación -->
     <string name="nav_home">INICIO</string>
@@ -83,6 +87,10 @@
     <string name="settings_sound">Sonidos retro (beeps)</string>
     <string name="settings_haptics">Vibración háptica</string>
     <string name="settings_ui">INTERFAZ</string>
+    <string name="settings_theme_mode">Tema visual</string>
+    <string name="settings_theme_mode_sub">Obscuro: terminal AMOLED · Diurnal: lectura diurna</string>
+    <string name="theme_mode_obscuro">OBSCURO</string>
+    <string name="theme_mode_diurnal">DIURNAL</string>
     <string name="settings_scanlines">Scanlines CRT</string>
     <string name="settings_glass">Intensidad fondo: %1$d%%</string>
     <string name="settings_field">MODO CAMPO</string>
@@ -137,6 +145,7 @@
     <string name="dash_uptime">UPTIME</string>
     <string name="dash_heap">FREE HEAP</string>
     <string name="dash_battery">BATERÍA</string>
+    <string name="dash_sd_free">SD LIBRE</string>
     <string name="dash_temperature">TEMP</string>
     <string name="dash_transport">TRANSPORTE</string>
     <string name="dash_teh_link_na">N/D</string>
@@ -255,6 +264,11 @@
     <!-- Firmware flash -->
     <string name="firmware_flash_title">FIRMWARE FLASH</string>
     <string name="firmware_flash_sub">Bruce oficial o custom .bin para T-Embed CC1101 Plus — bajo su responsabilidad</string>
+    <string name="firmware_flash_screen_sub">Flashea Bruce como en la app oficial — USB bootloader</string>
+    <string name="firmware_flash_section_header">FLASH BRUCE · T-EMBED</string>
+    <string name="firmware_flash_screen_hint">Conecta el T-Embed por USB. Mantén Encoder + RST para entrar al bootloader si es necesario.</string>
+    <string name="dash_firmware_flash">Flash Bruce (USB)</string>
+    <string name="dash_firmware_flash_sub">Descarga releases oficiales Bruce o elige un .bin custom y flashea por USB.</string>
     <string name="firmware_section_official_bruce">BRUCE OFICIAL</string>
     <string name="firmware_section_custom_bin">CUSTOM .bin — CC1101 Plus</string>
     <string name="firmware_recommended">RECOMENDADO</string>
@@ -291,6 +305,12 @@
     <string name="firmware_status_usb_fail">USB Flash falló: %1$s</string>
     <string name="firmware_status_error">Error: %1$s</string>
     <string name="usb_permission_denied_hint">Permiso USB denegado. Ve a Ajustes → Apps → EmbedSuite → Otros permisos → USB y actívalo, o desconecta y vuelve a conectar el T-Embed.</string>
+
+    <!-- MIFARE hex editor -->
+    <string name="mifare_no_blocks">Sin bloques MIFARE — lee un tag o carga un dump guardado.</string>
+    <string name="mifare_sector_label">Sector %1$d</string>
+    <string name="mifare_block_label">Block %1$d</string>
+    <string name="mifare_trailer_hint">sector trailer</string>
 
     <!-- Biblioteca RF -->
     <string name="library_title">BIBLIOTECA DE SEÑALES</string>

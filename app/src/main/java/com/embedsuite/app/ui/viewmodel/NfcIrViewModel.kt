@@ -22,6 +22,7 @@ data class NfcIrUiState(
     val nfcUid: String = "—",
     val nfcDump: String = "",
     val parsedMifare: String = "",
+    val mifareSectors: List<MifareParser.SectorInfo> = emptyList(),
     val savedDumps: List<NfcDumpEntity> = emptyList(),
     val selectedDumpId: Long? = null
 )
@@ -85,6 +86,18 @@ class NfcIrViewModel(
         }
     }
 
+    private fun applyDump(dump: String, uid: String = _uiState.value.nfcUid) {
+        val sectors = MifareParser.parseDump(dump)
+        val parsed = if (sectors.isNotEmpty()) MifareParser.formatVisual(uid, sectors) else ""
+        _uiState.update {
+            it.copy(
+                nfcDump = dump,
+                parsedMifare = parsed,
+                mifareSectors = sectors
+            )
+        }
+    }
+
     private fun handleLine(line: String) {
         val trimmed = line.trim()
         if (trimmed.contains("UID", ignoreCase = true) || trimmed.matches(Regex("""[0-9A-Fa-f: ]{8,}"""))) {
@@ -94,9 +107,7 @@ class NfcIrViewModel(
         }
         if (_uiState.value.modo == "NFC / RFID" && trimmed.isNotBlank()) {
             val dump = (_uiState.value.nfcDump + trimmed + "\n").takeLast(4000)
-            val sectors = MifareParser.parseDump(dump)
-            val parsed = if (sectors.isNotEmpty()) MifareParser.formatVisual(_uiState.value.nfcUid, sectors) else _uiState.value.parsedMifare
-            _uiState.update { it.copy(nfcDump = dump, parsedMifare = parsed) }
+            applyDump(dump)
         }
     }
 
@@ -104,7 +115,14 @@ class NfcIrViewModel(
 
     fun readNfc() {
         viewModelScope.launch {
-            _uiState.update { it.copy(estadoOperacion = "LEYENDO TAG...", nfcDump = "", parsedMifare = "") }
+            _uiState.update {
+                it.copy(
+                    estadoOperacion = "LEYENDO TAG...",
+                    nfcDump = "",
+                    parsedMifare = "",
+                    mifareSectors = emptyList()
+                )
+            }
             if (!connectionManager.bruceLinkReady.value) {
                 _uiState.update { it.copy(estadoOperacion = "Espera CLI OK (info) en Dashboard.") }
                 return@launch
@@ -156,15 +174,34 @@ class NfcIrViewModel(
     }
 
     fun emulateFromDump(dump: NfcDumpEntity) {
+        val sectors = MifareParser.parseDump(dump.rawDump)
+        val parsed = dump.parsedSectors.ifBlank {
+            if (sectors.isNotEmpty()) MifareParser.formatVisual(dump.uid, sectors) else ""
+        }
         _uiState.update {
             it.copy(
                 nfcUid = dump.uid,
                 nfcDump = dump.rawDump,
-                parsedMifare = dump.parsedSectors,
+                parsedMifare = parsed,
+                mifareSectors = sectors,
                 selectedDumpId = dump.id,
                 estadoOperacion = "Dump cargado — pulsa EMULAR UID para enviar al Bruce."
             )
         }
+    }
+
+    fun updateMifareBlock(sectorIndex: Int, blockIndex: Int, hex: String) {
+        val state = _uiState.value
+        val updated = if (state.mifareSectors.isEmpty()) {
+            listOf(MifareParser.SectorInfo(sectorIndex, List(4) { idx ->
+                if (idx == blockIndex) MifareParser.normalizeBlockHex(hex) else "00".repeat(16)
+            }))
+        } else {
+            MifareParser.updateBlock(state.mifareSectors, sectorIndex, blockIndex, hex)
+        }
+        val dump = MifareParser.serializeDump(updated, state.nfcUid)
+        val parsed = MifareParser.formatVisual(state.nfcUid, updated)
+        _uiState.update { it.copy(mifareSectors = updated, nfcDump = dump, parsedMifare = parsed) }
     }
 
     fun saveDump() {
@@ -182,7 +219,9 @@ class NfcIrViewModel(
         }
     }
 
-    fun clearDump() { _uiState.update { it.copy(nfcDump = "", parsedMifare = "") } }
+    fun clearDump() {
+        _uiState.update { it.copy(nfcDump = "", parsedMifare = "", mifareSectors = emptyList()) }
+    }
 
     fun sendIr(cmd: String) {
         viewModelScope.launch {

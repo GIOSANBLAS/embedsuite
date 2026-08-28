@@ -77,7 +77,7 @@ fun TransportIndicatorRow(
 }
 
 @Composable
-fun TopBarTelemetryStrip(
+fun TransportTelemetryStrip(
     batteryText: String,
     temperatureText: String,
     transportLabel: String,

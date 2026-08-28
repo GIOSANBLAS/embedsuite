@@ -48,6 +48,7 @@ class DashboardViewModel(
     private var lastOtaCheckMs = 0L
     private var lastOtaFirmware = ""
     private var wardrivingGpsJob: kotlinx.coroutines.Job? = null
+    private var telemetryRefreshSession: String? = null
 
     init {
         viewModelScope.launch {
@@ -60,6 +61,15 @@ class DashboardViewModel(
             }.collect { (conn, sys, tx) ->
                 _uiState.update {
                     it.copy(connectionState = conn, systemInfo = sys, txHistory = tx)
+                }
+                if (conn is ConnectionState.Connected) {
+                    val sessionKey = "${conn.type.name}:${conn.detail}"
+                    if (telemetryRefreshSession != sessionKey) {
+                        telemetryRefreshSession = sessionKey
+                        refreshSystemInfo()
+                    }
+                } else {
+                    telemetryRefreshSession = null
                 }
                 if (conn is ConnectionState.Connected && sys.firmware.isNotBlank()) {
                     checkOta(sys.firmware)

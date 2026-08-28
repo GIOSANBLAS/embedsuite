@@ -50,21 +50,18 @@ object FlipperFileManager {
 
     fun parseSubFile(content: String): CapturedSignalEntity? {
         if (!content.contains("Flipper SubGhz", ignoreCase = true)) return null
-        val freq = Regex("""Frequency:\s*(\d+)""").find(content)?.groupValues?.get(1)?.let {
-            val mhz = it.toLongOrNull() ?: return@let "433.92"
-            String.format(Locale.US, "%.2f", mhz / 1_000_000.0)
-        } ?: "433.92"
-        val protocol = Regex("""Protocol:\s*(\S+)""").find(content)?.groupValues?.get(1) ?: "RAW"
-        val raw = Regex("""RAW_Data:\s*(.+)""").find(content)?.groupValues?.get(1)?.trim() ?: ""
-        return CapturedSignalEntity(
-            signalType = "RF",
-            name = protocol,
-            label = "Importado .sub",
-            protocol = protocol,
-            frequency = freq,
-            rawData = raw,
-            detail = "Flipper import"
-        )
+        return runCatching {
+            val f = com.embedsuite.app.engine.decoder.SubFileParser.parseFlipperSub(content)
+            CapturedSignalEntity(
+                signalType = "RF",
+                name = f.protocol,
+                label = "Importado .sub",
+                protocol = f.protocol,
+                frequency = String.format(Locale.US, "%.2f", f.frequencyMhz()),
+                rawData = f.rawTimings.joinToString(" ").ifBlank { f.key.orEmpty() },
+                detail = f.toSubContent().take(4000)
+            )
+        }.getOrNull()
     }
 
     // ── .ir (Infrared) ──

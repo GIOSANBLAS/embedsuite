@@ -11,6 +11,8 @@ import com.embedsuite.app.core.orchestrator.IntentOrchestrator
 import com.embedsuite.app.core.orchestrator.OrchestrationResult
 import com.embedsuite.app.core.orchestrator.SubGhzIntent
 import com.embedsuite.app.data.SignalRepository
+import com.embedsuite.app.engine.decoder.FlipperSubFile
+import com.embedsuite.app.engine.decoder.SubFileParser
 import com.embedsuite.app.rf.RfProtocolDecoder
 import com.embedsuite.app.scan.LocationTracker
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +28,9 @@ data class SubGhzAnalyzerUiState(
     val transportHint: String = "",
     val waveform: Bitmap? = null,
     val capturedSignal: CapturedSignal? = null,
-    val trimThresholdUs: Long = 5_000L
+    val trimThresholdUs: Long = 5_000L,
+    val editedSubPreview: String = "",
+    val subParseError: String? = null
 )
 
 class SubGhzAnalyzerViewModel(
@@ -48,7 +52,9 @@ class SubGhzAnalyzerViewModel(
     }
 
     fun setFreqMhz(mhz: Float) {
-        _state.value = _state.value.copy(freqMhz = mhz.coerceIn(300f, 928f))
+        val clamped = mhz.coerceIn(300f, 928f)
+        _state.value = _state.value.copy(freqMhz = clamped)
+        updateCapturedFrequency(clamped)
     }
 
     fun setDuration(sec: Int) {
@@ -57,6 +63,55 @@ class SubGhzAnalyzerViewModel(
 
     fun setTrimThresholdUs(v: Long) {
         _state.value = _state.value.copy(trimThresholdUs = v.coerceIn(100L, 50_000L))
+    }
+
+    fun setSubProtocol(protocol: String) = mutateSub { it.copy(protocol = protocol.trim()) }
+
+    fun setSubKey(key: String) = mutateSub { it.copy(key = key.trim()) }
+
+    fun setSubBit(bit: String) = mutateSub {
+        it.copy(bit = bit.trim().toIntOrNull())
+    }
+
+    fun setSubTe(te: String) = mutateSub {
+        it.copy(te = te.trim().toIntOrNull())
+    }
+
+    fun setSubPreset(preset: String) = mutateSub { it.copy(preset = preset.trim()) }
+
+    fun setSubRawData(raw: String) = mutateSub {
+        it.copy(rawTimings = SubFileParser.parseRawTimings(raw))
+    }
+
+    fun loadSubFromText(content: String) {
+        runCatching {
+            val parsed = SubFileParser.parseFlipperSub(content)
+            val signal = CapturedSignal(parsed)
+            _state.value = _state.value.copy(
+                capturedSignal = signal,
+                freqMhz = parsed.frequencyMhz().toFloat(),
+                editedSubPreview = parsed.toSubContent(),
+                subParseError = null,
+                waveform = signal.trimSilence(_state.value.trimThresholdUs).toWaveformBitmap()
+            )
+        }.onFailure { err ->
+            _state.value = _state.value.copy(subParseError = err.message ?: "Parse .sub falló")
+        }
+    }
+
+    private fun mutateSub(transform: (FlipperSubFile) -> FlipperSubFile) {
+        val current = _state.value.capturedSignal ?: return
+        val updated = current.withFlipperSub(transform(current.flipperSub))
+        _state.value = _state.value.copy(
+            capturedSignal = updated,
+            editedSubPreview = updated.buildSubContent(),
+            subParseError = null,
+            waveform = updated.trimSilence(_state.value.trimThresholdUs).toWaveformBitmap()
+        )
+    }
+
+    private fun updateCapturedFrequency(mhz: Float) {
+        mutateSub { it.copy(frequencyHz = (mhz * 1_000_000f).toLong()) }
     }
 
     fun replayEdited() {
@@ -79,7 +134,14 @@ class SubGhzAnalyzerViewModel(
 
     fun capture() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(busy = true, lastResult = null, waveform = null, capturedSignal = null)
+            _state.value = _state.value.copy(
+                busy = true,
+                lastResult = null,
+                waveform = null,
+                capturedSignal = null,
+                editedSubPreview = "",
+                subParseError = null
+            )
             autoDiscovery.ensureCliReady().onFailure { err ->
                 _state.value = _state.value.copy(
                     busy = false,
@@ -93,7 +155,8 @@ class SubGhzAnalyzerViewModel(
             val result = orchestrator.execute(intent)
 
             val signal = result.artifact as? CapturedSignal
-            val waveform = signal?.trimSilence(_state.value.trimThresholdUs)?.toWaveformBitmap()
+            val trimmed = signal?.trimSilence(_state.value.trimThresholdUs)
+            val waveform = trimmed?.toWaveformBitmap()
 
             val responseText = when {
                 result.cliResponse.isNotBlank() -> result.cliResponse
@@ -115,7 +178,8 @@ class SubGhzAnalyzerViewModel(
                 busy = false,
                 lastResult = result,
                 waveform = waveform,
-                capturedSignal = signal
+                capturedSignal = signal,
+                editedSubPreview = signal?.buildSubContent().orEmpty()
             )
         }
     }

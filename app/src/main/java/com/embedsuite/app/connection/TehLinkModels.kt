@@ -62,6 +62,7 @@ data class TehLinkDeviceStatus(
     val vbusPresent: Boolean? = null,
     val heapFreeBytes: Long? = null,
     val psramFreeBytes: Long? = null,
+    val sdFreeBytes: Long? = null,
     val coredumpPresent: Boolean = false,
     val wdtPanicReason: String? = null,
     val temperatureC: Float? = null

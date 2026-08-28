@@ -22,6 +22,7 @@ import com.embedsuite.app.ui.viewmodel.SubGhzAnalyzerViewModel
 @Composable
 fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
+    val sub = state.capturedSignal?.flipperSub
 
     Column(
         Modifier.fillMaxSize().background(BlackAMOLED).padding(12.dp).verticalScroll(rememberScrollState())
@@ -63,8 +64,43 @@ fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit)
             Text("CAPTURAR (subghz rx)", fontFamily = FontFamily.Monospace)
         }
 
+        state.subParseError?.let { err ->
+            Spacer(Modifier.height(8.dp))
+            Text(err, color = NeonRed, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+        }
+
         Spacer(Modifier.height(12.dp))
-        state.capturedSignal?.let {
+        sub?.let { flipper ->
+            Text("Editar .sub capturado", color = NeonCyan, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+            Spacer(Modifier.height(6.dp))
+
+            SubField("Protocolo", flipper.protocol) { viewModel.setSubProtocol(it) }
+            SubField("Key", flipper.key.orEmpty()) { viewModel.setSubKey(it) }
+            SubField("Bit", flipper.bit?.toString().orEmpty()) { viewModel.setSubBit(it) }
+            SubField("TE (µs)", flipper.te?.toString().orEmpty()) { viewModel.setSubTe(it) }
+            SubField("Preset", flipper.preset) { viewModel.setSubPreset(it) }
+
+            if (flipper.rawTimings.isNotEmpty()) {
+                var rawText by remember(flipper.rawTimings) {
+                    mutableStateOf(flipper.rawTimings.joinToString(" "))
+                }
+                OutlinedTextField(
+                    value = rawText,
+                    onValueChange = {
+                        rawText = it
+                        viewModel.setSubRawData(it)
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    label = { Text("RAW_Data (µs)", fontSize = 10.sp) },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp
+                    ),
+                    minLines = 2,
+                    maxLines = 5
+                )
+            }
+
             Text("Recorte silencio (µs)", color = NeonCyan, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
             Slider(
                 value = state.trimThresholdUs.toFloat(),
@@ -72,6 +108,17 @@ fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit)
                 valueRange = 500f..30_000f,
                 colors = SliderDefaults.colors(thumbColor = MatrixGreen, activeTrackColor = MatrixGreen)
             )
+
+            if (state.editedSubPreview.isNotBlank()) {
+                Text("Vista previa .sub", color = TextMuted, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+                Text(
+                    state.editedSubPreview.take(600) + if (state.editedSubPreview.length > 600) "…" else "",
+                    color = TextGray,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 8.sp
+                )
+            }
+
             Button(
                 onClick = viewModel::replayEdited,
                 enabled = !state.busy,
@@ -93,4 +140,16 @@ fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit)
         }
         OrchestrationFeedback(state.lastResult)
     }
+}
+
+@Composable
+private fun SubField(label: String, value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        label = { Text(label, fontSize = 10.sp) },
+        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
+        singleLine = true
+    )
 }

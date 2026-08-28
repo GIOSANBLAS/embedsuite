@@ -84,6 +84,55 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS irdb_index_fts USING fts4(
+                    searchBlob TEXT,
+                    brand TEXT,
+                    device TEXT,
+                    function TEXT,
+                    content='irdb_index',
+                    tokenize=unicode61
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO irdb_index_fts(rowid, searchBlob, brand, device, function)
+                SELECT rowid, searchBlob, brand, device, function FROM irdb_index
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS irdb_index_ai AFTER INSERT ON irdb_index BEGIN
+                  INSERT INTO irdb_index_fts(rowid, searchBlob, brand, device, function)
+                  VALUES (new.rowid, new.searchBlob, new.brand, new.device, new.function);
+                END
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS irdb_index_ad AFTER DELETE ON irdb_index BEGIN
+                  INSERT INTO irdb_index_fts(irdb_index_fts, rowid, searchBlob, brand, device, function)
+                  VALUES('delete', old.rowid, old.searchBlob, old.brand, old.device, old.function);
+                END
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TRIGGER IF NOT EXISTS irdb_index_au AFTER UPDATE ON irdb_index BEGIN
+                  INSERT INTO irdb_index_fts(irdb_index_fts, rowid, searchBlob, brand, device, function)
+                  VALUES('delete', old.rowid, old.searchBlob, old.brand, old.device, old.function);
+                  INSERT INTO irdb_index_fts(rowid, searchBlob, brand, device, function)
+                  VALUES (new.rowid, new.searchBlob, new.brand, new.device, new.function);
+                END
+                """.trimIndent()
+            )
+        }
+    }
+
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_4_5,
         MIGRATION_5_6,
@@ -91,7 +140,8 @@ object DatabaseMigrations {
         MIGRATION_7_8,
         MIGRATION_8_9,
         MIGRATION_9_10,
-        MIGRATION_10_11
+        MIGRATION_10_11,
+        MIGRATION_11_12
     )
 
     /**

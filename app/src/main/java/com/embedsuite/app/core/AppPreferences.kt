@@ -35,9 +35,17 @@ class AppPreferences(context: Context) {
     private val _developerMode = MutableStateFlow(prefs.getBoolean(KEY_DEVELOPER_MODE, false))
     val developerMode: StateFlow<Boolean> = _developerMode.asStateFlow()
 
+    private val _themeMode = MutableStateFlow(ThemeMode.fromPref(prefs.getString(KEY_THEME_MODE, ThemeMode.OBSCURO.prefValue)))
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
     fun setDeveloperMode(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_DEVELOPER_MODE, enabled).apply()
         _developerMode.value = enabled
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putString(KEY_THEME_MODE, mode.prefValue).apply()
+        _themeMode.value = mode
     }
 
     var splashShown: Boolean
@@ -175,5 +183,6 @@ class AppPreferences(context: Context) {
         private const val KEY_FIRMWARE_PROFILE = "firmware_profile"
         private const val KEY_AUDIT_MODE = "audit_mode_enabled_v430"
         private const val KEY_DEVELOPER_MODE = "developer_mode"
+        private const val KEY_THEME_MODE = "theme_mode"
     }
 }

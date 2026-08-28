@@ -9,9 +9,8 @@ class IrdbRepository(
     suspend fun indexedCount(): Int = dao.count()
 
     suspend fun search(query: String): List<IrdbEntryEntity> {
-        val q = query.trim().lowercase()
-        if (q.length < 2) return emptyList()
-        return dao.search(q)
+        val ftsQuery = buildFtsQuery(query) ?: return emptyList()
+        return dao.search(ftsQuery)
     }
 
     suspend fun getByPath(path: String): IrdbEntryEntity? = dao.getByPath(path)
@@ -42,5 +41,19 @@ class IrdbRepository(
         }
         dao.insertAll(batch)
         batch.size
+    }
+
+    companion object {
+        /** Builds an FTS4 MATCH query with prefix tokens (min 2 chars each). */
+        internal fun buildFtsQuery(raw: String): String? {
+            val tokens = raw.trim().lowercase()
+                .split(Regex("\\s+"))
+                .map { it.replace("\"", "\"\"") }
+                .filter { it.length >= 2 }
+            if (tokens.isEmpty()) return null
+            return tokens.joinToString(" ") { token ->
+                if (token.any { !it.isLetterOrDigit() && it != '_' }) "\"$token\"*" else "$token*"
+            }
+        }
     }
 }

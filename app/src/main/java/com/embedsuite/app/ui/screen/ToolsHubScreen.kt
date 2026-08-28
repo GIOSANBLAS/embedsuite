@@ -69,6 +69,7 @@ fun ToolsHubScreen(
     isRootTab: Boolean = false
 ) {
     val tools = listOf(
+        ToolEntry("Flash Bruce", "USB · releases oficiales o .bin custom", "firmware_flash", Icons.Default.SystemUpdate),
         ToolEntry("Capturar Sub-GHz", "Async · forma de onda · replay", "subghz_analyzer", Icons.Default.GraphicEq),
         ToolEntry("BadUSB", "Bloques visuales → pipeline automático", "badusb_forge", Icons.Default.Usb),
         ToolEntry("Buscar IR", "IRDB · ir tx_from_file", "ir_search", Icons.Default.Search),

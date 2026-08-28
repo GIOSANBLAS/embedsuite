@@ -44,6 +44,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import java.io.File
 import com.embedsuite.app.core.bruce.BruceCli
 import com.embedsuite.app.core.bruce.BruceCliCaptureParser
+import com.embedsuite.app.core.bruce.BruceCliSystemParser
 import com.embedsuite.app.rf.RfLineParser
 import org.json.JSONObject
 
@@ -531,6 +532,12 @@ class DeviceConnectionManager(
         var gotData = false
         bruceLinkClient.getInfo(transport).onSuccess { device ->
             gotData = true
+            val batteryLabel = device.battery?.let { bat ->
+                BruceCliSystemParser.formatBattery(
+                    bat.percentage,
+                    bat.voltage.takeIf { it > 0.0 }
+                )
+            }
             info = info.copy(
                 firmware = "${device.product} v${device.version} (${device.codename})",
                 codename = device.codename,
@@ -538,8 +545,7 @@ class DeviceConnectionManager(
                 profile = FirmwareProfile.BRUCE,
                 brucePlugins = device.plugins,
                 hardening = device.hardening,
-                battery = device.battery?.let { "${it.percentage}% · ${"%.2f".format(it.voltage)}V" }
-                    ?: info.battery,
+                battery = batteryLabel ?: info.battery,
                 sdMounted = when (device.sdStatus) {
                     "mounted" -> "OK"
                     "error" -> "MISSING"
@@ -592,10 +598,17 @@ class DeviceConnectionManager(
                     append("${it / 1024} KB PSRAM")
                 }
             }
+            val sdFreeLabel = status.sdFreeBytes?.let { BruceCliSystemParser.formatBytes(it) }.orEmpty()
             info = info.copy(
                 uptime = String.format("%02d:%02d:%02d", hours, mins, secs),
                 uiScreen = status.uiScreen,
-                sdMounted = if (status.sdMounted) "OK" else "MISSING",
+                sdMounted = when {
+                    sdFreeLabel.isNotBlank() -> "OK"
+                    status.sdMounted -> "OK"
+                    else -> "MISSING"
+                },
+                sdFreeSpace = sdFreeLabel,
+                sdFreeBytes = status.sdFreeBytes,
                 profile = FirmwareProfile.BRUCE,
                 simFlags = status.sim,
                 bruceCapabilities = status.capabilities,
@@ -631,6 +644,8 @@ class DeviceConnectionManager(
             temperatureC = "",
             uptime = "",
             freeHeap = "",
+            sdFreeSpace = "",
+            sdFreeBytes = null,
             channel = "USB"
         )
         _events.tryEmit(DeviceEvent.SystemInfoUpdate(_systemInfo.value))
@@ -647,6 +662,8 @@ class DeviceConnectionManager(
             temperatureC = "",
             uptime = "",
             freeHeap = "",
+            sdFreeSpace = "",
+            sdFreeBytes = null,
             channel = detail.ifBlank { _activeTransportType.value.name }
         )
         _events.tryEmit(DeviceEvent.SystemInfoUpdate(_systemInfo.value))
@@ -841,7 +858,7 @@ class DeviceConnectionManager(
             pct != null && charge != null -> "$pct · $charge"
             pct != null -> pct
             charge != null -> charge
-            else -> null
+            else -> status.batteryPct?.let { BruceCliSystemParser.formatBattery(it) }
         }
     }
 

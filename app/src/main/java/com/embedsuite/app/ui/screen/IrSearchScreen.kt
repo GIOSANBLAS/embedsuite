@@ -29,7 +29,7 @@ fun IrSearchScreen(viewModel: IrSearchViewModel, onBack: () -> Unit) {
             Text("BUSCADOR IR", color = MatrixGreen, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 11.sp)
         }
         Text(
-            "IRDB local · selecciona → upload WiFi → ir tx_from_file",
+            "IRDB local · FTS index · upload WiFi → ir tx_from_file",
             color = TextMuted,
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp

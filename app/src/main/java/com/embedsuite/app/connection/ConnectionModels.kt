@@ -33,6 +33,8 @@ data class SystemInfo(
     val channel: String = "",
     val uiScreen: String = "",
     val sdMounted: String = "",
+    val sdFreeSpace: String = "",
+    val sdFreeBytes: Long? = null,
     val profile: FirmwareProfile = FirmwareProfile.UNKNOWN,
     val brucePlugins: List<TehLinkPluginInfo> = emptyList(),
     /** Subsistemas en modo simulación (TEH-Link get_status.sim). Vacío = desconocido. */

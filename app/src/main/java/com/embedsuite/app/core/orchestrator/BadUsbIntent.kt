@@ -37,6 +37,57 @@ data class BadUsbIntent(
     }
 }
 
+/** Escapes STRING payloads for round-trip safe DuckyScript compilation. */
+object DuckyStringEscaper {
+
+    private val NEEDS_QUOTE = Regex("""[\u0000-\u001F"\\]|^\s|\s$""")
+
+    fun escape(text: String): String {
+        if (text.isEmpty()) return "\"\""
+        if (!NEEDS_QUOTE.containsMatchIn(text)) return text
+        return buildString(text.length + 4) {
+            append('"')
+            text.forEach { ch ->
+                when (ch) {
+                    '\\' -> append("\\\\")
+                    '"' -> append("\\\"")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> append(ch)
+                }
+            }
+            append('"')
+        }
+    }
+
+    fun unescape(payload: String): String {
+        val trimmed = payload.trim()
+        if (!trimmed.startsWith('"')) return trimmed
+        val sb = StringBuilder()
+        var i = 1
+        while (i < trimmed.length) {
+            val ch = trimmed[i]
+            if (ch == '\\' && i + 1 < trimmed.length) {
+                when (trimmed[i + 1]) {
+                    'n' -> sb.append('\n')
+                    'r' -> sb.append('\r')
+                    't' -> sb.append('\t')
+                    '"', '\\' -> sb.append(trimmed[i + 1])
+                    else -> sb.append(trimmed[i + 1])
+                }
+                i += 2
+            } else if (ch == '"') {
+                break
+            } else {
+                sb.append(ch)
+                i++
+            }
+        }
+        return sb.toString()
+    }
+}
+
 sealed class DuckyBlock {
     abstract fun compile(): String
 
@@ -49,7 +100,14 @@ sealed class DuckyBlock {
     }
 
     data class StringText(val text: String) : DuckyBlock() {
-        override fun compile() = "STRING $text"
+        override fun compile(): String {
+            if (text.contains('\n')) {
+                return text.split('\n').joinToString("\n") { line ->
+                    if (line.isEmpty()) "ENTER" else "STRING ${DuckyStringEscaper.escape(line)}"
+                }
+            }
+            return "STRING ${DuckyStringEscaper.escape(text)}"
+        }
     }
 
     data class KeyPress(val key: Key) : DuckyBlock() {
@@ -71,26 +129,63 @@ sealed class DuckyBlock {
         fun compile(blocks: List<DuckyBlock>): String =
             blocks.joinToString("\n") { it.compile() }
 
-        fun parse(script: String): List<DuckyBlock> =
-            script.lineSequence()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .map { line ->
-                    when {
-                        line.startsWith("REM", ignoreCase = true) ->
-                            Comment(line.removePrefix("REM").trim())
-                        line.startsWith("DELAY", ignoreCase = true) ->
-                            Delay(line.substringAfter(' ').trim().toIntOrNull() ?: 0)
-                        line.startsWith("STRING", ignoreCase = true) ->
-                            StringText(line.removePrefix("STRING").trim())
-                        else -> {
-                            val tok = line.substringBefore(' ').uppercase()
-                            Key.entries.find { it.token == tok }?.let { KeyPress(it) }
-                                ?: StringText(line)
+        fun parse(script: String): List<DuckyBlock> {
+            val lines = script.lineSequence().map { it.trimEnd() }.toList()
+            val blocks = mutableListOf<DuckyBlock>()
+            var i = 0
+            while (i < lines.size) {
+                val line = lines[i].trim()
+                if (line.isEmpty()) {
+                    i++
+                    continue
+                }
+                when {
+                    line.startsWith("REM", ignoreCase = true) -> {
+                        blocks += Comment(line.substring(3).trimStart())
+                        i++
+                    }
+                    line.startsWith("DELAY", ignoreCase = true) -> {
+                        blocks += Delay(line.substringAfter(' ', "").trim().toIntOrNull() ?: 0)
+                        i++
+                    }
+                    line.startsWith("STRING", ignoreCase = true) -> {
+                        val payload = line.substring(6).trimStart()
+                        blocks += StringText(DuckyStringEscaper.unescape(payload))
+                        i++
+                    }
+                    line.startsWith("REPEAT", ignoreCase = true) -> {
+                        val count = line.substringAfter(' ', "1").trim().toIntOrNull() ?: 1
+                        val inner = mutableListOf<DuckyBlock>()
+                        i++
+                        while (i < lines.size) {
+                            val innerLine = lines[i].trim()
+                            if (innerLine.equals("END_REPEAT", ignoreCase = true)) {
+                                i++
+                                break
+                            }
+                            if (innerLine.isNotEmpty()) {
+                                parse(innerLine).forEach { inner += it }
+                            }
+                            i++
                         }
+                        blocks += Repeat(count, inner)
+                    }
+                    else -> {
+                        val tokens = line.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                        val keys = tokens.mapNotNull { tok ->
+                            Key.entries.find { it.token.equals(tok, ignoreCase = true) }
+                        }
+                        when {
+                            keys.size == tokens.size && keys.size > 1 -> blocks += Combo(keys)
+                            keys.size == 1 && tokens.size == 1 -> blocks += KeyPress(keys.first())
+                            else -> blocks += StringText(line)
+                        }
+                        i++
                     }
                 }
-                .toList()
+            }
+            return blocks
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package com.embedsuite.app.connection
 
 import com.embedsuite.app.core.bruce.BruceCli
+import com.embedsuite.app.core.bruce.BruceCliSystemParser
 import com.embedsuite.app.core.bruce.BruceGatt
 import com.embedsuite.app.core.bruce.BruceLimits
 import kotlinx.coroutines.CoroutineScope
@@ -32,20 +33,20 @@ class BruceLinkClient(
     suspend fun getInfo(transport: TEmbedTransport): Result<TehLinkDeviceInfo> {
         if (!transport.isConnected) return notConnected()
         val response = sendCli(transport, "info", 5_000L).getOrElse { return Result.failure(it) }
+        val parsed = BruceCliSystemParser.parseInfo(response)
         val batteryPct = readBatteryPercent(transport)
-        val version = parseBruceVersion(response)
-        val sdMounted = response.contains("SD", ignoreCase = true)
+        val sdMounted = parsed.sdMentioned || !response.contains("No SD", ignoreCase = true)
         return Result.success(
             TehLinkDeviceInfo(
                 product = "Bruce",
-                version = version,
+                version = parsed.version.ifBlank { parseBruceVersion(response) },
                 codename = "bruce",
                 channel = transport.type.name.lowercase(),
                 proto = "bruce-cli",
                 protoVer = 0,
                 plugins = emptyList(),
-                hardware = parseDeviceName(response).ifBlank { "T-Embed CC1101 Plus" },
-                firmware = version,
+                hardware = parsed.deviceName.ifBlank { parseDeviceName(response).ifBlank { "T-Embed CC1101 Plus" } },
+                firmware = parsed.version.ifBlank { parseBruceVersion(response) },
                 battery = batteryPct?.let { TehLinkBatteryInfo(percentage = it) },
                 sdStatus = if (sdMounted) "mounted" else "unknown"
             )
@@ -57,16 +58,20 @@ class BruceLinkClient(
         val batteryPct = readBatteryPercent(transport)
         val uptimeLine = sendCli(transport, "uptime", 2_500L).getOrNull().orEmpty()
         val freeLine = sendCli(transport, "free", 2_500L).getOrNull().orEmpty()
+        val sdLine = sendCli(transport, "storage free sd", 2_500L).getOrNull().orEmpty()
+        val freeParsed = BruceCliSystemParser.parseFree(freeLine)
+        val sdParsed = BruceCliSystemParser.parseSdFree(sdLine)
         return Result.success(
             TehLinkDeviceStatus(
-                sdMounted = false,
+                sdMounted = sdParsed.mounted,
                 flashMounted = true,
                 uiScreen = "Bruce (local)",
                 uptimeMs = parseUptimeMs(uptimeLine),
                 sim = emptyMap(),
                 batteryPct = batteryPct,
-                heapFreeBytes = parseFreeHeap(freeLine),
-                psramFreeBytes = parseFreePsram(freeLine)
+                heapFreeBytes = freeParsed.heapFreeBytes,
+                psramFreeBytes = freeParsed.psramFreeBytes,
+                sdFreeBytes = sdParsed.freeBytes
             )
         )
     }
@@ -331,8 +336,12 @@ class BruceLinkClient(
     suspend fun sdStatus(transport: TEmbedTransport): Result<JSONObject> {
         if (!transport.isConnected) return notConnected()
         return sendCli(transport, "storage free sd").map { line ->
+            val parsed = BruceCliSystemParser.parseSdFree(line)
             JSONObject()
-                .put("mounted", !line.contains("No SD", ignoreCase = true))
+                .put("mounted", parsed.mounted)
+                .put("free_bytes", parsed.freeBytes ?: JSONObject.NULL)
+                .put("used_bytes", parsed.usedBytes ?: JSONObject.NULL)
+                .put("total_bytes", parsed.totalBytes ?: JSONObject.NULL)
                 .put("raw", line)
         }
     }
@@ -610,12 +619,6 @@ class BruceLinkClient(
         val (h, m, s) = match.destructured
         return (h.toLong() * 3600 + m.toLong() * 60 + s.toLong()) * 1000L
     }
-
-    private fun parseFreeHeap(line: String): Long? =
-        Regex("Free heap:\\s*(\\d+)").find(line)?.groupValues?.get(1)?.toLongOrNull()
-
-    private fun parseFreePsram(line: String): Long? =
-        Regex("Free PSRAM:\\s*(\\d+)").find(line)?.groupValues?.get(1)?.toLongOrNull()
 
     private fun timeoutFor(action: String): Long = when (action) {
         "capture_start", "rx_start", "read" -> 20_000L

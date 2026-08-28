@@ -1,0 +1,57 @@
+#!/bin/bash
+# Pre-commit hook: Valida que CHANGELOG_APP.md se actualice con cambios relevantes
+
+CHANGELOG_FILE="CHANGELOG_APP.md"
+STAGED_FILES=$(git diff --cached --name-only)
+STAGED_CONTENT=$(git diff --cached)
+
+# Obtener el último versionName/versionCode del build.gradle.kts
+VERSION_IN_GRADLE=$(grep -E 'versionName|versionCode' app/build.gradle.kts | grep versionName | sed 's/.*"\(.*\)".*/\1/')
+
+# Obtener el versionName en el changelog
+CURRENT_CHANGELOG_VERSION=$(grep "^## v" CHANGELOG_APP.md | head -1 | sed 's/## v\([^ ]*\).*/\1/')
+
+# Palabras clave que indican cambios importantes
+KEYWORDS=("feat:" "fix:" "refactor:" "perf:" "docs:" "style:" "test:" "chore:" "Evil Portal" "Beacon Spam" "Auditoría")
+HAS_IMPORTANT_CHANGE=false
+
+# Verificar si hay cambios relevantes en el commit
+for keyword in "${KEYWORDS[@]}"; do
+    if echo "$STAGED_CONTENT" | grep -i "^[+-].*$keyword" > /dev/null; then
+        HAS_IMPORTANT_CHANGE=true
+        break
+    fi
+done
+
+# Verificar cambios en build.gradle.kts (versión, dependencias)
+if echo "$STAGED_FILES" | grep -E "build.gradle.kts|gradle.properties|libs.versions.toml" > /dev/null; then
+    HAS_IMPORTANT_CHANGE=true
+fi
+
+# Si hay cambios importantes y la versión en gradle NO coincide con el changelog
+if [ "$HAS_IMPORTANT_CHANGE" = true ] && [ "$VERSION_IN_GRADLE" != "$CURRENT_CHANGELOG_VERSION" ]; then
+    echo "⚠️  AVISO PRE-COMMIT:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Detectamos cambios importantes pero CHANGELOG_APP.md no se actualizó:"
+    echo ""
+    echo "📦 Versión en build.gradle.kts: $VERSION_IN_GRADLE"
+    echo "📝 Versión en CHANGELOG_APP.md:  $CURRENT_CHANGELOG_VERSION"
+    echo ""
+    echo "Archivos con cambios importantes:"
+    git diff --cached --name-only | sed 's/^/  • /'
+    echo ""
+    echo "Por favor, actualiza CHANGELOG_APP.md con los cambios."
+    echo "Luego ejecuta: git add CHANGELOG_APP.md && git commit --amend --no-edit"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    exit 1
+fi
+
+# Si solo es documentación, permitir sin validar changelog
+if echo "$STAGED_FILES" | grep -vE "CHANGELOG_APP.md|README.md|docs/" > /dev/null; then
+    if [ "$HAS_IMPORTANT_CHANGE" = true ] && [ "$VERSION_IN_GRADLE" != "$CURRENT_CHANGELOG_VERSION" ]; then
+        exit 1
+    fi
+fi
+
+exit 0

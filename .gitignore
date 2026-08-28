@@ -1,0 +1,38 @@
+*.iml
+.gradle
+/local.properties
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+keystore.properties
+keystore.password.txt
+*.jks
+*.keystore
+*.apk
+crash_logs/
+
+# IDE / local tooling
+.idea/
+.kotlin/
+
+# Build outputs (all modules)
+/build
+**/build/
+*.class
+
+# Logs
+*.log
+build_*.log
+gradle_stdout.log
+stderr.log
+stdout.log
+GRADLE_BG.log
+compile_errors.log
+
+# Local installer scripts (machine-specific)
+1_INSTALAR_*.bat
+
+# Auth tokens from local TEH-Link pair tests
+.teh_auth

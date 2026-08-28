@@ -1,5 +1,7 @@
 package com.embedsuite.app.ui.screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,6 +26,21 @@ import com.embedsuite.app.ui.viewmodel.SubGhzAnalyzerViewModel
 fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
     val sub = state.capturedSignal?.flipperSub
+    val context = LocalContext.current
+
+    val importSubLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            val text = context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.bufferedReader().readText()
+            }.orEmpty()
+            viewModel.loadSubFromText(text)
+        }.onFailure { err ->
+            viewModel.reportImportError(err.message ?: "No se pudo leer el archivo")
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().background(BlackAMOLED).padding(12.dp).verticalScroll(rememberScrollState())
@@ -51,17 +69,26 @@ fun SubGhzAnalyzerScreen(viewModel: SubGhzAnalyzerViewModel, onBack: () -> Unit)
             colors = SliderDefaults.colors(thumbColor = MatrixGreen, activeTrackColor = MatrixGreen)
         )
 
-        Button(
-            onClick = viewModel::capture,
-            enabled = !state.busy,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen.copy(alpha = 0.2f))
-        ) {
-            if (state.busy) {
-                CircularProgressIndicator(Modifier.size(18.dp), color = MatrixGreen, strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = viewModel::capture,
+                enabled = !state.busy,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = MatrixGreen.copy(alpha = 0.2f))
+            ) {
+                if (state.busy) {
+                    CircularProgressIndicator(Modifier.size(18.dp), color = MatrixGreen, strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("CAPTURAR", fontFamily = FontFamily.Monospace, fontSize = 10.sp)
             }
-            Text("CAPTURAR (subghz rx)", fontFamily = FontFamily.Monospace)
+            OutlinedButton(
+                onClick = { importSubLauncher.launch(arrayOf("*/*")) },
+                enabled = !state.busy,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("IMPORTAR .sub", fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+            }
         }
 
         state.subParseError?.let { err ->

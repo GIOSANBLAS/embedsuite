@@ -84,6 +84,10 @@ class SubGhzAnalyzerViewModel(
     }
 
     fun loadSubFromText(content: String) {
+        if (content.isBlank()) {
+            _state.value = _state.value.copy(subParseError = "Archivo .sub vacío")
+            return
+        }
         runCatching {
             val parsed = SubFileParser.parseFlipperSub(content)
             val signal = CapturedSignal(parsed)
@@ -97,6 +101,10 @@ class SubGhzAnalyzerViewModel(
         }.onFailure { err ->
             _state.value = _state.value.copy(subParseError = err.message ?: "Parse .sub falló")
         }
+    }
+
+    fun reportImportError(message: String) {
+        _state.value = _state.value.copy(subParseError = message)
     }
 
     private fun mutateSub(transform: (FlipperSubFile) -> FlipperSubFile) {

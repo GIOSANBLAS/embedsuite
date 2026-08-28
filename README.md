@@ -51,7 +51,8 @@ Ver [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md).
 |----------|-----|
 | EmbedSuite | https://github.com/GIOSANBLAS/embedsuite |
 | Bruce firmware | https://github.com/BruceDevices/firmware |
-| Bruce App (referencia) | https://github.com/BruceDevices/App |
+
+EmbedSuite es un companion **independiente**: no replica la UI del dispositivo ni está basado en otras apps Android del ecosistema Bruce.
 
 ---
 

@@ -29,10 +29,11 @@ gradle_stdout.log
 stderr.log
 stdout.log
 GRADLE_BG.log
+buildbg.out
+buildbg.err
 compile_errors.log
 
 # Local installer scripts (machine-specific)
 1_INSTALAR_*.bat
 
-# Auth tokens from local TEH-Link pair tests
 .teh_auth

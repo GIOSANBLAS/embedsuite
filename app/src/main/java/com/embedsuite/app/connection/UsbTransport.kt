@@ -21,7 +21,7 @@ class UsbTransport(
             if (line.isNotBlank()) _incoming.tryEmit(line)
         },
         onBinaryPacket = {
-            // Paquetes 0xAA = framebuffer Bruce App — descartados (companion sin espejo).
+            // Paquetes 0xAA = framebuffer remoto — descartados (companion sin espejo).
         }
     )
 

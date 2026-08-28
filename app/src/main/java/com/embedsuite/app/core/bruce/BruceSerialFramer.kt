@@ -2,7 +2,7 @@ package com.embedsuite.app.core.bruce
 
 /**
  * Separa líneas de texto CLI de paquetes binarios 0xAA (display/log del firmware Bruce).
- * Inspirado en la lógica de transporte serial del proyecto oficial Bruce App — sin espejo TFT.
+ * Framing serial para la CLI Bruce documentada — sin espejo TFT.
  */
 class BruceSerialFramer(
     private val onLine: (String) -> Unit,
